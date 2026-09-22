@@ -6,28 +6,32 @@
     <ChildContent>
         @if (!_isEditorActive)
         {
-            <div class="stack g-4 items-center" style="padding:var(--sp-2) 0">
+            <div class="avatar-modal-body">
                 @if (!string.IsNullOrEmpty(CurrentAvatarUrl))
                 {
-                    <div style="position:relative">
-                        <img src="@CurrentAvatarUrl" alt="Current avatar" class="avatar avatar-xl" style="width:110px;height:110px;box-shadow:var(--shadow-card)" />
+                    <div class="avatar-current-wrap">
+                        <img src="@CurrentAvatarUrl" alt="Current avatar" class="avatar avatar-xl" style="width:96px;height:96px;box-shadow:var(--shadow-card);border:3px solid var(--surface);object-fit:cover" />
+                        <span class="t-caption t-subtle">Current photo</span>
                     </div>
                 }
 
-                <label class="avatar-upload-zone" for="avatarFileInput" style="width:100%;max-width:340px">
-                    <div class="icon-tile" style="width:52px;height:52px;border-radius:var(--r-pill);background:var(--primary-soft)">
-                        <SapIcon Name="camera" Size="26" />
+                <label class="avatar-upload-zone" for="avatarFileInput">
+                    <div class="avatar-upload-icon">
+                        <SapIcon Name="camera" Size="28" />
                     </div>
                     <div class="stack g-1 items-center text-center">
-                        <span style="font-weight:600;font-size:14px">Choose a new photo</span>
-                        <span class="t-caption t-subtle">PNG, JPG or WEBP · Instant local crop</span>
+                        <span style="font-weight:600;font-size:15px;color:var(--ink)">Choose a photo</span>
+                        <span class="t-caption t-subtle" style="font-size:12.5px">PNG, JPG or WEBP · Drag and drop or browse</span>
                     </div>
+                    <span class="btn btn-secondary btn-sm" style="pointer-events:none;margin-top:var(--sp-1);padding:0 var(--sp-4)">
+                        Browse files
+                    </span>
                     <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="window.sapling.avatarEditor.handleFileInput(this)" />
                 </label>
 
                 @if (!string.IsNullOrEmpty(CurrentAvatarUrl))
                 {
-                    <button type="button" class="btn btn-ghost btn-sm t-error" @onclick="RemovePhotoAsync" disabled="@_isSaving">
+                    <button type="button" class="btn btn-ghost btn-sm t-error" @onclick="RemovePhotoAsync" disabled="@_isSaving" style="margin-top:var(--sp-1)">
                         <SapIcon Name="trash" Size="14" />
                         Remove current photo
                     </button>
@@ -40,24 +44,24 @@
                 <canvas id="avatarCropCanvas" class="avatar-crop-canvas" width="300" height="300" style="width:300px;height:300px;max-width:100%"></canvas>
 
                 <div class="avatar-crop-controls" style="margin-top:var(--sp-2)">
-                    <button type="button" class="btn btn-ghost btn-icon btn-sm" @onclick="() => ZoomDeltaAsync(-0.15)" title="Zoom out">
+                    <button type="button" class="btn btn-ghost btn-icon btn-sm" @onclick="() => ZoomDeltaAsync(-0.15)" title="Zoom out" aria-label="Zoom out">
                         <SapIcon Name="zoom-out" Size="16" />
                     </button>
                     <input type="range" min="0" max="100" value="@_zoomPercent" @oninput="OnZoomSliderInput" class="zoom-track" aria-label="Zoom level" />
-                    <button type="button" class="btn btn-ghost btn-icon btn-sm" @onclick="() => ZoomDeltaAsync(0.15)" title="Zoom in">
+                    <button type="button" class="btn btn-ghost btn-icon btn-sm" @onclick="() => ZoomDeltaAsync(0.15)" title="Zoom in" aria-label="Zoom in">
                         <SapIcon Name="zoom-in" Size="16" />
                     </button>
                 </div>
 
-                <div class="row g-2 items-center" style="margin-top:var(--sp-1)">
-                    <button type="button" class="btn btn-ghost btn-sm" @onclick="RotateAsync" title="Rotate clockwise">
+                <div class="row g-2 center" style="margin-top:var(--sp-1)">
+                    <button type="button" class="btn btn-secondary btn-sm" @onclick="RotateAsync" title="Rotate clockwise">
                         <SapIcon Name="rotate-cw" Size="14" />
                         Rotate
                     </button>
-                    <button type="button" class="btn btn-ghost btn-sm" @onclick="ResetAsync" title="Reset view">
+                    <button type="button" class="btn btn-secondary btn-sm" @onclick="ResetAsync" title="Reset view">
                         Reset
                     </button>
-                    <label class="btn btn-ghost btn-sm" for="changeAvatarInput" style="cursor:pointer">
+                    <label class="btn btn-secondary btn-sm" for="changeAvatarInput" style="cursor:pointer">
                         <SapIcon Name="upload" Size="14" />
                         Change file
                         <input type="file" id="changeAvatarInput" accept="image/*" style="display:none" onchange="window.sapling.avatarEditor.handleFileInput(this)" />

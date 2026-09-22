@@ -12,6 +12,7 @@
     <div class="stack g-1">
         <h3>Create your account</h3>
         <span class="t-small t-subtle">Three short steps and you will have a score.</span>
+        <span class="t-caption t-subtle" style="font-size:12px;margin-top:2px">Fields marked with <span class="req">*</span> are required</span>
     </div>
 
     @if (_error is not null)
@@ -23,13 +24,13 @@
     }
 
     <div class="field">
-        <label for="email">Email</label>
+        <label for="email">Email <span class="req" aria-hidden="true">*</span></label>
         <input id="email" class="input" type="email" inputmode="email" autocomplete="username"
                placeholder="you@college.ac.in" value="@_email" @oninput="OnEmailInput" />
     </div>
 
     <div class="field">
-        <label for="password">Password</label>
+        <label for="password">Password <span class="req" aria-hidden="true">*</span></label>
         <input id="password" class="input" type="password" autocomplete="new-password"
                @bind="_password" @bind:event="oninput" />
         <span class="field-hint">At least 8 characters, with one uppercase letter and one digit.</span>

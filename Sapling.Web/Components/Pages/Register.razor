@@ -16,6 +16,7 @@
     <div class="stack g-1">
         <h3>Create your account</h3>
         <span class="t-small t-subtle">Three short steps and you will have a score.</span>
+        <span class="t-caption t-subtle" style="font-size:12px;margin-top:2px">Fields marked with <span class="req">*</span> are required</span>
     </div>
 
     @if (_errors.Count > 0)
@@ -33,25 +34,25 @@
 
         <div class="grid grid-2">
             <div class="field">
-                <label for="firstName">First name</label>
+                <label for="firstName">First name <span class="req" aria-hidden="true">*</span></label>
                 <InputText id="firstName" class="input" @bind-Value="Input.FirstName" autocomplete="given-name" />
                 <ValidationMessage For="() => Input.FirstName" class="field-error" />
             </div>
             <div class="field">
-                <label for="lastName">Last name</label>
+                <label for="lastName">Last name <span class="req" aria-hidden="true">*</span></label>
                 <InputText id="lastName" class="input" @bind-Value="Input.LastName" autocomplete="family-name" />
                 <ValidationMessage For="() => Input.LastName" class="field-error" />
             </div>
         </div>
 
         <div class="field">
-            <label for="email">Email</label>
+            <label for="email">Email <span class="req" aria-hidden="true">*</span></label>
             <InputText id="email" class="input" @bind-Value="Input.Email" autocomplete="username" placeholder="you@college.ac.in" />
             <ValidationMessage For="() => Input.Email" class="field-error" />
         </div>
 
         <div class="field">
-            <label for="password">Password</label>
+            <label for="password">Password <span class="req" aria-hidden="true">*</span></label>
             <InputText id="password" type="password" class="input" @bind-Value="Input.Password" autocomplete="new-password" />
             <span class="field-hint">At least 8 characters, with one uppercase letter and one digit.</span>
             <ValidationMessage For="() => Input.Password" class="field-error" />

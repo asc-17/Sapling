@@ -73,13 +73,13 @@
             <ChildContent>
                 <div class="stack g-4" style="min-width:320px;max-width:540px">
                     <div class="field">
-                        <label for="editName">Full name</label>
+                        <label for="editName">Full name <span class="req" aria-hidden="true">*</span></label>
                         <input id="editName" class="input" type="text" @bind="_editFullName" />
                     </div>
 
                     <div class="field" style="position:relative">
                         <div class="row between items-center">
-                            <label for="editCollege">College</label>
+                            <label for="editCollege">College <span class="req" aria-hidden="true">*</span></label>
                             <span class="t-caption t-subtle" style="font-size:11px">Auto-fills state &amp; city</span>
                         </div>
                         <CollegeAutocomplete Id="editCollege"
@@ -120,7 +120,7 @@
 
                     <div class="grid grid-2">
                         <div class="field">
-                            <label for="editBranch">Branch / Specialisation</label>
+                            <label for="editBranch">Branch / Specialisation <span class="req" aria-hidden="true">*</span></label>
                             <input id="editBranch" class="input" type="text" @bind="_editBranch" />
                         </div>
                         <div class="field">
@@ -348,6 +348,12 @@
         if (string.IsNullOrWhiteSpace(_editCollege))
         {
             _saveError = "Please select or enter your college.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_editBranch))
+        {
+            _saveError = "Please enter your branch / specialisation.";
             return;
         }
 
