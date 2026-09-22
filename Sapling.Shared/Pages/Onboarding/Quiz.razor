@@ -4,7 +4,7 @@
 @inject IProfileService Profiles
 @inject NavigationManager Nav
 
-<PageTitle>Interest check Â· Sapling</PageTitle>
+<PageTitle>Interest check · Sapling</PageTitle>
 
 <div class="stack g-5" style="max-width:640px;margin-inline:auto">
     <OnboardingSteps Current="3" />
@@ -39,13 +39,28 @@
                 }
             </div>
 
-            @if (_index > 0)
-            {
-                <button type="button" class="btn btn-ghost btn-sm" style="align-self:flex-start" @onclick="Back">
-                    <SapIcon Name="chevron-left" Size="15" />
-                    Previous
+            <div class="row between g-3">
+                <div class="row g-2">
+                    @if (_index > 0)
+                    {
+                        <button type="button" class="btn btn-ghost btn-sm" @onclick="Back">
+                            <SapIcon Name="chevron-left" Size="15" />
+                            Previous
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-ghost btn-sm" @onclick="GoBackToSkills">
+                            <SapIcon Name="chevron-left" Size="15" />
+                            Back
+                        </button>
+                    }
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" disabled="@_skipping" @onclick="SkipAsync">
+                    Skip
+                    <SapIcon Name="chevron-right" Size="15" />
                 </button>
-            }
+            </div>
         </div>
     }
 </div>
@@ -63,6 +78,7 @@
     private List<QuizQuestionDto> _questions = [];
     private readonly Dictionary<int, int> _answers = [];
     private int _index;
+    private bool _skipping;
 
     protected override async Task OnInitializedAsync() =>
         _questions = [.. await QuizService.GetQuestionsAsync()];
@@ -84,4 +100,13 @@
     }
 
     private void Back() => _index = Math.Max(0, _index - 1);
+
+    private void GoBackToSkills() => Nav.NavigateTo("/onboarding/skills");
+
+    private async Task SkipAsync()
+    {
+        _skipping = true;
+        await Profiles.CompleteOnboardingAsync();
+        Nav.NavigateTo("/score?reveal=true");
+    }
 }

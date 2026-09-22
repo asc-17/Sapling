@@ -15,9 +15,17 @@ public static class DemoSeeder
         var db = scope.ServiceProvider.GetRequiredService<SaplingDbContext>();
         await db.Database.EnsureCreatedAsync();
 
+        // Ensure State column exists in StudentProfiles table on SQLite
+        await EnsureSchemaColumnsAsync(db);
+
         if (!await db.Skills.AnyAsync())
         {
             await SeedCatalogueAsync(db);
+        }
+        else
+        {
+            // Ensure any new catalogue skills are added to an existing DB.
+            await EnsureSkillCatalogueAsync(db);
         }
 
         var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
@@ -27,33 +35,140 @@ public static class DemoSeeder
         }
     }
 
+    /// <summary>Ensures any missing columns (such as State) are added to existing SQLite database.</summary>
+    private static async Task EnsureSchemaColumnsAsync(SaplingDbContext db)
+    {
+        try
+        {
+            var existingCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var conn = db.Database.GetDbConnection();
+            var shouldClose = conn.State != System.Data.ConnectionState.Open;
+            if (shouldClose)
+            {
+                await conn.OpenAsync();
+            }
+
+            try
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info(StudentProfiles);";
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    existingCols.Add(reader.GetString(1));
+                }
+
+                if (!existingCols.Contains("State"))
+                {
+                    using var alterCmd = conn.CreateCommand();
+                    alterCmd.CommandText = "ALTER TABLE StudentProfiles ADD COLUMN State TEXT NOT NULL DEFAULT '';";
+                    await alterCmd.ExecuteNonQueryAsync();
+                }
+            }
+            finally
+            {
+                if (shouldClose)
+                {
+                    await conn.CloseAsync();
+                }
+            }
+        }
+        catch
+        {
+            // Non-SQLite or already applied
+        }
+    }
+
+    /// <summary>Adds any catalogue skills that are missing from an existing database (idempotent).</summary>
+    private static async Task EnsureSkillCatalogueAsync(SaplingDbContext db)
+    {
+        var existingNames = await db.Skills.Select(s => s.Name).ToHashSetAsync();
+        var toAdd = CatalogueSkills
+            .Where(s => !existingNames.Contains(s.Name))
+            .Select(s => new Skill { Name = s.Name, Category = s.Category })
+            .ToList();
+
+        if (toAdd.Count > 0)
+        {
+            db.Skills.AddRange(toAdd);
+            await db.SaveChangesAsync();
+        }
+    }
+
+    /// <summary>All skills that should exist in the catalogue. Called on first run and also by EnsureSkillCatalogueAsync for existing DBs.</summary>
+    private static readonly (string Name, string Category)[] CatalogueSkills =
+    [
+        // ── Programming Languages ──
+        ("Python", "Programming"), ("Java", "Programming"), ("C", "Programming"),
+        ("C++", "Programming"), ("C#", "Programming"), ("TypeScript", "Programming"),
+        ("Kotlin", "Programming"), ("Go", "Programming"), ("R", "Programming"),
+        ("PHP", "Programming"), ("Ruby", "Programming"), ("Swift", "Programming"),
+        ("Dart", "Programming"), ("MATLAB", "Programming"),
+
+        // ── Web Development ──
+        ("HTML & CSS", "Web"), ("JavaScript", "Web"), ("React", "Web"),
+        ("Angular", "Web"), ("Vue.js", "Web"), ("Next.js", "Web"),
+        ("Node.js", "Web"), ("Tailwind CSS", "Web"), ("Bootstrap", "Web"),
+
+        // ── Backend & APIs ──
+        ("REST APIs", "Backend"), ("System design", "Backend"),
+        ("Spring Boot", "Backend"), ("Django", "Backend"), ("Flask", "Backend"),
+        ("Express.js", "Backend"), (".NET", "Backend"), ("GraphQL", "Backend"),
+        ("Microservices", "Backend"),
+
+        // ── Data & Analytics ──
+        ("SQL", "Data"), ("Pandas", "Data"), ("Machine learning", "Data"),
+        ("Statistics", "Data"), ("Data visualisation", "Data"), ("Excel", "Data"),
+        ("Power BI", "Data"), ("Tableau", "Data"), ("NumPy", "Data"),
+        ("TensorFlow", "Data"), ("Deep learning", "Data"), ("NLP", "Data"),
+        ("Big Data (Spark)", "Data"),
+
+        // ── Cloud & DevOps ──
+        ("Cloud fundamentals", "Cloud"), ("Docker", "Cloud"),
+        ("Kubernetes", "Cloud"), ("AWS", "Cloud"), ("Azure", "Cloud"),
+        ("GCP", "Cloud"), ("CI/CD", "Cloud"), ("Terraform", "Cloud"),
+        ("Jenkins", "Cloud"), ("Ansible", "Cloud"),
+
+        // ── Tooling ──
+        ("Git", "Tooling"), ("Linux", "Tooling"), ("VS Code", "Tooling"),
+        ("IntelliJ", "Tooling"), ("Postman", "Tooling"), ("Jira", "Tooling"),
+        ("Figma", "Tooling"),
+
+        // ── Fundamentals ──
+        ("Data structures", "Fundamentals"), ("Algorithms", "Fundamentals"),
+        ("OOP", "Fundamentals"), ("DBMS", "Fundamentals"),
+        ("Computer networks", "Fundamentals"), ("Operating systems", "Fundamentals"),
+
+        // ── Professional Skills ──
+        ("Communication", "Professional"), ("Aptitude", "Professional"),
+        ("Leadership", "Professional"), ("Teamwork", "Professional"),
+        ("Problem solving", "Professional"), ("Time management", "Professional"),
+        ("Presentation skills", "Professional"),
+
+        // ── Quality & Testing ──
+        ("Testing", "Quality"), ("Unit testing", "Quality"), ("Selenium", "Quality"),
+        ("JUnit", "Quality"), ("Manual testing", "Quality"), ("Performance testing", "Quality"),
+
+        // ── Mobile Development ──
+        ("Android", "Mobile"), ("iOS", "Mobile"), ("Flutter", "Mobile"),
+        ("React Native", "Mobile"),
+
+        // ── Cybersecurity ──
+        ("Network security", "Cybersecurity"), ("Ethical hacking", "Cybersecurity"),
+        ("Cryptography", "Cybersecurity"),
+
+        // ── Commerce & Finance ──
+        ("Tally", "Commerce"), ("GST", "Commerce"), ("Accounting", "Commerce"),
+        ("Financial analysis", "Commerce"), ("SAP", "Commerce"),
+        ("Business analytics", "Commerce"),
+
+        // ── Government ──
+        ("General studies", "Government"),
+    ];
+
     private static async Task SeedCatalogueAsync(SaplingDbContext db)
     {
-        var skills = new[]
-        {
-            new Skill { Name = "Python", Category = "Programming" },
-            new Skill { Name = "Java", Category = "Programming" },
-            new Skill { Name = "SQL", Category = "Data" },
-            new Skill { Name = "Data structures", Category = "Fundamentals" },
-            new Skill { Name = "Git", Category = "Tooling" },
-            new Skill { Name = "HTML & CSS", Category = "Web" },
-            new Skill { Name = "JavaScript", Category = "Web" },
-            new Skill { Name = "React", Category = "Web" },
-            new Skill { Name = "REST APIs", Category = "Backend" },
-            new Skill { Name = "Cloud fundamentals", Category = "Cloud" },
-            new Skill { Name = "Docker", Category = "Cloud" },
-            new Skill { Name = "Linux", Category = "Tooling" },
-            new Skill { Name = "Pandas", Category = "Data" },
-            new Skill { Name = "Machine learning", Category = "Data" },
-            new Skill { Name = "Statistics", Category = "Data" },
-            new Skill { Name = "Data visualisation", Category = "Data" },
-            new Skill { Name = "Excel", Category = "Data" },
-            new Skill { Name = "Communication", Category = "Professional" },
-            new Skill { Name = "Aptitude", Category = "Professional" },
-            new Skill { Name = "System design", Category = "Backend" },
-            new Skill { Name = "Testing", Category = "Quality" },
-            new Skill { Name = "General studies", Category = "Government" },
-        };
+        var skills = CatalogueSkills.Select(s => new Skill { Name = s.Name, Category = s.Category }).ToArray();
         db.Skills.AddRange(skills);
         await db.SaveChangesAsync();
 
@@ -216,6 +331,7 @@ public static class DemoSeeder
             Branch = "Computer Science & Engineering",
             GraduationYear = DateTime.Today.Year,
             City = "Indore",
+            State = "Madhya Pradesh",
             Cgpa = 7.2,
             Backlogs = 0,
             PreferredLanguage = "English",

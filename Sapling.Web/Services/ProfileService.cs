@@ -18,6 +18,7 @@ public sealed class ProfileService(SaplingDbContext db, StudentContext ctx) : IP
         profile.College = request.College;
         profile.Branch = request.Branch;
         profile.GraduationYear = request.GraduationYear;
+        profile.State = request.State;
         profile.City = request.City;
         profile.Cgpa = request.Cgpa;
         profile.Backlogs = request.Backlogs;
@@ -67,6 +68,10 @@ public sealed class ProfileService(SaplingDbContext db, StudentContext ctx) : IP
     public async Task<IReadOnlyList<string>> GetSkillSuggestionsAsync(CancellationToken ct = default) =>
         await db.Skills.OrderBy(s => s.Category).ThenBy(s => s.Name).Select(s => s.Name).ToListAsync(ct);
 
+    public async Task<IReadOnlyList<SkillSuggestionDto>> GetSkillCatalogueAsync(CancellationToken ct = default) =>
+        await db.Skills.OrderBy(s => s.Category).ThenBy(s => s.Name)
+            .Select(s => new SkillSuggestionDto(s.Name, s.Category)).ToListAsync(ct);
+
     public async Task CompleteOnboardingAsync(CancellationToken ct = default)
     {
         var profile = await ctx.GetProfileAsync(ct);
@@ -85,5 +90,6 @@ public sealed class ProfileService(SaplingDbContext db, StudentContext ctx) : IP
         p.Backlogs,
         p.PreferredLanguage,
         p.OnboardingComplete,
-        p.RiasecCode);
+        p.RiasecCode,
+        p.State);
 }

@@ -28,7 +28,10 @@
                     <span class="t-small t-muted">@_profile.Branch, @_profile.College</span>
                     <div class="row g-2 wrap" style="margin-top:var(--sp-2)">
                         <SapBadge Tone="neutral" Icon="graduation-cap">Class of @_profile.GraduationYear</SapBadge>
-                        <SapBadge Tone="neutral" Icon="map-pin">@_profile.City</SapBadge>
+                        @if (!string.IsNullOrEmpty(LocationDisplay))
+                        {
+                            <SapBadge Tone="neutral" Icon="map-pin">@LocationDisplay</SapBadge>
+                        }
                         <SapBadge Tone="neutral" Icon="award">CGPA @_profile.Cgpa.ToString("0.0")</SapBadge>
                         @if (_profile.RiasecCode is not null)
                         {
@@ -82,6 +85,17 @@
 
     private StudentProfileDto? _profile;
     private bool _cleared;
+
+    private string LocationDisplay
+    {
+        get
+        {
+            if (_profile is null) return "";
+            if (!string.IsNullOrEmpty(_profile.City) && !string.IsNullOrEmpty(_profile.State))
+                return $"{_profile.City}, {_profile.State}";
+            return !string.IsNullOrEmpty(_profile.City) ? _profile.City : _profile.State;
+        }
+    }
 
     private string Initials => string.Concat(
         (_profile?.FullName ?? "Student").Split(' ', StringSplitOptions.RemoveEmptyEntries)

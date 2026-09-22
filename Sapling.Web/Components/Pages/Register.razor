@@ -31,10 +31,17 @@
     <EditForm Model="Input" method="post" OnValidSubmit="SubmitAsync" FormName="register" class="stack g-4">
         <DataAnnotationsValidator />
 
-        <div class="field">
-            <label for="name">Full name</label>
-            <InputText id="name" class="input" @bind-Value="Input.FullName" autocomplete="name" />
-            <ValidationMessage For="() => Input.FullName" class="field-error" />
+        <div class="grid grid-2">
+            <div class="field">
+                <label for="firstName">First name</label>
+                <InputText id="firstName" class="input" @bind-Value="Input.FirstName" autocomplete="given-name" />
+                <ValidationMessage For="() => Input.FirstName" class="field-error" />
+            </div>
+            <div class="field">
+                <label for="lastName">Last name</label>
+                <InputText id="lastName" class="input" @bind-Value="Input.LastName" autocomplete="family-name" />
+                <ValidationMessage For="() => Input.LastName" class="field-error" />
+            </div>
         </div>
 
         <div class="field">
@@ -69,12 +76,17 @@
     {
         _errors.Clear();
 
+        // Strip any whitespace from email (e.g. accidental spaces from copy-paste)
+        Input.Email = Input.Email?.Replace(" ", "").Trim() ?? "";
+
+        var fullName = $"{Input.FirstName} {Input.LastName}".Trim();
+
         var user = new AppUser
         {
             UserName = Input.Email,
             Email = Input.Email,
             EmailConfirmed = true,
-            FullName = Input.FullName,
+            FullName = fullName,
         };
 
         var result = await Users.CreateAsync(user, Input.Password);
@@ -90,8 +102,11 @@
 
     private sealed class RegisterInput
     {
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your name.")]
-        public string FullName { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your first name.")]
+        public string FirstName { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your last name.")]
+        public string LastName { get; set; } = "";
 
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your email.")]
         [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "That does not look like an email address.")]

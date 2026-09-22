@@ -71,6 +71,9 @@
 
     private async Task SubmitAsync()
     {
+        // Strip any whitespace from email (e.g. accidental spaces from copy-paste)
+        Input.Email = Input.Email?.Replace(" ", "").Trim() ?? "";
+
         var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: true, lockoutOnFailure: false);
         if (!result.Succeeded)
         {

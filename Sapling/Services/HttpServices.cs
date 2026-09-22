@@ -67,6 +67,9 @@ public sealed class HttpProfileService(IHttpClientFactory factory) : IProfileSer
     public async Task<IReadOnlyList<string>> GetSkillSuggestionsAsync(CancellationToken ct = default) =>
         await Client.GetJsonAsync<List<string>>("api/profile/skill-suggestions", ct);
 
+    public async Task<IReadOnlyList<SkillSuggestionDto>> GetSkillCatalogueAsync(CancellationToken ct = default) =>
+        await Client.GetJsonAsync<List<SkillSuggestionDto>>("api/profile/skill-catalogue", ct);
+
     public async Task CompleteOnboardingAsync(CancellationToken ct = default) =>
         (await Client.PostAsync("api/profile/complete-onboarding", null, ct)).EnsureSuccessStatusCode();
 }

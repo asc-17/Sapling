@@ -11,7 +11,8 @@ public sealed record StudentProfileDto(
     int Backlogs,
     string PreferredLanguage,
     bool OnboardingComplete,
-    string? RiasecCode);
+    string? RiasecCode,
+    string State = "");
 
 public sealed record UpdateProfileRequest(
     string FullName,
@@ -21,7 +22,8 @@ public sealed record UpdateProfileRequest(
     string City,
     double Cgpa,
     int Backlogs,
-    string PreferredLanguage);
+    string PreferredLanguage,
+    string State = "");
 
 public sealed record SkillDto(
     int Id,
@@ -209,3 +211,7 @@ public sealed record HomeSummaryDto(
     string? NextTask,
     int NewOpportunities,
     int ClosingSoonExams);
+
+public sealed record SkillSuggestionDto(
+    string Name,
+    string Category);

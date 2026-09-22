@@ -12,6 +12,8 @@ public interface IProfileService
 
     Task<IReadOnlyList<string>> GetSkillSuggestionsAsync(CancellationToken ct = default);
 
+    Task<IReadOnlyList<SkillSuggestionDto>> GetSkillCatalogueAsync(CancellationToken ct = default);
+
     Task CompleteOnboardingAsync(CancellationToken ct = default);
 }
 

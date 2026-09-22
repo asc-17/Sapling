@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Sapling.Shared.Content;
 using Sapling.Shared.Contracts;
 using Sapling.Web.Data;
 
@@ -169,9 +170,22 @@ public sealed class GovtService(SaplingDbContext db, StudentContext ctx) : IGovt
 
         if (e.RequiresMpDomicile)
         {
-            reasons.Add(string.IsNullOrWhiteSpace(profile.City)
-                ? "Madhya Pradesh domicile is required; add your city to confirm."
-                : $"Madhya Pradesh domicile is required and your recorded city is {profile.City}.");
+            var isMp = string.Equals(profile.State, "Madhya Pradesh", StringComparison.OrdinalIgnoreCase)
+                       || LocationCatalog.InferStateFromCity(profile.City).Equals("Madhya Pradesh", StringComparison.OrdinalIgnoreCase);
+
+            if (isMp)
+            {
+                var loc = !string.IsNullOrEmpty(profile.City) && !string.IsNullOrEmpty(profile.State)
+                    ? $"{profile.City}, {profile.State}"
+                    : !string.IsNullOrEmpty(profile.State) ? profile.State : profile.City;
+                reasons.Add($"Madhya Pradesh domicile is confirmed (recorded location: {loc}).");
+            }
+            else
+            {
+                reasons.Add(string.IsNullOrWhiteSpace(profile.State) && string.IsNullOrWhiteSpace(profile.City)
+                    ? "Madhya Pradesh domicile is required; select your state and city to confirm."
+                    : $"Madhya Pradesh domicile is required and your recorded state is {(!string.IsNullOrEmpty(profile.State) ? profile.State : profile.City)}.");
+            }
         }
 
         reasons.Add($"Age window is {e.MinAge} to {e.MaxAge} years, which a {DateTime.Today.Year} graduate normally falls inside.");

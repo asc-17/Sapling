@@ -23,6 +23,8 @@ public class StudentProfile
 
     public int GraduationYear { get; set; }
 
+    public string State { get; set; } = "";
+
     public string City { get; set; } = "";
 
     public double Cgpa { get; set; }

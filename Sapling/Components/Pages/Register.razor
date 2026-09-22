@@ -25,7 +25,7 @@
     <div class="field">
         <label for="email">Email</label>
         <input id="email" class="input" type="email" inputmode="email" autocomplete="username"
-               placeholder="you@college.ac.in" @bind="_email" @bind:event="oninput" />
+               placeholder="you@college.ac.in" value="@_email" @oninput="OnEmailInput" />
     </div>
 
     <div class="field">
@@ -49,6 +49,12 @@
     private string _password = "";
     private string? _error;
     private bool _busy;
+
+    private void OnEmailInput(ChangeEventArgs e)
+    {
+        // Strip all whitespace in real-time as the user types or pastes
+        _email = (e.Value?.ToString() ?? "").Replace(" ", "").Trim();
+    }
 
     private async Task SubmitAsync()
     {

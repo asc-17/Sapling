@@ -15,6 +15,7 @@ public static class ApiEndpoints
         profile.MapGet("/skills", (IProfileService s, CancellationToken ct) => s.GetSkillsAsync(ct));
         profile.MapPut("/skills", (List<string> names, IProfileService s, CancellationToken ct) => s.SetClaimedSkillsAsync(names, ct));
         profile.MapGet("/skill-suggestions", (IProfileService s, CancellationToken ct) => s.GetSkillSuggestionsAsync(ct));
+        profile.MapGet("/skill-catalogue", (IProfileService s, CancellationToken ct) => s.GetSkillCatalogueAsync(ct));
         profile.MapPost("/complete-onboarding", async (IProfileService s, CancellationToken ct) =>
         {
             await s.CompleteOnboardingAsync(ct);
