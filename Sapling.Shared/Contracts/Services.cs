@@ -93,3 +93,19 @@ public interface IQuizService
 
     Task<QuizResultDto> SubmitAsync(QuizSubmissionRequest request, CancellationToken ct = default);
 }
+
+/// <summary>Institute-authored posts. Students can read, upvote and comment; only institutions publish.</summary>
+public interface ICommunityService
+{
+    Task<IReadOnlyList<CommunityPostDto>> GetFeedAsync(string? kind = null, CancellationToken ct = default);
+
+    Task<CommunityPostDto?> GetPostAsync(int id, CancellationToken ct = default);
+
+    Task<CommunityPostDto> SetUpvoteAsync(int id, bool upvoted, CancellationToken ct = default);
+
+    Task<IReadOnlyList<CommunityCommentDto>> GetCommentsAsync(int postId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<CommunityCommentDto>> AddCommentAsync(int postId, AddCommentRequest request, CancellationToken ct = default);
+
+    Task<IReadOnlyList<CommunityCommentDto>> DeleteCommentAsync(int postId, int commentId, CancellationToken ct = default);
+}

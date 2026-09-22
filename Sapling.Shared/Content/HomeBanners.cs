@@ -25,6 +25,10 @@ public static class HomeBanners
             "Government-subsidised first. Close a gap without spending anything.",
             Dir + "courses.svg", "/roadmap", "Open roadmap"),
 
+        new("What your college is running this month",
+            "Workshops, events and openings posted by your college. Ask questions in the comments.",
+            Dir + "community.svg", "/community", "Open community"),
+
         new("Practise a mock interview",
             "Adaptive follow-ups and a scored rubric, in under fifteen minutes.",
             Dir + "interview.svg", "/interview", "Start a session"),

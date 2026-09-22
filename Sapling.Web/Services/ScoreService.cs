@@ -59,6 +59,9 @@ public sealed class ScoreService(SaplingDbContext db, StudentContext ctx) : ISco
         var soon = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
         var closingExams = await db.GovtExams.CountAsync(e => e.ExamOn != null && e.ExamOn <= soon, ct);
 
+        var weekAgo = DateTime.UtcNow.AddDays(-7);
+        var newPosts = await CommunityService.VisibleTo(db, profile).CountAsync(p => p.PostedAtUtc >= weekAgo, ct);
+
         var firstName = (profile.User?.FullName ?? "Student").Split(' ')[0];
 
         return new HomeSummaryDto(
@@ -71,7 +74,8 @@ public sealed class ScoreService(SaplingDbContext db, StudentContext ctx) : ISco
             items.Count,
             next?.Title,
             newOpportunities,
-            closingExams);
+            closingExams,
+            newPosts);
     }
 
     public async Task<ScoreSnapshot> RecomputeAsync(StudentProfile profile, CancellationToken ct = default)

@@ -36,6 +36,231 @@ public static class DemoSeeder
 
         // Seed colleges directory from AICTE dataset if not already populated
         await EnsureCollegesSeededAsync(db);
+
+        await EnsureCommunitySchemaAsync(db);
+
+        // The first placeholder set was a shared cross-college feed; communities are now private per college.
+        if (await db.Institutions.AnyAsync(i => i.Name == "Narmada Skills Academy"))
+        {
+            await db.PostUpvotes.ExecuteDeleteAsync();
+            await db.PostComments.ExecuteDeleteAsync();
+            await db.CommunityPosts.ExecuteDeleteAsync();
+            await db.Institutions.ExecuteDeleteAsync();
+        }
+
+        if (!await db.Institutions.AnyAsync())
+        {
+            await SeedCommunityAsync(db);
+        }
+    }
+
+    /// <summary>EnsureCreated skips databases that already exist, so community tables are added here for older demo DBs.</summary>
+    private static async Task EnsureCommunitySchemaAsync(SaplingDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync(CommunityTablesSql);
+
+        // Added after the first community build, so it may be missing from a table created by it.
+        var hasImageUrl = await db.Database
+            .SqlQueryRaw<int>("""SELECT COUNT(*) AS "Value" FROM pragma_table_info('CommunityPosts') WHERE name = 'ImageUrl'""")
+            .FirstAsync();
+
+        if (hasImageUrl == 0)
+        {
+            await db.Database.ExecuteSqlRawAsync("""ALTER TABLE "CommunityPosts" ADD COLUMN "ImageUrl" TEXT NULL;""");
+        }
+    }
+
+    private const string CommunityTablesSql = """
+        CREATE TABLE IF NOT EXISTS "Institutions" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_Institutions" PRIMARY KEY AUTOINCREMENT,
+            "Name" TEXT NOT NULL,
+            "ShortName" TEXT NOT NULL,
+            "City" TEXT NOT NULL,
+            "Verified" INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS "CommunityPosts" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_CommunityPosts" PRIMARY KEY AUTOINCREMENT,
+            "InstitutionId" INTEGER NOT NULL,
+            "Kind" TEXT NOT NULL,
+            "Title" TEXT NOT NULL,
+            "Body" TEXT NOT NULL,
+            "PostedAtUtc" TEXT NOT NULL,
+            "StartsAtUtc" TEXT NULL,
+            "Venue" TEXT NULL,
+            "CtaLabel" TEXT NULL,
+            "CtaUrl" TEXT NULL,
+            "ImageUrl" TEXT NULL,
+            "Tags" TEXT NOT NULL,
+            "BaseUpvotes" INTEGER NOT NULL,
+            CONSTRAINT "FK_CommunityPosts_Institutions_InstitutionId" FOREIGN KEY ("InstitutionId") REFERENCES "Institutions" ("Id") ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS "IX_CommunityPosts_InstitutionId" ON "CommunityPosts" ("InstitutionId");
+        CREATE INDEX IF NOT EXISTS "IX_CommunityPosts_PostedAtUtc" ON "CommunityPosts" ("PostedAtUtc");
+        CREATE TABLE IF NOT EXISTS "PostUpvotes" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_PostUpvotes" PRIMARY KEY AUTOINCREMENT,
+            "CommunityPostId" INTEGER NOT NULL,
+            "StudentProfileId" INTEGER NOT NULL,
+            "CreatedAtUtc" TEXT NOT NULL,
+            CONSTRAINT "FK_PostUpvotes_CommunityPosts_CommunityPostId" FOREIGN KEY ("CommunityPostId") REFERENCES "CommunityPosts" ("Id") ON DELETE CASCADE,
+            CONSTRAINT "FK_PostUpvotes_StudentProfiles_StudentProfileId" FOREIGN KEY ("StudentProfileId") REFERENCES "StudentProfiles" ("Id") ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS "IX_PostUpvotes_CommunityPostId_StudentProfileId" ON "PostUpvotes" ("CommunityPostId", "StudentProfileId");
+        CREATE INDEX IF NOT EXISTS "IX_PostUpvotes_StudentProfileId" ON "PostUpvotes" ("StudentProfileId");
+        CREATE TABLE IF NOT EXISTS "PostComments" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_PostComments" PRIMARY KEY AUTOINCREMENT,
+            "CommunityPostId" INTEGER NOT NULL,
+            "ParentCommentId" INTEGER NULL,
+            "StudentProfileId" INTEGER NULL,
+            "InstitutionId" INTEGER NULL,
+            "AuthorName" TEXT NOT NULL,
+            "AuthorHeadline" TEXT NULL,
+            "Body" TEXT NOT NULL,
+            "PostedAtUtc" TEXT NOT NULL,
+            CONSTRAINT "FK_PostComments_CommunityPosts_CommunityPostId" FOREIGN KEY ("CommunityPostId") REFERENCES "CommunityPosts" ("Id") ON DELETE CASCADE,
+            CONSTRAINT "FK_PostComments_Institutions_InstitutionId" FOREIGN KEY ("InstitutionId") REFERENCES "Institutions" ("Id") ON DELETE CASCADE,
+            CONSTRAINT "FK_PostComments_PostComments_ParentCommentId" FOREIGN KEY ("ParentCommentId") REFERENCES "PostComments" ("Id") ON DELETE CASCADE,
+            CONSTRAINT "FK_PostComments_StudentProfiles_StudentProfileId" FOREIGN KEY ("StudentProfileId") REFERENCES "StudentProfiles" ("Id") ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS "IX_PostComments_CommunityPostId" ON "PostComments" ("CommunityPostId");
+        CREATE INDEX IF NOT EXISTS "IX_PostComments_InstitutionId" ON "PostComments" ("InstitutionId");
+        CREATE INDEX IF NOT EXISTS "IX_PostComments_ParentCommentId" ON "PostComments" ("ParentCommentId");
+        CREATE INDEX IF NOT EXISTS "IX_PostComments_StudentProfileId" ON "PostComments" ("StudentProfileId");
+        """;
+
+    /// <summary>
+    /// Placeholder college posts until institution accounts exist. Names match the AICTE catalogue, which is how a
+    /// student's profile college is linked to its private community. Dates are relative so the feed looks current.
+    /// </summary>
+    private static async Task SeedCommunityAsync(SaplingDbContext db)
+    {
+        var sgsits = new Institution { Name = "Shri Govindram Seksaria Institute of Technology and Science", ShortName = "SGSITS", City = "Indore", Verified = true };
+        var iiti = new Institution { Name = "Indian Institute of Technology Indore", ShortName = "IIT Indore", City = "Indore", Verified = true };
+        var manit = new Institution { Name = "Maulana Azad National Institute of Technology Bhopal", ShortName = "MANIT", City = "Bhopal", Verified = true };
+        db.Institutions.AddRange(sgsits, iiti, manit);
+
+        var now = DateTime.UtcNow;
+
+        // A time of day in IST, some days from today.
+        DateTime At(int days, double istHour = 10) => now.Date.AddDays(days).AddHours(istHour - 5.5);
+
+        var docker = new CommunityPost
+        {
+            Institution = sgsits, Kind = "Workshop", PostedAtUtc = now.AddHours(-3), BaseUpvotes = 86,
+            Title = "Two-day hands-on workshop: Docker and cloud fundamentals",
+            Body = "The Department of Computer Engineering is running a two-day, lab-first workshop on containers and cloud basics. Day one covers Linux essentials, images, containers and Docker Compose. Day two deploys a small Java and PostgreSQL app to a free-tier cloud account.\n\nBring a laptop with at least 8 GB RAM. Seats are limited to 60 and allotted first come, first served.",
+            StartsAtUtc = At(5), Venue = "Seminar Hall, CE Block, SGSITS Indore",
+            Tags = "Docker|Cloud fundamentals|Linux|Hands-on",
+        };
+        var hackathon = new CommunityPost
+        {
+            Institution = manit, Kind = "Event", PostedAtUtc = now.AddHours(-20), BaseUpvotes = 214,
+            Title = "Hack Bhopal: 36-hour hackathon for MANIT students",
+            Body = "Teams of up to four MANIT students can take part, from any branch or year. Problem statements come from state departments and local startups: agriculture supply chains, public transport, and Hindi-first citizen services.\n\nMeals are covered for all 36 hours. The top three teams receive incubation support from the institute's innovation cell.",
+            StartsAtUtc = At(18, 9), Venue = "MANIT campus, Bhopal",
+            Tags = "Hackathon|Teams of 4|Incubation",
+        };
+        var research = new CommunityPost
+        {
+            Institution = iiti, Kind = "Opportunity", PostedAtUtc = now.AddDays(-1).AddHours(-4), BaseUpvotes = 172,
+            Title = "Summer research projects open to pre-final year undergraduates",
+            Body = "Eight-week faculty-mentored research projects across computer science, electrical and civil engineering. Pre-final year students may apply with a one-page statement of interest and a faculty reference.\n\nA monthly stipend is paid for the duration of the project.",
+            Tags = "Research|Internship|Stipend|Pre-final year",
+        };
+        var nptel = new CommunityPost
+        {
+            Institution = sgsits, Kind = "Announcement", PostedAtUtc = now.AddDays(-2), BaseUpvotes = 64,
+            Title = "NPTEL local chapter: exam registration closes this Friday",
+            Body = "Students enrolled in NPTEL courses through the SGSITS local chapter must register for the proctored exam by Friday. A passed exam gives you a certificate that counts towards verified skills and certifications on most placement portals.",
+            CtaLabel = "Open NPTEL", CtaUrl = "https://nptel.ac.in",
+            Tags = "NPTEL|Certification|Deadline",
+        };
+        var mockDay = new CommunityPost
+        {
+            Institution = sgsits, Kind = "Workshop", PostedAtUtc = now.AddDays(-3), BaseUpvotes = 131,
+            Title = "Mock interview day with alumni from product companies",
+            Body = "SGSITS alumni working as software engineers will run 30-minute mock technical interviews over video, followed by written feedback. Open to final-year students from any branch. Pick a slot in the morning or afternoon session.",
+            StartsAtUtc = At(9, 11), Venue = "Online",
+            Tags = "Interviews|Alumni|Online",
+        };
+        var drive = new CommunityPost
+        {
+            Institution = sgsits, Kind = "Opportunity", PostedAtUtc = now.AddDays(-4), BaseUpvotes = 98,
+            Title = "Pre-placement talk and campus drive for final-year CSE and IT",
+            Body = "The Training and Placement Cell is hosting a pre-placement talk followed by an online assessment for the software trainee role. Eligibility: 6.5 CGPA and no active backlogs. Carry two printed copies of your resume.",
+            StartsAtUtc = At(6, 14), Venue = "Main Auditorium, SGSITS Indore",
+            Tags = "Placement|Final year|CSE|IT",
+        };
+        var aicte = new CommunityPost
+        {
+            Institution = manit, Kind = "Opportunity", PostedAtUtc = now.AddDays(-5), BaseUpvotes = 57,
+            Title = "New Madhya Pradesh listings on the AICTE internship portal",
+            Body = "Our placement office has shortlisted internships on the AICTE portal that are based in Indore, Bhopal and Jabalpur, or fully remote. Most are open to second and third-year students and several are paid.",
+            CtaLabel = "Browse internships", CtaUrl = "https://internship.aicte-india.org",
+            Tags = "AICTE|Internship|Remote",
+        };
+        var lecture = new CommunityPost
+        {
+            Institution = iiti, Kind = "Event", PostedAtUtc = now.AddDays(-6), BaseUpvotes = 143,
+            Title = "Guest lecture: what recruiters actually look at in your GitHub",
+            Body = "An engineering manager walks through real student profiles, anonymised, and explains what gets a resume shortlisted: README quality, commit history, tests, and one project done properly rather than ten tutorials.",
+            StartsAtUtc = At(3, 17), Venue = "Online",
+            Tags = "GitHub|Portfolio|Guest lecture",
+        };
+        var english = new CommunityPost
+        {
+            Institution = sgsits, Kind = "Workshop", PostedAtUtc = now.AddDays(-8), BaseUpvotes = 47,
+            Title = "Spoken English and interview confidence batch",
+            Body = "The Training and Placement Cell is running a free four-week evening batch for students who are more comfortable in Hindi. Practise answering common HR questions in English, in small groups of ten.",
+            StartsAtUtc = At(12, 17), Venue = "Room 204, Main Building, SGSITS Indore",
+            Tags = "Communication|Free|Hindi-friendly",
+        };
+
+        var sprint = new CommunityPost
+        {
+            Institution = sgsits, Kind = "Event", PostedAtUtc = now.AddHours(-26), BaseUpvotes = 121,
+            Title = "Code Sprint: 24-hour campus hackathon",
+            Body = "Teams of up to four SGSITS students, from any branch or year. Problem statements come from Indore startups and the municipal corporation: waste collection routing, bus arrival times, and a Hindi-first grievance app.\n\nThe top three teams present to the startups, and two of them have offered internships to winning teams in past editions.",
+            StartsAtUtc = At(16, 9), Venue = "Central Library, SGSITS Indore",
+            Tags = "Hackathon|Teams of 4|Internships",
+        };
+
+        db.CommunityPosts.AddRange(docker, sprint, hackathon, research, nptel, mockDay, drive, aicte, lecture, english);
+        await db.SaveChangesAsync();
+
+        PostComment Student(CommunityPost post, string name, string headline, string body, double hoursAfter, PostComment? parent = null) => new()
+        {
+            CommunityPostId = post.Id, ParentCommentId = parent?.Id, AuthorName = name, AuthorHeadline = headline, Body = body,
+            PostedAtUtc = post.PostedAtUtc.AddHours(hoursAfter),
+        };
+
+        PostComment Reply(CommunityPost post, PostComment parent, string body, double hoursAfter) => new()
+        {
+            CommunityPostId = post.Id, ParentCommentId = parent.Id, InstitutionId = post.InstitutionId,
+            AuthorName = post.Institution!.Name, Body = body, PostedAtUtc = post.PostedAtUtc.AddHours(hoursAfter),
+        };
+
+        var dockerYears = Student(docker, "Riya Sharma", "Information Technology · 2027 batch", "Is this open to second-year students or only final year?", 0.5);
+        var dockerCert = Student(docker, "Mohit Patel", "Computer Science & Engineering · 2026 batch", "Will there be a certificate? It would help for cloud support roles.", 1.2);
+        var hackCross = Student(hackathon, "Ananya Tiwari", "Electrical Engineering · 2027 batch", "Can first-year students take part?", 2);
+        var sprintBranch = Student(sprint, "Sneha Joshi", "Electronics & Communication · 2026 batch", "Can teams mix branches?", 2);
+        var hackTeam = Student(hackathon, "Arjun Singh", "Computer Science & Engineering · 2027 batch", "Looking for a frontend developer to join our team. We are taking on the public transport problem.", 6);
+        var mockRecord = Student(mockDay, "Kavya Rao", "Mechanical Engineering · 2026 batch", "Please share a recording of a sample interview for those who cannot get a slot.", 3);
+        var englishFee = Student(english, "Pooja Yadav", "Civil Engineering · 2026 batch", "Is there a weekend batch as well? I have labs on weekday evenings.", 10);
+        var researchCgpa = Student(research, "Devansh Mishra", "Electrical Engineering · 2027 batch", "Is there a minimum CGPA to apply?", 5);
+
+        db.PostComments.AddRange(dockerYears, dockerCert, sprintBranch, hackCross, hackTeam, mockRecord, englishFee, researchCgpa);
+        await db.SaveChangesAsync();
+
+        db.PostComments.AddRange(
+            Reply(docker, dockerYears, "Open to all years. Second-year students are welcome as long as they bring a laptop that meets the requirement.", 1),
+            Student(docker, "Aditi Chouhan", "Information Technology · 2027 batch", "Thanks, registering now.", 1.5, dockerYears),
+            Reply(docker, dockerCert, "Yes. Everyone who completes both days' labs receives a participation certificate from the department.", 2),
+            Reply(sprint, sprintBranch, "Yes, and we encourage it. At most two members of a team can be from the same branch.", 3),
+            Reply(english, englishFee, "A Saturday morning batch starts the week after. We will post the details here.", 14),
+            Reply(hackathon, hackCross, "Yes, all years are welcome. First-year teams are judged in their own category.", 3),
+            Reply(mockDay, mockRecord, "A recorded sample interview will be shared on this post within 48 hours of the event.", 5),
+            Reply(research, researchCgpa, "There is no hard cut-off. The statement of interest and faculty reference carry more weight than CGPA.", 9));
+        await db.SaveChangesAsync();
     }
 
     /// <summary>Ensures any missing columns (such as State) are added to existing SQLite database.</summary>
@@ -423,7 +648,7 @@ public static class DemoSeeder
         var profile = new StudentProfile
         {
             UserId = user.Id,
-            College = "Shri Govindram Seksaria Institute of Technology, Indore",
+            College = "Shri Govindram Seksaria Institute of Technology and Science",
             Branch = "Computer Science & Engineering",
             GraduationYear = DateTime.Today.Year,
             City = "Indore",

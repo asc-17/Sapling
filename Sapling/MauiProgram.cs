@@ -39,6 +39,7 @@ public static class MauiProgram
         builder.Services.AddScoped<IInterviewService, HttpInterviewService>();
         builder.Services.AddScoped<IGovtService, HttpGovtService>();
         builder.Services.AddScoped<IQuizService, HttpQuizService>();
+        builder.Services.AddScoped<ICommunityService, HttpCommunityService>();
 
         builder.Services.AddSingleton<IFormFactor, MobileFormFactor>();
         builder.Services.AddSingleton<IRecentFeaturesService, MauiRecentFeaturesService>();

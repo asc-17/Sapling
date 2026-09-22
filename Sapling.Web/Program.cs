@@ -73,6 +73,7 @@ builder.Services.AddScoped<IResumeService, ResumeService>();
 builder.Services.AddScoped<IInterviewService, InterviewService>();
 builder.Services.AddScoped<IGovtService, GovtService>();
 builder.Services.AddScoped<IQuizService, QuizService>();
+builder.Services.AddScoped<ICommunityService, CommunityService>();
 
 builder.Services.AddSingleton<IFormFactor, DesktopFormFactor>();
 builder.Services.AddScoped<IThemeService, BrowserThemeService>();

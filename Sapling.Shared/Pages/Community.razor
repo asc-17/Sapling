@@ -1,0 +1,98 @@
+@page "/community"
+@namespace Sapling.Shared.Pages
+@inject ICommunityService CommunityService
+@inject IProfileService Profiles
+
+<PageTitle>Community · Sapling</PageTitle>
+<RecordVisit Feature="@FeatureCatalog.Community" />
+
+<div class="stack g-5" style="max-width:760px">
+    <div class="page-head" style="margin-bottom:0">
+        <div class="stack g-1">
+            <h1 style="font-size:28px;line-height:34px">Community</h1>
+            <span class="t-muted">@Subtitle</span>
+        </div>
+    </div>
+
+    <div class="row g-2 t-caption t-subtle">
+        <SapIcon Name="lock" Size="15" />
+        <span>Private to your college. Only your college can post; <VerifiedTick Size="13" /> means Sapling has verified it.</span>
+    </div>
+
+    <div class="scroll-x">
+        <SapSegmented TValue="string" Options="_filters" @bind-Value="_filter" />
+    </div>
+
+    @if (_posts is null)
+    {
+        <div class="stack g-3">
+            @for (var i = 0; i < 3; i++)
+            {
+                <div class="card"><div class="skeleton" style="height:180px"></div></div>
+            }
+        </div>
+    }
+    else if (string.IsNullOrWhiteSpace(_college))
+    {
+        <SapEmptyState Title="Add your college to join its community" Icon="users"
+                       Description="Community feeds are private to a college. Once your profile names yours, its posts appear here.">
+            <a class="btn btn-primary" href="/profile">Update profile</a>
+        </SapEmptyState>
+    }
+    else if (_posts!.Count == 0)
+    {
+        <SapEmptyState Title="@($"{_college} has not posted yet")" Icon="users"
+                       Description="When your placement cell or a department posts a workshop, event or opening, it appears here." />
+    }
+    else if (Filtered.Count == 0)
+    {
+        <SapEmptyState Title="Nothing in this category" Icon="users"
+                       Description="Your college has not posted anything of this type yet. Try another filter." />
+    }
+    else
+    {
+        <div class="stack g-4">
+            @foreach (var post in Filtered)
+            {
+                <CommunityPostCard @key="post.Id" Post="post" PostChanged="Replace" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private readonly IReadOnlyList<SapSegmented<string>.Option> _filters =
+    [
+        new("all", "All"),
+        new(PostKinds.Opportunity, "Opportunities"),
+        new(PostKinds.Workshop, "Workshops"),
+        new(PostKinds.Event, "Events"),
+    ];
+
+    private string _filter = "all";
+    private string? _college;
+    private List<CommunityPostDto>? _posts;
+
+    private string Subtitle => string.IsNullOrWhiteSpace(_college)
+        ? "Workshops, events and openings posted by your college."
+        : $"Posted by {_college}. Upvote what helps and ask questions in the comments.";
+
+    private IReadOnlyList<CommunityPostDto> Filtered => _filter == "all"
+        ? _posts!
+        : _posts!.Where(p => p.Kind == _filter).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _college = (await Profiles.GetAsync()).College;
+        _posts = [.. await CommunityService.GetFeedAsync()];
+    }
+
+    private void Replace(CommunityPostDto updated)
+    {
+        var index = _posts!.FindIndex(p => p.Id == updated.Id);
+        if (index >= 0)
+        {
+            _posts[index] = updated;
+        }
+    }
+}

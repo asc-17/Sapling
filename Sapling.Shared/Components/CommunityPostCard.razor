@@ -1,0 +1,140 @@
+@namespace Sapling.Shared.Components
+@inject ICommunityService Community
+
+<article class="card post-card stack g-4">
+    <header class="row-top g-3 wrap post-head">
+        <InstitutionTile InstitutionId="Post.Author.Id" />
+        <div class="stack grow post-head-text" style="gap:0">
+            <span class="post-author">
+                <span>@Post.Author.Name</span>
+                @if (Post.Author.Verified)
+                {
+                    <VerifiedTick />
+                }
+            </span>
+            <span class="t-caption t-subtle">@Post.Author.City &middot; @CommunityDisplay.Ago(Post.PostedAt)</span>
+        </div>
+        <SapBadge Tone="@CommunityDisplay.Tone(Post.Kind)" Icon="@CommunityDisplay.Icon(Post.Kind)">@Post.Kind</SapBadge>
+    </header>
+
+    @if (Full)
+    {
+        <div class="stack g-4">
+            <h2 class="t-h3">@Post.Title</h2>
+            <div class="post-media post-media-full">
+                <img src="@CommunityDisplay.Image(Post)" alt="" loading="lazy" />
+            </div>
+            <p class="t-body post-body">@Post.Body</p>
+        </div>
+    }
+    else
+    {
+        <a class="post-link post-main" href="@Href">
+            <span class="post-text stack g-2">
+                <span class="post-title">@Post.Title</span>
+                <span class="t-small t-muted post-body post-body-clamp">@Post.Body</span>
+            </span>
+            <span class="post-media">
+                <img src="@CommunityDisplay.Image(Post)" alt="" loading="lazy" />
+            </span>
+        </a>
+    }
+
+    @if (Post.StartsAt is not null || !string.IsNullOrEmpty(Post.Venue))
+    {
+        <div class="row g-4 wrap t-small t-muted">
+            @if (Post.StartsAt is { } starts)
+            {
+                <span class="row g-1"><SapIcon Name="calendar" Size="15" /> @CommunityDisplay.When(starts)</span>
+            }
+            @if (!string.IsNullOrEmpty(Post.Venue))
+            {
+                <span class="row g-1"><SapIcon Name="@(Post.Venue == "Online" ? "monitor" : "map-pin")" Size="15" /> @Post.Venue</span>
+            }
+        </div>
+    }
+
+    @if (Post.Tags.Count > 0)
+    {
+        <div class="row g-2 wrap">
+            @foreach (var tag in Post.Tags)
+            {
+                <span class="chip post-tag">@tag</span>
+            }
+        </div>
+    }
+
+    <footer class="post-actions">
+        <button type="button" class="vote-btn" aria-pressed="@(Post.HasUpvoted ? "true" : "false")"
+                aria-label="@(Post.HasUpvoted ? "Remove upvote" : "Upvote")" @onclick="ToggleUpvoteAsync" disabled="@_busy">
+            <SapIcon Name="arrow-up" Size="16" Stroke="2.2" />
+            <span class="t-num">@Post.Upvotes</span>
+        </button>
+        @if (Full)
+        {
+            <span class="row g-1 t-small t-muted" style="padding-inline:var(--sp-2)">
+                <SapIcon Name="message" Size="16" /> @CommentLabel
+            </span>
+        }
+        else
+        {
+            <a class="btn btn-ghost btn-sm" href="@Href" aria-label="@CommentLabel">
+                <SapIcon Name="message" Size="16" /> @Post.CommentCount
+            </a>
+        }
+        <span class="grow"></span>
+        @if (!string.IsNullOrEmpty(Post.CtaUrl))
+        {
+            <a class="btn btn-secondary btn-sm" href="@Post.CtaUrl" target="_blank" rel="noopener noreferrer">
+                @(Post.CtaLabel ?? "Learn more")
+                <SapIcon Name="external-link" Size="14" />
+            </a>
+        }
+        else if (!Full)
+        {
+            <a class="btn btn-ghost btn-sm" href="@Href">
+                Details <SapIcon Name="chevron-right" Size="15" />
+            </a>
+        }
+    </footer>
+</article>
+
+@code {
+    [Parameter, EditorRequired] public CommunityPostDto Post { get; set; } = default!;
+
+    [Parameter] public EventCallback<CommunityPostDto> PostChanged { get; set; }
+
+    /// <summary>The post page shows the whole body; the feed clamps it and links through.</summary>
+    [Parameter] public bool Full { get; set; }
+
+    private bool _busy;
+
+    private string Href => $"/community/{Post.Id}";
+
+    private string CommentLabel => Post.CommentCount == 1 ? "1 comment" : $"{Post.CommentCount} comments";
+
+    private async Task ToggleUpvoteAsync()
+    {
+        var original = Post;
+        var want = !original.HasUpvoted;
+
+        // Optimistic, so the tap feels instant over a slow connection.
+        _busy = true;
+        await PostChanged.InvokeAsync(Post = original with { HasUpvoted = want, Upvotes = original.Upvotes + (want ? 1 : -1) });
+
+        try
+        {
+            Post = await Community.SetUpvoteAsync(original.Id, want);
+        }
+        catch (Exception)
+        {
+            Post = original;
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await PostChanged.InvokeAsync(Post);
+    }
+}

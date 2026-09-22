@@ -368,3 +368,94 @@ public class QuizQuestion
 
     public int Order { get; set; }
 }
+
+/// <summary>A publishing organisation. Institution sign-in is not built yet, so these are seeded placeholders.</summary>
+public class Institution
+{
+    public int Id { get; set; }
+
+    public string Name { get; set; } = "";
+
+    public string ShortName { get; set; } = "";
+
+    public string City { get; set; } = "";
+
+    public bool Verified { get; set; }
+
+    public List<CommunityPost> Posts { get; set; } = [];
+}
+
+public class CommunityPost
+{
+    public int Id { get; set; }
+
+    public int InstitutionId { get; set; }
+
+    public Institution? Institution { get; set; }
+
+    public string Kind { get; set; } = "Announcement";
+
+    public string Title { get; set; } = "";
+
+    public string Body { get; set; } = "";
+
+    // DateTime rather than DateTimeOffset: SQLite cannot ORDER BY a DateTimeOffset column.
+    public DateTime PostedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public DateTime? StartsAtUtc { get; set; }
+
+    public string? Venue { get; set; }
+
+    public string? CtaLabel { get; set; }
+
+    public string? CtaUrl { get; set; }
+
+    /// <summary>Set once institutions can upload artwork; until then the UI falls back to a placeholder by kind.</summary>
+    public string? ImageUrl { get; set; }
+
+    public string Tags { get; set; } = "";
+
+    /// <summary>Placeholder engagement for seeded posts; real votes are counted from <see cref="Upvotes"/>.</summary>
+    public int BaseUpvotes { get; set; }
+
+    public List<PostUpvote> Upvotes { get; set; } = [];
+
+    public List<PostComment> Comments { get; set; } = [];
+}
+
+public class PostUpvote
+{
+    public int Id { get; set; }
+
+    public int CommunityPostId { get; set; }
+
+    public int StudentProfileId { get; set; }
+
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+public class PostComment
+{
+    public int Id { get; set; }
+
+    public int CommunityPostId { get; set; }
+
+    /// <summary>Replies are one level deep; a reply always points at a top-level comment.</summary>
+    public int? ParentCommentId { get; set; }
+
+    /// <summary>Set when a student wrote it. Seeded peer comments have neither author id.</summary>
+    public int? StudentProfileId { get; set; }
+
+    /// <summary>Set when an institution replied as itself.</summary>
+    public int? InstitutionId { get; set; }
+
+    public Institution? Institution { get; set; }
+
+    public string AuthorName { get; set; } = "";
+
+    public string? AuthorHeadline { get; set; }
+
+    public string Body { get; set; } = "";
+
+    public DateTime PostedAtUtc { get; set; } = DateTime.UtcNow;
+}

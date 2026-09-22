@@ -190,6 +190,44 @@ public sealed class HttpGovtService(IHttpClientFactory factory) : IGovtService
         Client.GetJsonOrNullAsync<GovtExamDto>($"api/govt/{id}", ct);
 }
 
+public sealed class HttpCommunityService(IHttpClientFactory factory) : ICommunityService
+{
+    private HttpClient Client => factory.CreateClient(SaplingApi.Authenticated);
+
+    public async Task<IReadOnlyList<CommunityPostDto>> GetFeedAsync(string? kind = null, CancellationToken ct = default) =>
+        await Client.GetJsonAsync<List<CommunityPostDto>>(
+            string.IsNullOrWhiteSpace(kind) ? "api/community" : $"api/community?kind={Uri.EscapeDataString(kind)}", ct);
+
+    public Task<CommunityPostDto?> GetPostAsync(int id, CancellationToken ct = default) =>
+        Client.GetJsonOrNullAsync<CommunityPostDto>($"api/community/{id}", ct);
+
+    public Task<CommunityPostDto> SetUpvoteAsync(int id, bool upvoted, CancellationToken ct = default) =>
+        Client.PostJsonAsync<CommunityPostDto>($"api/community/{id}/upvote/{upvoted.ToString().ToLowerInvariant()}", null, ct);
+
+    public async Task<IReadOnlyList<CommunityCommentDto>> GetCommentsAsync(int postId, CancellationToken ct = default) =>
+        await Client.GetJsonAsync<List<CommunityCommentDto>>($"api/community/{postId}/comments", ct);
+
+    public async Task<IReadOnlyList<CommunityCommentDto>> AddCommentAsync(int postId, AddCommentRequest request, CancellationToken ct = default)
+    {
+        var response = await Client.PostAsJsonAsync($"api/community/{postId}/comments", request, ct);
+        if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            // Surface the server's validation message the same way the in-process service does.
+            throw new ArgumentException(await response.Content.ReadFromJsonAsync<string>(ct) ?? "Comment could not be posted.");
+        }
+
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<List<CommunityCommentDto>>(ct))!;
+    }
+
+    public async Task<IReadOnlyList<CommunityCommentDto>> DeleteCommentAsync(int postId, int commentId, CancellationToken ct = default)
+    {
+        var response = await Client.DeleteAsync($"api/community/{postId}/comments/{commentId}", ct);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<List<CommunityCommentDto>>(ct))!;
+    }
+}
+
 public sealed class HttpQuizService(IHttpClientFactory factory) : IQuizService
 {
     private HttpClient Client => factory.CreateClient(SaplingApi.Authenticated);

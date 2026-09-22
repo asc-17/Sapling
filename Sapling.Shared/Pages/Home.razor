@@ -2,6 +2,7 @@
 @page "/home"
 @namespace Sapling.Shared.Pages
 @inject IScoreService Scores
+@inject ICommunityService Community
 @inject IRecentFeaturesService Recents
 @inject NavigationManager Nav
 
@@ -80,6 +81,39 @@
             </ChildContent>
         </SapCard>
     }
+
+    @if (_latestPosts.Count > 0)
+    {
+        <SapCard Title="From the community" Subtitle="Latest from your college">
+            <Header>
+                <a class="btn btn-secondary btn-sm" href="/community">See all</a>
+            </Header>
+            <ChildContent>
+                <div class="stack">
+                    @foreach (var post in _latestPosts)
+                    {
+                        <a class="post-row" href="@($"/community/{post.Id}")">
+                            <InstitutionTile InstitutionId="post.Author.Id" Size="36" />
+                            <div class="stack grow" style="gap:2px">
+                                <span class="t-small post-row-title">@post.Title</span>
+                                <span class="row g-1 wrap t-caption t-subtle">
+                                    <span>@post.Author.ShortName</span>
+                                    @if (post.Author.Verified)
+                                    {
+                                        <VerifiedTick Size="12" />
+                                    }
+                                    <span>&middot; @post.Kind &middot; @CommunityDisplay.Ago(post.PostedAt)</span>
+                                </span>
+                            </div>
+                            <span class="row g-1 t-caption t-subtle" aria-label="@($"{post.Upvotes} upvotes")">
+                                <SapIcon Name="arrow-up" Size="14" /> @post.Upvotes
+                            </span>
+                        </a>
+                    }
+                </div>
+            </ChildContent>
+        </SapCard>
+    }
 </div>
 
 @code {
@@ -87,6 +121,7 @@
 
     private HomeSummaryDto? _summary;
     private List<Feature> _recent = [];
+    private IReadOnlyList<CommunityPostDto> _latestPosts = [];
 
     private double Progress => _summary is { TotalItems: > 0 }
         ? 100.0 * _summary.CompletedItems / _summary.TotalItems
@@ -113,7 +148,10 @@
         if (!_summary.OnboardingComplete)
         {
             Nav.NavigateTo("/onboarding/about");
+            return;
         }
+
+        _latestPosts = (await Community.GetFeedAsync()).Take(3).ToList();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -135,6 +173,7 @@
     {
         FeatureCatalog.Opportunities when _summary is { NewOpportunities: > 0 } => $"{_summary.NewOpportunities} open",
         FeatureCatalog.GovtTrack when _summary is { ClosingSoonExams: > 0 } => $"{_summary.ClosingSoonExams} soon",
+        FeatureCatalog.Community when _summary is { NewCommunityPosts: > 0 } => $"{_summary.NewCommunityPosts} new",
         _ => null,
     };
 

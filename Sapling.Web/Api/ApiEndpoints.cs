@@ -75,5 +75,26 @@ public static class ApiEndpoints
         var quiz = api.MapGroup("/quiz");
         quiz.MapGet("/", (IQuizService s, CancellationToken ct) => s.GetQuestionsAsync(ct));
         quiz.MapPost("/", (QuizSubmissionRequest r, IQuizService s, CancellationToken ct) => s.SubmitAsync(r, ct));
+
+        var community = api.MapGroup("/community");
+        community.MapGet("/", (string? kind, ICommunityService s, CancellationToken ct) => s.GetFeedAsync(kind, ct));
+        community.MapGet("/{id:int}", async (int id, ICommunityService s, CancellationToken ct) =>
+            await s.GetPostAsync(id, ct) is { } dto ? Results.Ok(dto) : Results.NotFound());
+        community.MapPost("/{id:int}/upvote/{upvoted:bool}", async (int id, bool upvoted, ICommunityService s, CancellationToken ct) =>
+            await s.GetPostAsync(id, ct) is null ? Results.NotFound() : Results.Ok(await s.SetUpvoteAsync(id, upvoted, ct)));
+        community.MapGet("/{id:int}/comments", (int id, ICommunityService s, CancellationToken ct) => s.GetCommentsAsync(id, ct));
+        community.MapPost("/{id:int}/comments", async (int id, AddCommentRequest r, ICommunityService s, CancellationToken ct) =>
+        {
+            try
+            {
+                return Results.Ok(await s.AddCommentAsync(id, r, ct));
+            }
+            catch (ArgumentException e)
+            {
+                return Results.BadRequest(e.Message);
+            }
+        });
+        community.MapDelete("/{id:int}/comments/{commentId:int}", (int id, int commentId, ICommunityService s, CancellationToken ct) =>
+            s.DeleteCommentAsync(id, commentId, ct));
     }
 }

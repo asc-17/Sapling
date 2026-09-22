@@ -69,6 +69,10 @@ public static class Icons
         ["list-checks"] = "m3 6 1.5 1.5L7 5M3 13l1.5 1.5L7 12M3 20l1.5 1.5L7 19M11 6h10M11 13h10M11 20h10",
         ["send"] = "M21 3 3 10.5l7 3 3 7Z",
         ["message"] = "M4 4h16v12H8l-4 4Z",
+        ["arrow-up"] = "M12 19V5M6 11l6-6 6 6",
+        ["megaphone"] = "M3 11v3l14 5V6ZM17 8a4 4 0 0 1 0 8M7 15.5V19a2 2 0 0 0 4 0v-2",
+        ["corner-down-right"] = "M15 10l5 5-5 5M4 4v7a4 4 0 0 0 4 4h12",
+        ["trash"] = "M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3",
         ["sidebar-close"] = "M3 4h18v16H3ZM9 4v16M15 10l-3 2 3 2",
         ["sidebar-open"] = "M3 4h18v16H3ZM9 4v16M14 10l3 2-3 2",
     };

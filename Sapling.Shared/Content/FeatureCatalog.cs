@@ -18,6 +18,7 @@ public static class FeatureCatalog
     public const string Resume = "resume";
     public const string Interview = "interview";
     public const string GovtTrack = "govt-track";
+    public const string Community = "community";
     public const string Score = "score";
     public const string Profile = "profile";
 
@@ -50,6 +51,10 @@ public static class FeatureCatalog
         new(GovtTrack, "Government track", "Exams you are actually eligible for.",
             "MPPSC, MPESB, SSC, Railways and Banking notifications with an eligibility engine that tells you eligible, eligible next year, or not eligible and why.",
             "landmark", "/govt"),
+
+        new(Community, "Community", "Your college's private feed.",
+            "Workshops, events, openings and announcements posted by your own college. Only its students can see them, and only the college can post.",
+            "users", "/community"),
 
         new(Score, "Employability Score", "One number that actually moves.",
             "A 0 to 100 score built from academics, verified skills, projects, communication, certifications and exposure, with the full breakdown always visible.",

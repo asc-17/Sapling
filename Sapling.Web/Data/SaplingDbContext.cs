@@ -37,6 +37,14 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
 
     public DbSet<College> Colleges => Set<College>();
 
+    public DbSet<Institution> Institutions => Set<Institution>();
+
+    public DbSet<CommunityPost> CommunityPosts => Set<CommunityPost>();
+
+    public DbSet<PostUpvote> PostUpvotes => Set<PostUpvote>();
+
+    public DbSet<PostComment> PostComments => Set<PostComment>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -98,5 +106,51 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
         builder.Entity<Skill>().HasIndex(s => s.Name).IsUnique();
 
         builder.Entity<College>().HasIndex(c => c.Name);
+
+        builder.Entity<Institution>()
+            .HasMany(i => i.Posts)
+            .WithOne(p => p.Institution)
+            .HasForeignKey(p => p.InstitutionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<CommunityPost>()
+            .HasMany(p => p.Upvotes)
+            .WithOne()
+            .HasForeignKey(u => u.CommunityPostId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<CommunityPost>()
+            .HasMany(p => p.Comments)
+            .WithOne()
+            .HasForeignKey(c => c.CommunityPostId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<CommunityPost>().HasIndex(p => p.PostedAtUtc);
+
+        builder.Entity<PostUpvote>().HasIndex(u => new { u.CommunityPostId, u.StudentProfileId }).IsUnique();
+
+        builder.Entity<PostUpvote>()
+            .HasOne<StudentProfile>()
+            .WithMany()
+            .HasForeignKey(u => u.StudentProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<PostComment>()
+            .HasOne<PostComment>()
+            .WithMany()
+            .HasForeignKey(c => c.ParentCommentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<PostComment>()
+            .HasOne<StudentProfile>()
+            .WithMany()
+            .HasForeignKey(c => c.StudentProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<PostComment>()
+            .HasOne(c => c.Institution)
+            .WithMany()
+            .HasForeignKey(c => c.InstitutionId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -217,8 +217,56 @@ public sealed record HomeSummaryDto(
     int TotalItems,
     string? NextTask,
     int NewOpportunities,
-    int ClosingSoonExams);
+    int ClosingSoonExams,
+    int NewCommunityPosts = 0);
 
 public sealed record SkillSuggestionDto(
     string Name,
     string Category);
+
+public static class PostKinds
+{
+    public const string Opportunity = "Opportunity";
+    public const string Workshop = "Workshop";
+    public const string Event = "Event";
+    public const string Announcement = "Announcement";
+}
+
+public sealed record InstitutionDto(
+    int Id,
+    string Name,
+    string ShortName,
+    string City,
+    bool Verified);
+
+public sealed record CommunityPostDto(
+    int Id,
+    InstitutionDto Author,
+    string Kind,
+    string Title,
+    string Body,
+    DateTimeOffset PostedAt,
+    DateTimeOffset? StartsAt,
+    string? Venue,
+    string? CtaLabel,
+    string? CtaUrl,
+    IReadOnlyList<string> Tags,
+    int Upvotes,
+    bool HasUpvoted,
+    int CommentCount,
+    string? ImageUrl = null);
+
+public sealed record CommunityCommentDto(
+    int Id,
+    int? ParentId,
+    string AuthorName,
+    string? AuthorHeadline,
+    bool IsInstitution,
+    bool IsVerified,
+    bool IsPostAuthor,
+    bool IsMine,
+    string Body,
+    DateTimeOffset PostedAt,
+    IReadOnlyList<CommunityCommentDto> Replies);
+
+public sealed record AddCommentRequest(string Body, int? ParentId = null);

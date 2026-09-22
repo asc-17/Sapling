@@ -11,6 +11,7 @@ public static class Navigation
         new("Skills & gaps", "/skills", "radar"),
         new("Roadmap", "/roadmap", "route"),
         new("Opportunities", "/opportunities", "briefcase"),
+        new("Community", "/community", "users"),
         new("Resume", "/resume", "file-text"),
         new("Mock interview", "/interview", "mic"),
         new("Government", "/govt", "landmark"),
@@ -27,6 +28,7 @@ public static class Navigation
     public static readonly IReadOnlyList<NavEntry> MoreSheet =
     [
         new("Employability Score", "/score", "gauge"),
+        new("Community", "/community", "users"),
         new("Career paths", "/paths", "compass"),
         new("Skills & gaps", "/skills", "radar"),
         new("Resume", "/resume", "file-text"),
