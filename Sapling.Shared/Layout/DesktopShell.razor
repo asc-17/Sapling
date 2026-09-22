@@ -1,16 +1,25 @@
 @namespace Sapling.Shared.Layout
+@inject IJSRuntime Js
 
 <div class="shell-desktop">
-    <nav class="sidebar">
+    <nav class="sidebar @(_collapsed ? "collapsed" : null)">
         <div class="sidebar-brand">
-            <SapLogo Size="30" />
+            @if (_collapsed)
+            {
+                <SapLogo Size="30" ShowWord="false" />
+            }
+            else
+            {
+                <SapLogo Size="30" />
+            }
         </div>
 
         <div class="sidebar-nav">
             @foreach (var entry in Navigation.Primary)
             {
                 <NavLink class="nav-item" href="@entry.Route"
-                         Match="@(entry.ExactMatch ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                         Match="@(entry.ExactMatch ? NavLinkMatch.All : NavLinkMatch.Prefix)"
+                         title="@(_collapsed ? entry.Label : null)">
                     <SapIcon Name="@entry.Icon" Size="18" />
                     <span>@entry.Label</span>
                 </NavLink>
@@ -18,7 +27,7 @@
         </div>
 
         <div class="sidebar-foot">
-            <NavLink class="nav-item" href="/profile">
+            <NavLink class="nav-item" href="/profile" title="@(_collapsed ? "Profile & settings" : null)">
                 <span class="avatar" style="width:26px;height:26px;font-size:11px">@Initials</span>
                 <span class="stack grow" style="gap:0">
                     <span style="font-size:13px">@DisplayName</span>
@@ -26,6 +35,13 @@
                 </span>
             </NavLink>
         </div>
+
+        <button type="button" class="sidebar-collapse-btn"
+                @onclick="ToggleCollapse"
+                title="@(_collapsed ? "Expand sidebar" : "Collapse sidebar")"
+                aria-label="@(_collapsed ? "Expand sidebar" : "Collapse sidebar")">
+            <SapIcon Name="@(_collapsed ? "sidebar-open" : "sidebar-close")" Size="16" />
+        </button>
     </nav>
 
     <div class="shell-main">
@@ -36,16 +52,38 @@
 </div>
 
 @code {
+    private const string SidebarKey = "sapling-sidebar-collapsed";
+
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private string DisplayName { get; set; } = "Student";
+    private bool _collapsed;
 
     private string Initials => string.Concat(
         DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Take(2)
             .Select(part => char.ToUpperInvariant(part[0])));
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        var saved = await Js.InvokeAsync<string?>("sapling.store.get", SidebarKey);
+        var wasCollapsed = saved == "true";
+        if (wasCollapsed != _collapsed)
+        {
+            _collapsed = wasCollapsed;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleCollapse()
+    {
+        _collapsed = !_collapsed;
+        await Js.InvokeVoidAsync("sapling.store.set", SidebarKey, _collapsed ? "true" : "false");
+    }
 
     protected override async Task OnParametersSetAsync()
     {

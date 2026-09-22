@@ -5,9 +5,17 @@
 
 <div class="carousel @Class">
     <div class="carousel-track" @ref="_track">
+        @if (Items.Count > 1)
+        {
+            <div class="carousel-slide carousel-clone-prev" aria-hidden="true">@ItemTemplate(Items[^1])</div>
+        }
         @foreach (var item in Items)
         {
             <div class="carousel-slide">@ItemTemplate(item)</div>
+        }
+        @if (Items.Count > 1)
+        {
+            <div class="carousel-slide carousel-clone-next" aria-hidden="true">@ItemTemplate(Items[0])</div>
         }
     </div>
 
@@ -16,11 +24,11 @@
         @if (ShowArrows)
         {
             <button type="button" class="btn btn-secondary btn-icon btn-sm carousel-arrow prev"
-                    @onclick="() => GoTo(_index - 1)" aria-label="Previous">
+                    @onclick="Prev" aria-label="Previous">
                 <SapIcon Name="chevron-left" Size="16" />
             </button>
             <button type="button" class="btn btn-secondary btn-icon btn-sm carousel-arrow next"
-                    @onclick="() => GoTo(_index + 1)" aria-label="Next">
+                    @onclick="Next" aria-label="Next">
                 <SapIcon Name="chevron-right" Size="16" />
             </button>
         }
@@ -61,7 +69,7 @@
         }
 
         _ref = DotNetObjectReference.Create(this);
-        await Js.InvokeVoidAsync("sapling.carousel.observe", _track, _ref);
+        await Js.InvokeVoidAsync("sapling.carousel.init", _track, _ref, Items.Count);
         _cts = new CancellationTokenSource();
         _ = AutoAdvanceAsync(_cts.Token);
     }
@@ -75,7 +83,7 @@
             {
                 if (!_paused)
                 {
-                    await InvokeAsync(() => GoTo(_index + 1));
+                    await InvokeAsync(Next);
                 }
             }
         }
@@ -85,14 +93,26 @@
         }
     }
 
-    private async Task GoTo(int index)
+    private async Task Next()
     {
-        if (Items.Count == 0)
-        {
-            return;
-        }
+        if (Items.Count <= 1) return;
+        _index = (_index + 1) % Items.Count;
+        StateHasChanged();
+        await Js.InvokeVoidAsync("sapling.carousel.next", _track);
+    }
 
-        _index = ((index % Items.Count) + Items.Count) % Items.Count;
+    private async Task Prev()
+    {
+        if (Items.Count <= 1) return;
+        _index = ((_index - 1) % Items.Count + Items.Count) % Items.Count;
+        StateHasChanged();
+        await Js.InvokeVoidAsync("sapling.carousel.prev", _track);
+    }
+
+    private async Task GoTo(int target)
+    {
+        if (Items.Count <= 1) return;
+        _index = ((target % Items.Count) + Items.Count) % Items.Count;
         StateHasChanged();
         await Js.InvokeVoidAsync("sapling.carousel.goTo", _track, _index);
     }
@@ -119,6 +139,13 @@
             await _cts.CancelAsync();
             _cts.Dispose();
         }
+
+        try
+        {
+            await Js.InvokeVoidAsync("sapling.carousel.destroy", _track);
+        }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
 
         _ref?.Dispose();
     }

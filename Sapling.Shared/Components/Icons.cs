@@ -69,6 +69,8 @@ public static class Icons
         ["list-checks"] = "m3 6 1.5 1.5L7 5M3 13l1.5 1.5L7 12M3 20l1.5 1.5L7 19M11 6h10M11 13h10M11 20h10",
         ["send"] = "M21 3 3 10.5l7 3 3 7Z",
         ["message"] = "M4 4h16v12H8l-4 4Z",
+        ["sidebar-close"] = "M3 4h18v16H3ZM9 4v16M15 10l-3 2 3 2",
+        ["sidebar-open"] = "M3 4h18v16H3ZM9 4v16M14 10l3 2-3 2",
     };
 
     public static string Get(string name) =>

@@ -76,6 +76,7 @@
 
     /* Layout */
     --sidebar-w: 240px;
+    --sidebar-w-collapsed: 68px;
     --tabbar-h: 62px;
     --topbar-h: 56px;
     --content-max: 1200px;
