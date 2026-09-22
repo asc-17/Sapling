@@ -1,0 +1,28 @@
+@namespace Sapling.Shared.Pages.Onboarding
+
+<div class="row g-2 wrap">
+    @foreach (var (label, index) in Steps.Select((s, i) => (s, i + 1)))
+    {
+        <div class="row g-2 grow" style="min-width:120px">
+            <span class="row center" style="width:24px;height:24px;flex:none;border-radius:var(--r-pill);font-size:12px;font-weight:700;
+                         background:@(index <= Current ? "var(--primary)" : "var(--surface2)");
+                         color:@(index <= Current ? "var(--primary-on)" : "var(--subtle)")">
+                @if (index < Current)
+                {
+                    <SapIcon Name="check" Size="13" Stroke="2.5" />
+                }
+                else
+                {
+                    @index
+                }
+            </span>
+            <span class="t-small" style="font-weight:600;color:@(index <= Current ? "var(--ink)" : "var(--subtle)")">@label</span>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly string[] Steps = ["About you", "Your skills", "Interest check"];
+
+    [Parameter, EditorRequired] public int Current { get; set; }
+}

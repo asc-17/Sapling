@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-sapling-theme="system">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -8,17 +8,26 @@
     <link rel="stylesheet" href="_content/Sapling.Shared/app.css" />
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="Sapling.styles.css" />
-    <link rel="icon" href="data:,">
+    <link rel="icon" href="data:," />
+    <script>
+        try {
+            document.documentElement.setAttribute('data-sapling-theme', localStorage.getItem('sapling-theme') || 'system');
+        } catch { }
+    </script>
 </head>
-
 <body>
-
     <div class="status-bar-safe-area"></div>
+    <div id="app">
+        <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#5A6672">Loading…</div>
+    </div>
 
-    <div id="app">Loading...</div>
+    <div id="blazor-error-ui" data-nosnippet>
+        Something went wrong.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss">&times;</span>
+    </div>
 
+    <script src="_content/Sapling.Shared/js/sapling.js"></script>
     <script src="_framework/blazor.webview.js" autostart="false"></script>
-
 </body>
-
 </html>

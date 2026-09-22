@@ -1,0 +1,63 @@
+@namespace Sapling.Shared.Components
+
+@{
+    var radius = (Size - Thickness) / 2.0;
+    var circumference = 2 * Math.PI * radius;
+    var dash = circumference * Math.Clamp(_shown / (double)Max, 0, 1);
+}
+
+<div class="stack center" style="gap:2px">
+    <svg width="@Size" height="@Size" viewBox="0 0 @Size @Size" role="img" aria-label="@Label @Value out of @Max">
+        <circle cx="@(Size / 2.0)" cy="@(Size / 2.0)" r="@radius" fill="none"
+                stroke="var(--track)" stroke-width="@Thickness" />
+        <circle cx="@(Size / 2.0)" cy="@(Size / 2.0)" r="@radius" fill="none"
+                stroke="var(--primary)" stroke-width="@Thickness" stroke-linecap="round"
+                stroke-dasharray="@dash.ToString("0.##") @circumference.ToString("0.##")"
+                transform="rotate(-90 @(Size / 2.0) @(Size / 2.0))"
+                style="transition:stroke-dasharray 900ms cubic-bezier(.22,1,.36,1)" />
+        <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
+              font-family="var(--font-display)" font-weight="800" font-size="@(Size / 3.4)"
+              fill="var(--ink)" letter-spacing="-0.02em">@Value</text>
+    </svg>
+    @if (!string.IsNullOrEmpty(Caption))
+    {
+        <span class="t-caption t-subtle">@Caption</span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public int Value { get; set; }
+
+    [Parameter] public int Max { get; set; } = 100;
+
+    [Parameter] public int Size { get; set; } = 140;
+
+    [Parameter] public int Thickness { get; set; } = 12;
+
+    [Parameter] public string? Caption { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Score";
+
+    /// <summary>Sweep only on first render; revisits show the final value immediately.</summary>
+    [Parameter] public bool Animate { get; set; } = true;
+
+    private int _shown;
+
+    protected override void OnParametersSet()
+    {
+        if (!Animate)
+        {
+            _shown = Value;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Animate && _shown != Value)
+        {
+            await Task.Delay(60);
+            _shown = Value;
+            StateHasChanged();
+        }
+    }
+}

@@ -1,0 +1,78 @@
+@page "/register"
+@namespace Sapling.Components.Pages
+@layout AuthLayout
+@attribute [AllowAnonymous]
+@inject ApiAuthService Auth
+@inject IProfileService Profiles
+@inject NavigationManager Nav
+
+<PageTitle>Create an account · Sapling</PageTitle>
+
+<div class="stack g-4">
+    <div class="stack g-1">
+        <h3>Create your account</h3>
+        <span class="t-small t-subtle">Three short steps and you will have a score.</span>
+    </div>
+
+    @if (_error is not null)
+    {
+        <div class="badge badge-error" style="padding:10px 14px;border-radius:var(--r-md);white-space:normal">
+            <SapIcon Name="alert-circle" Size="15" />
+            @_error
+        </div>
+    }
+
+    <div class="field">
+        <label for="email">Email</label>
+        <input id="email" class="input" type="email" inputmode="email" autocomplete="username"
+               placeholder="you@college.ac.in" @bind="_email" @bind:event="oninput" />
+    </div>
+
+    <div class="field">
+        <label for="password">Password</label>
+        <input id="password" class="input" type="password" autocomplete="new-password"
+               @bind="_password" @bind:event="oninput" />
+        <span class="field-hint">At least 8 characters, with one uppercase letter and one digit.</span>
+    </div>
+
+    <button type="button" class="btn btn-primary btn-block" @onclick="SubmitAsync" disabled="@_busy">
+        @(_busy ? "Creating…" : "Create account")
+    </button>
+
+    <span class="t-small t-muted" style="text-align:center">
+        Already registered? <a href="/signin">Sign in</a>
+    </span>
+</div>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private string? _error;
+    private bool _busy;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            var result = await Auth.RegisterAsync(_email.Trim(), _password);
+            if (result.Succeeded)
+            {
+                Nav.NavigateTo("/onboarding/about");
+                return;
+            }
+
+            _error = result.Error;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Could not reach the Sapling server. Check that it is running and reachable from this device.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

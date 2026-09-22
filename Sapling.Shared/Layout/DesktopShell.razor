@@ -1,0 +1,64 @@
+@namespace Sapling.Shared.Layout
+
+<div class="shell-desktop">
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <SapLogo Size="30" />
+        </div>
+
+        <div class="sidebar-nav">
+            @foreach (var entry in Navigation.Primary)
+            {
+                <NavLink class="nav-item" href="@entry.Route"
+                         Match="@(entry.ExactMatch ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                    <SapIcon Name="@entry.Icon" Size="18" />
+                    <span>@entry.Label</span>
+                </NavLink>
+            }
+        </div>
+
+        <div class="sidebar-foot">
+            <NavLink class="nav-item" href="/profile">
+                <span class="avatar" style="width:26px;height:26px;font-size:11px">@Initials</span>
+                <span class="stack grow" style="gap:0">
+                    <span style="font-size:13px">@DisplayName</span>
+                    <span class="t-caption t-subtle" style="font-weight:400">Profile &amp; settings</span>
+                </span>
+            </NavLink>
+        </div>
+    </nav>
+
+    <div class="shell-main">
+        <main class="page">
+            @ChildContent
+        </main>
+    </div>
+</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private string DisplayName { get; set; } = "Student";
+
+    private string Initials => string.Concat(
+        DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Take(2)
+            .Select(part => char.ToUpperInvariant(part[0])));
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthState is null)
+        {
+            return;
+        }
+
+        var state = await AuthState;
+        var name = state.User.FindFirst("full_name")?.Value ?? state.User.Identity?.Name;
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            DisplayName = name.Contains('@') ? name[..name.IndexOf('@')] : name;
+        }
+    }
+}

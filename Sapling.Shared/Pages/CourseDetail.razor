@@ -1,0 +1,68 @@
+@page "/roadmap/course/{Id:int}"
+@namespace Sapling.Shared.Pages
+@inject IRoadmapService Roadmaps
+
+<PageTitle>@(_course?.Title ?? "Course") · Sapling</PageTitle>
+<RecordVisit Feature="@FeatureCatalog.Roadmap" />
+
+@if (_course is null)
+{
+    <div class="card"><div class="skeleton" style="height:180px"></div></div>
+}
+else
+{
+    <div class="stack g-5" style="max-width:760px">
+        <a class="btn btn-ghost btn-sm" href="/roadmap" style="align-self:flex-start">
+            <SapIcon Name="chevron-left" Size="15" />
+            Back to roadmap
+        </a>
+
+        <div class="card stack g-4">
+            <div class="row g-2 wrap">
+                @if (_course.IsFree)
+                {
+                    <SapBadge Tone="success" Icon="check">Free</SapBadge>
+                }
+                @if (_course.IsGovernmentSubsidised)
+                {
+                    <SapBadge Tone="primary" Icon="landmark">Government-subsidised</SapBadge>
+                }
+                <SapBadge Tone="neutral" Icon="clock">@_course.Hours hours</SapBadge>
+                <SapBadge Tone="neutral">@_course.Level</SapBadge>
+            </div>
+
+            <div class="stack g-2">
+                <h1 style="font-size:28px;line-height:34px">@_course.Title</h1>
+                <span class="t-muted">@_course.Provider &middot; @_course.Cost</span>
+            </div>
+
+            <p class="t-muted">@_course.Summary</p>
+
+            <div class="stack g-2">
+                <span class="t-overline t-subtle">Closes these gaps</span>
+                <div class="row g-2 wrap">
+                    @foreach (var skill in _course.TeachesSkills)
+                    {
+                        <span class="chip">@skill</span>
+                    }
+                </div>
+            </div>
+
+            <div class="row g-2 wrap" style="padding-top:var(--sp-3);border-top:1px solid var(--line)">
+                <a class="btn btn-primary" href="@_course.Url" target="_blank" rel="noopener noreferrer">
+                    Open on @_course.Provider
+                    <SapIcon Name="external-link" Size="15" />
+                </a>
+                <a class="btn btn-secondary" href="/roadmap">Mark progress on the roadmap</a>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private CourseDto? _course;
+
+    protected override async Task OnParametersSetAsync() => _course = await Roadmaps.GetCourseAsync(Id);
+}

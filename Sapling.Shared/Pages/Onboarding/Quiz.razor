@@ -1,0 +1,87 @@
+@page "/onboarding/quiz"
+@namespace Sapling.Shared.Pages.Onboarding
+@inject IQuizService QuizService
+@inject IProfileService Profiles
+@inject NavigationManager Nav
+
+<PageTitle>Interest check · Sapling</PageTitle>
+
+<div class="stack g-5" style="max-width:640px;margin-inline:auto">
+    <OnboardingSteps Current="3" />
+
+    <div class="stack g-1">
+        <h1 style="font-size:28px;line-height:34px">How do you like to work?</h1>
+        <span class="t-muted">There are no wrong answers. Eighteen statements, about four minutes.</span>
+    </div>
+
+    @if (_questions.Count == 0)
+    {
+        <div class="card stack g-3">
+            <div class="skeleton" style="height:20px;width:70%"></div>
+            <div class="skeleton" style="height:44px"></div>
+        </div>
+    }
+    else
+    {
+        var question = _questions[_index];
+        <div class="card stack g-5">
+            <SegmentedTracker Total="_questions.Count" Completed="_index" Caption="@($"Question {_index + 1} of {_questions.Count}")" />
+
+            <h3 style="min-height:56px">@question.Text</h3>
+
+            <div class="stack g-2">
+                @foreach (var option in Options)
+                {
+                    <button type="button" class="btn btn-secondary btn-block" style="justify-content:flex-start"
+                            @onclick="() => AnswerAsync(question.Id, option.Value)">
+                        @option.Label
+                    </button>
+                }
+            </div>
+
+            @if (_index > 0)
+            {
+                <button type="button" class="btn btn-ghost btn-sm" style="align-self:flex-start" @onclick="Back">
+                    <SapIcon Name="chevron-left" Size="15" />
+                    Previous
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly (string Label, int Value)[] Options =
+    [
+        ("That is very much me", 5),
+        ("Mostly me", 4),
+        ("Sometimes", 3),
+        ("Not really", 2),
+        ("Not me at all", 1),
+    ];
+
+    private List<QuizQuestionDto> _questions = [];
+    private readonly Dictionary<int, int> _answers = [];
+    private int _index;
+
+    protected override async Task OnInitializedAsync() =>
+        _questions = [.. await QuizService.GetQuestionsAsync()];
+
+    private async Task AnswerAsync(int questionId, int value)
+    {
+        _answers[questionId] = value;
+
+        if (_index < _questions.Count - 1)
+        {
+            _index++;
+            return;
+        }
+
+        await QuizService.SubmitAsync(new QuizSubmissionRequest(
+            _answers.Select(a => new QuizAnswerDto(a.Key, a.Value)).ToList()));
+        await Profiles.CompleteOnboardingAsync();
+        Nav.NavigateTo("/score?reveal=true");
+    }
+
+    private void Back() => _index = Math.Max(0, _index - 1);
+}

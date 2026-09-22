@@ -1,0 +1,156 @@
+@page "/onboarding/about"
+@namespace Sapling.Shared.Pages.Onboarding
+@inject IProfileService Profiles
+@inject NavigationManager Nav
+
+<PageTitle>About you · Sapling</PageTitle>
+
+<div class="stack g-5" style="max-width:640px;margin-inline:auto">
+    <OnboardingSteps Current="1" />
+
+    <div class="stack g-1">
+        <h1 style="font-size:28px;line-height:34px">Tell us about you</h1>
+        <span class="t-muted">This is what your score is measured against. You can change any of it later.</span>
+    </div>
+
+    @if (_form is not null)
+    {
+        <EditForm Model="_form" OnValidSubmit="SaveAsync" class="card stack g-4">
+            <DataAnnotationsValidator />
+
+            <div class="field">
+                <label for="name">Full name</label>
+                <InputText id="name" class="input" @bind-Value="_form.FullName" />
+                <ValidationMessage For="() => _form.FullName" class="field-error" />
+            </div>
+
+            <div class="field">
+                <label for="college">College</label>
+                <InputText id="college" class="input" @bind-Value="_form.College" placeholder="e.g. SGSITS, Indore" />
+                <ValidationMessage For="() => _form.College" class="field-error" />
+            </div>
+
+            <div class="grid grid-2">
+                <div class="field">
+                    <label for="branch">Branch</label>
+                    <InputSelect id="branch" class="select" @bind-Value="_form.Branch">
+                        @foreach (var branch in Branches)
+                        {
+                            <option value="@branch">@branch</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="field">
+                    <label for="year">Graduating in</label>
+                    <InputNumber id="year" class="input" @bind-Value="_form.GraduationYear" />
+                    <ValidationMessage For="() => _form.GraduationYear" class="field-error" />
+                </div>
+            </div>
+
+            <div class="grid grid-2">
+                <div class="field">
+                    <label for="city">City</label>
+                    <InputText id="city" class="input" @bind-Value="_form.City" placeholder="e.g. Bhopal" />
+                </div>
+                <div class="field">
+                    <label for="language">Preferred language</label>
+                    <InputSelect id="language" class="select" @bind-Value="_form.PreferredLanguage">
+                        <option value="English">English</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Hinglish">Hindi &amp; English</option>
+                    </InputSelect>
+                </div>
+            </div>
+
+            <div class="grid grid-2">
+                <div class="field">
+                    <label for="cgpa">CGPA (out of 10)</label>
+                    <InputNumber id="cgpa" class="input" @bind-Value="_form.Cgpa" step="0.01" />
+                    <ValidationMessage For="() => _form.Cgpa" class="field-error" />
+                </div>
+                <div class="field">
+                    <label for="backlogs">Active backlogs</label>
+                    <InputNumber id="backlogs" class="input" @bind-Value="_form.Backlogs" />
+                </div>
+            </div>
+
+            <div class="row between g-3">
+                <span class="t-caption t-subtle">Step 1 of 3</span>
+                <button type="submit" class="btn btn-primary" disabled="@_saving">Continue</button>
+            </div>
+        </EditForm>
+    }
+    else
+    {
+        <div class="card stack g-3">
+            <div class="skeleton" style="height:44px"></div>
+            <div class="skeleton" style="height:44px"></div>
+            <div class="skeleton" style="height:44px"></div>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly string[] Branches =
+    [
+        "Computer Science & Engineering", "Information Technology", "Electronics & Communication",
+        "Electrical Engineering", "Mechanical Engineering", "Civil Engineering",
+        "B.Sc. (Computer Science)", "BCA", "B.Com", "BBA", "Other",
+    ];
+
+    private Form? _form;
+    private bool _saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var profile = await Profiles.GetAsync();
+        _form = new Form
+        {
+            FullName = profile.FullName,
+            College = profile.College,
+            Branch = string.IsNullOrWhiteSpace(profile.Branch) ? Branches[0] : profile.Branch,
+            GraduationYear = profile.GraduationYear == 0 ? DateTime.Today.Year + 1 : profile.GraduationYear,
+            City = profile.City,
+            Cgpa = profile.Cgpa,
+            Backlogs = profile.Backlogs,
+            PreferredLanguage = string.IsNullOrWhiteSpace(profile.PreferredLanguage) ? "English" : profile.PreferredLanguage,
+        };
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_form is null)
+        {
+            return;
+        }
+
+        _saving = true;
+        await Profiles.UpdateAsync(new UpdateProfileRequest(
+            _form.FullName, _form.College, _form.Branch, _form.GraduationYear,
+            _form.City, _form.Cgpa, _form.Backlogs, _form.PreferredLanguage));
+        Nav.NavigateTo("/onboarding/skills");
+    }
+
+    private sealed class Form
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your name.")]
+        public string FullName { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your college.")]
+        public string College { get; set; } = "";
+
+        public string Branch { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Range(2020, 2035, ErrorMessage = "Enter a year between 2020 and 2035.")]
+        public int GraduationYear { get; set; }
+
+        public string City { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Range(0, 10, ErrorMessage = "CGPA must be between 0 and 10.")]
+        public double Cgpa { get; set; }
+
+        public int Backlogs { get; set; }
+
+        public string PreferredLanguage { get; set; } = "English";
+    }
+}

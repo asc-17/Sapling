@@ -1,0 +1,96 @@
+@page "/govt"
+@namespace Sapling.Shared.Pages
+@inject IGovtService GovtService
+
+<PageTitle>Government track · Sapling</PageTitle>
+<RecordVisit Feature="@FeatureCatalog.GovtTrack" />
+
+<div class="stack g-5">
+    <div class="stack g-1">
+        <h1 style="font-size:28px;line-height:34px">Government track</h1>
+        <span class="t-muted">
+            Eligibility is decided by rules, not by a model. Every verdict below shows its reasoning.
+        </span>
+    </div>
+
+    @if (_exams is null)
+    {
+        <div class="stack g-3">
+            @for (var i = 0; i < 3; i++)
+            {
+                <div class="card"><div class="skeleton" style="height:90px"></div></div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="stack g-3">
+            @foreach (var exam in _exams)
+            {
+                <div class="card stack g-4">
+                    <div class="row-top between g-4 wrap">
+                        <div class="stack g-2 grow" style="min-width:240px">
+                            <div class="row g-2 wrap">
+                                <SapBadge Tone="@StatusTone(exam.Eligibility)" Icon="@StatusIcon(exam.Eligibility)">@exam.Eligibility</SapBadge>
+                                <SapBadge Tone="neutral">@exam.Level</SapBadge>
+                                @if (exam.NotificationOn is { } notified && notified <= Today)
+                                {
+                                    <SapBadge Tone="accent" Icon="bell">Notification out</SapBadge>
+                                }
+                                @if (exam.ExamOn is { } examOn)
+                                {
+                                    <SapBadge Tone="neutral" Icon="calendar">Exam @examOn.ToString("d MMM yyyy")</SapBadge>
+                                }
+                            </div>
+                            <h4>@exam.Name</h4>
+                            <span class="t-small t-muted">@exam.Authority</span>
+                            <span class="t-small t-muted">@exam.Summary</span>
+                        </div>
+                    </div>
+
+                    <div class="stack g-2" style="padding-top:var(--sp-3);border-top:1px solid var(--line)">
+                        <span class="t-overline t-subtle">Syllabus areas</span>
+                        <div class="row g-2 wrap">
+                            @foreach (var area in exam.SyllabusAreas)
+                            {
+                                <span class="chip" style="padding:3px 10px;font-size:12px">@area</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="stack g-2">
+                        <span class="t-overline t-subtle">Why this verdict</span>
+                        <ul class="stack g-1" style="margin:0;padding-left:18px">
+                            @foreach (var reason in exam.EligibilityReasons)
+                            {
+                                <li class="t-small t-muted">@reason</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.Today);
+
+    private IReadOnlyList<GovtExamDto>? _exams;
+
+    protected override async Task OnInitializedAsync() => _exams = await GovtService.GetExamsAsync();
+
+    private static string StatusTone(string status) => status switch
+    {
+        "Eligible" => "success",
+        "Eligible next year" => "warn",
+        _ => "neutral",
+    };
+
+    private static string StatusIcon(string status) => status switch
+    {
+        "Eligible" => "check-circle",
+        "Eligible next year" => "clock",
+        _ => "x",
+    };
+}

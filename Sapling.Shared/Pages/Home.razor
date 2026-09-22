@@ -1,7 +1,142 @@
-﻿@page "/"
+@page "/"
+@page "/home"
+@namespace Sapling.Shared.Pages
+@inject IScoreService Scores
+@inject IRecentFeaturesService Recents
+@inject NavigationManager Nav
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Home · Sapling</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="stack g-6">
+    <div class="stack g-1">
+        <h1 style="font-size:28px;line-height:34px">@Greeting, @(_summary?.FirstName ?? "there").</h1>
+        <span class="t-muted">@Subtitle</span>
+    </div>
 
-Welcome to your new app.
+    <SapCarousel TItem="Banner" Items="HomeBanners.All" ShowArrows="@(FormFactor.Kind == FormFactorKind.Desktop)">
+        <ItemTemplate Context="banner">
+            <a class="banner" href="@banner.Route">
+                <img class="banner-art" src="@banner.Image" alt="" aria-hidden="true" />
+                <div class="banner-body stack g-2">
+                    <h3>@banner.Title</h3>
+                    <span class="t-small t-muted">@banner.Subtitle</span>
+                    <span class="row g-1 t-small" style="font-weight:600;color:var(--primary-text)">
+                        @banner.Cta
+                        <SapIcon Name="arrow-right" Size="15" />
+                    </span>
+                </div>
+            </a>
+        </ItemTemplate>
+    </SapCarousel>
+
+    @if (_recent.Count > 0)
+    {
+        <div class="stack g-3">
+            <span class="t-overline t-subtle">Jump back in</span>
+            <div class="scroll-x">
+                @foreach (var feature in _recent)
+                {
+                    <a class="recent-card" href="@feature.Route">
+                        <SapIcon Name="@feature.Icon" Size="16" />
+                        @feature.Title
+                    </a>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="stack g-3">
+        <span class="t-overline t-subtle">Everything you can do</span>
+        <div class="grid grid-4">
+            @foreach (var feature in FeatureCatalog.HomeCards)
+            {
+                <SapFeatureCard Feature="feature" Badge="@BadgeFor(feature.Key)" BadgeTone="@BadgeToneFor(feature.Key)" />
+            }
+        </div>
+    </div>
+
+    @if (_summary is { TotalItems: > 0 })
+    {
+        <SapCard Title="@($"Week {_summary.CurrentWeek} of {_summary.TotalWeeks}")"
+                 Subtitle="Your roadmap to the target role">
+            <Header>
+                <a class="btn btn-secondary btn-sm" href="/roadmap">Open roadmap</a>
+            </Header>
+            <ChildContent>
+                <LinearBar Percent="Progress"
+                           Label="@($"{_summary.CompletedItems} of {_summary.TotalItems} tasks done")"
+                           ValueText="@($"{Progress:0}%")" />
+                @if (_summary.NextTask is not null)
+                {
+                    <div class="row-top g-3 card card-inset" style="padding:var(--sp-3)">
+                        <span class="icon-tile" style="width:32px;height:32px"><SapIcon Name="list-checks" Size="16" /></span>
+                        <div class="stack grow" style="gap:0">
+                            <span class="t-caption t-subtle">Next up</span>
+                            <span class="t-small" style="font-weight:600">@_summary.NextTask</span>
+                        </div>
+                        <a class="btn btn-accent btn-sm" href="/roadmap">Start</a>
+                    </div>
+                }
+            </ChildContent>
+        </SapCard>
+    }
+</div>
+
+@code {
+    [Inject] private IFormFactor FormFactor { get; set; } = default!;
+
+    private HomeSummaryDto? _summary;
+    private List<Feature> _recent = [];
+
+    private double Progress => _summary is { TotalItems: > 0 }
+        ? 100.0 * _summary.CompletedItems / _summary.TotalItems
+        : 0;
+
+    private static string Greeting => DateTime.Now.Hour switch
+    {
+        < 12 => "Good morning",
+        < 17 => "Good afternoon",
+        _ => "Good evening",
+    };
+
+    private string Subtitle => _summary switch
+    {
+        null => "Loading your plan.",
+        { OnboardingComplete: false } => "Finish setting up your profile to unlock your score.",
+        { NextTask: not null } => $"Week {_summary.CurrentWeek} of {_summary.TotalWeeks}. Next up: {_summary.NextTask}.",
+        _ => "Your roadmap is complete. Time to apply.",
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _summary = await Scores.GetHomeSummaryAsync();
+        if (!_summary.OnboardingComplete)
+        {
+            Nav.NavigateTo("/onboarding/about");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        var keys = await Recents.GetAsync();
+        _recent = keys.Select(FeatureCatalog.Find).OfType<Feature>().ToList();
+        if (_recent.Count > 0)
+        {
+            StateHasChanged();
+        }
+    }
+
+    private string? BadgeFor(string key) => key switch
+    {
+        FeatureCatalog.Opportunities when _summary is { NewOpportunities: > 0 } => $"{_summary.NewOpportunities} open",
+        FeatureCatalog.GovtTrack when _summary is { ClosingSoonExams: > 0 } => $"{_summary.ClosingSoonExams} soon",
+        _ => null,
+    };
+
+    private string BadgeToneFor(string key) => key == FeatureCatalog.GovtTrack ? "warn" : "primary";
+}

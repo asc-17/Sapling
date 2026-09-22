@@ -1,0 +1,23 @@
+@namespace Sapling.Shared.Components
+
+<a class="card feature-card" href="@Feature.Route">
+    <span class="icon-tile"><SapIcon Name="@Feature.Icon" Size="20" /></span>
+    <h4>
+        @Feature.Title
+        @if (!string.IsNullOrEmpty(Badge))
+        {
+            <SapBadge Tone="@BadgeTone">@Badge</SapBadge>
+        }
+    </h4>
+    <span class="t-small t-muted">@(Long ? Feature.LongBlurb : Feature.Blurb)</span>
+</a>
+
+@code {
+    [Parameter, EditorRequired] public Feature Feature { get; set; } = default!;
+
+    [Parameter] public string? Badge { get; set; }
+
+    [Parameter] public string BadgeTone { get; set; } = "primary";
+
+    [Parameter] public bool Long { get; set; }
+}

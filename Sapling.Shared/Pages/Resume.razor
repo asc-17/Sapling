@@ -1,0 +1,145 @@
+@page "/resume"
+@namespace Sapling.Shared.Pages
+@inject IResumeService Resumes
+
+<PageTitle>Resume · Sapling</PageTitle>
+<RecordVisit Feature="@FeatureCatalog.Resume" />
+
+<div class="stack g-5">
+    <div class="page-head">
+        <div class="stack g-1">
+            <h1 style="font-size:28px;line-height:34px">Resume intelligence</h1>
+            <span class="t-muted">
+                Suggestions rephrase what is already true about you. Nothing here invents experience.
+            </span>
+        </div>
+        <a class="btn btn-secondary" href="/resume/export">
+            <SapIcon Name="download" Size="16" />
+            Export
+        </a>
+    </div>
+
+    @if (_resume is null)
+    {
+        <div class="card"><div class="skeleton" style="height:180px"></div></div>
+    }
+    else if (_resume.Suggestions.Count == 0)
+    {
+        <SapEmptyState Title="Nothing to review yet" Icon="file-text"
+                       Description="Complete a roadmap project or add experience to your profile, and we will show line-level rewrites you can accept or reject.">
+            <a class="btn btn-primary" href="/roadmap">Open your roadmap</a>
+        </SapEmptyState>
+    }
+    else
+    {
+        <div class="card">
+            <div class="row-top g-6 wrap">
+                <ScoreRing Value="_resume.AtsScore" Size="130" Caption="ATS compatibility" Label="ATS score" />
+                <div class="grow stack g-3" style="min-width:260px">
+                    <div class="row g-2 wrap">
+                        @if (_resume.AtsScore > _resume.PreviousAtsScore)
+                        {
+                            <SapBadge Tone="success" Icon="trending-up">
+                                @_resume.PreviousAtsScore → @_resume.AtsScore
+                            </SapBadge>
+                        }
+                        @if (_resume.TailoredForRole is not null)
+                        {
+                            <SapBadge Tone="primary" Icon="target">Tailored for @_resume.TailoredForRole</SapBadge>
+                        }
+                    </div>
+                    <h3>@Headline</h3>
+                    @if (_resume.ParseWarnings.Count > 0)
+                    {
+                        <div class="stack g-2">
+                            <span class="t-overline t-subtle">Parse failures</span>
+                            @foreach (var warning in _resume.ParseWarnings)
+                            {
+                                <span class="row-top g-2 t-small t-muted">
+                                    <span class="t-warn" style="margin-top:2px"><SapIcon Name="alert-triangle" Size="15" /></span>
+                                    @warning
+                                </span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <span class="row g-2 t-small t-success">
+                            <SapIcon Name="check-circle" Size="16" />
+                            Every field parsed cleanly.
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="stack g-3">
+            <div class="row between g-3 wrap">
+                <span class="t-overline t-subtle">Line-level suggestions</span>
+                <span class="t-caption t-subtle">@_resume.Suggestions.Count(s => s.Accepted) of @_resume.Suggestions.Count accepted</span>
+            </div>
+
+            @foreach (var suggestion in _resume.Suggestions)
+            {
+                <div class="card stack g-3" style="@(suggestion.Accepted ? "border-color:var(--primary)" : null)">
+                    <div class="row between g-2 wrap">
+                        <SapBadge Tone="neutral">@suggestion.Section</SapBadge>
+                        @if (suggestion.Accepted)
+                        {
+                            <SapBadge Tone="success" Icon="check">Accepted</SapBadge>
+                        }
+                    </div>
+
+                    <div class="stack g-2">
+                        <div class="card card-inset stack g-1" style="padding:var(--sp-3);border-left:3px solid var(--error)">
+                            <span class="t-caption t-subtle">Current</span>
+                            <span class="t-small">@suggestion.Original</span>
+                        </div>
+                        <div class="card card-inset stack g-1" style="padding:var(--sp-3);border-left:3px solid var(--success)">
+                            <span class="t-caption t-subtle">Suggested</span>
+                            <span class="t-small">@suggestion.Suggested</span>
+                        </div>
+                    </div>
+
+                    <span class="t-caption t-subtle">@suggestion.Rationale</span>
+
+                    <div class="row g-2">
+                        @if (suggestion.Accepted)
+                        {
+                            <button type="button" class="btn btn-ghost btn-sm" @onclick="() => SetAsync(suggestion.Id, false)">
+                                <SapIcon Name="x" Size="14" />
+                                Undo
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-primary btn-sm" @onclick="() => SetAsync(suggestion.Id, true)">
+                                <SapIcon Name="check" Size="14" />
+                                Accept
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" @onclick="() => SetAsync(suggestion.Id, false)">
+                                Keep mine
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private ResumeDto? _resume;
+
+    private string Headline => _resume is null ? "" : _resume.AtsScore switch
+    {
+        >= 85 => "This will parse cleanly and read well.",
+        >= 70 => "Close. Two more accepted rewrites and you are there.",
+        _ => "Your resume is losing information before a human ever sees it.",
+    };
+
+    protected override async Task OnInitializedAsync() => _resume = await Resumes.GetAsync();
+
+    private async Task SetAsync(int id, bool accepted) =>
+        _resume = await Resumes.SetSuggestionAcceptedAsync(id, accepted);
+}

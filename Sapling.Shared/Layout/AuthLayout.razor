@@ -1,0 +1,79 @@
+@namespace Sapling.Shared.Layout
+@inherits LayoutComponentBase
+@inject IFormFactor FormFactor
+
+@if (FormFactor.Kind == FormFactorKind.Mobile)
+{
+    <div class="auth-mobile">
+        <div class="auth-mobile-top">
+            <div class="row between" style="padding:0 var(--sp-4) var(--sp-3)">
+                <SapLogo Size="28" WordSize="18" />
+            </div>
+            <div class="grow" style="padding:0 var(--sp-4);display:flex;align-items:center">
+                <SapCarousel TItem="Feature" Items="FeatureCatalog.All" IntervalMs="4500" Class="grow">
+                    <ItemTemplate Context="feature">
+                        <div class="card stack g-3" style="min-height:186px;justify-content:center">
+                            <span class="icon-tile"><SapIcon Name="@feature.Icon" Size="20" /></span>
+                            <div class="stack g-1">
+                                <h4>@feature.Title</h4>
+                                <span class="t-small t-muted">@feature.Blurb</span>
+                            </div>
+                        </div>
+                    </ItemTemplate>
+                </SapCarousel>
+            </div>
+        </div>
+        <div class="auth-mobile-form">
+            @Body
+        </div>
+    </div>
+}
+else
+{
+    <div class="container">
+        <div class="auth-hero">
+            <div class="auth-hero-copy stack g-4">
+                <SapLogo Size="34" WordSize="22" />
+                <h1>Your score is a starting line, not a verdict.</h1>
+                <p class="t-muted">
+                    Sapling turns your academic record into a measured employability score, a career path
+                    that fits Madhya Pradesh's job market, and a week-by-week plan to close the gap.
+                </p>
+                <ul class="stack g-2" style="list-style:none;margin:0;padding:0">
+                    @foreach (var point in _points)
+                    {
+                        <li class="row-top g-2">
+                            <span class="t-primary" style="margin-top:3px"><SapIcon Name="check-circle" Size="18" /></span>
+                            <span class="t-small">@point</span>
+                        </li>
+                    }
+                </ul>
+                <span class="auth-scrollcue">
+                    Scroll to see what is inside
+                    <SapIcon Name="arrow-down" Size="16" />
+                </span>
+            </div>
+
+            <div class="auth-card card">
+                @Body
+            </div>
+        </div>
+    </div>
+
+    <AuthShowcase />
+}
+
+<div id="blazor-error-ui" data-nosnippet>
+    Something went wrong.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">&times;</span>
+</div>
+
+@code {
+    private static readonly string[] _points =
+    [
+        "Eight modules, from career discovery to a scored mock interview.",
+        "Corporate roles and government exams in one engine.",
+        "Every recommendation comes with a plain-language reason.",
+    ];
+}

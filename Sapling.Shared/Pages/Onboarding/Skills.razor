@@ -1,0 +1,96 @@
+@page "/onboarding/skills"
+@namespace Sapling.Shared.Pages.Onboarding
+@inject IProfileService Profiles
+@inject NavigationManager Nav
+
+<PageTitle>Your skills · Sapling</PageTitle>
+
+<div class="stack g-5" style="max-width:640px;margin-inline:auto">
+    <OnboardingSteps Current="2" />
+
+    <div class="stack g-1">
+        <h1 style="font-size:28px;line-height:34px">What can you already do?</h1>
+        <span class="t-muted">
+            Claim anything you have touched. Claimed skills help us match you; only verified skills
+            count toward your score, and you can verify them later.
+        </span>
+    </div>
+
+    <div class="card stack g-4">
+        @if (_verified.Count > 0)
+        {
+            <div class="stack g-2">
+                <span class="t-overline t-subtle">Already verified</span>
+                <div class="row g-2 wrap">
+                    @foreach (var skill in _verified)
+                    {
+                        <span class="chip chip-verified">
+                            <SapIcon Name="check" Size="13" Stroke="2.5" />
+                            @skill.Name
+                        </span>
+                    }
+                </div>
+                <span class="t-caption t-subtle">Verified from certificates, assessments or code. These cannot be removed here.</span>
+            </div>
+            <hr class="divider" />
+        }
+
+        <div class="stack g-2">
+            <span class="t-overline t-subtle">Tap everything you have used</span>
+            <div class="row g-2 wrap">
+                @foreach (var name in _available)
+                {
+                    <button type="button" class="chip chip-button @(_selected.Contains(name) ? "chip-selected" : "chip-claimed")"
+                            @onclick="() => Toggle(name)">
+                        @if (_selected.Contains(name))
+                        {
+                            <SapIcon Name="check" Size="13" Stroke="2.5" />
+                        }
+                        @name
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="row between g-3">
+            <span class="t-caption t-subtle">@_selected.Count selected &middot; Step 2 of 3</span>
+            <button type="button" class="btn btn-primary" disabled="@_saving" @onclick="SaveAsync">Continue</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<string> _available = [];
+    private List<SkillDto> _verified = [];
+    private readonly HashSet<string> _selected = [];
+    private bool _saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var suggestions = await Profiles.GetSkillSuggestionsAsync();
+        var mine = await Profiles.GetSkillsAsync();
+
+        _verified = mine.Where(s => s.Verified).ToList();
+        _available = suggestions.Where(s => _verified.All(v => v.Name != s)).ToList();
+
+        foreach (var skill in mine.Where(s => !s.Verified))
+        {
+            _selected.Add(skill.Name);
+        }
+    }
+
+    private void Toggle(string name)
+    {
+        if (!_selected.Remove(name))
+        {
+            _selected.Add(name);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        await Profiles.SetClaimedSkillsAsync([.. _selected]);
+        Nav.NavigateTo("/onboarding/quiz");
+    }
+}

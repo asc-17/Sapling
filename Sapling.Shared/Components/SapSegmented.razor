@@ -1,0 +1,29 @@
+@namespace Sapling.Shared.Components
+@typeparam TValue
+
+<div class="segmented" role="tablist">
+    @foreach (var option in Options)
+    {
+        <button type="button" role="tab"
+                aria-selected="@(EqualityComparer<TValue>.Default.Equals(option.Value, Value))"
+                @onclick="() => Select(option.Value)">
+            @option.Label
+        </button>
+    }
+</div>
+
+@code {
+    public sealed record Option(TValue Value, string Label);
+
+    [Parameter, EditorRequired] public IReadOnlyList<Option> Options { get; set; } = [];
+
+    [Parameter] public TValue? Value { get; set; }
+
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+
+    private Task Select(TValue value)
+    {
+        Value = value;
+        return ValueChanged.InvokeAsync(value);
+    }
+}

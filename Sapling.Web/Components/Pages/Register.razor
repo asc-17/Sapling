@@ -1,0 +1,104 @@
+@page "/register"
+@namespace Sapling.Web.Components.Pages
+@layout AuthLayout
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@using Microsoft.AspNetCore.Components.Endpoints
+@using Microsoft.AspNetCore.Identity
+@using Sapling.Web.Data
+@inject UserManager<AppUser> Users
+@inject SignInManager<AppUser> SignInManager
+@inject NavigationManager Nav
+
+<PageTitle>Create an account · Sapling</PageTitle>
+
+<div class="stack g-5">
+    <div class="stack g-1">
+        <h3>Create your account</h3>
+        <span class="t-small t-subtle">Three short steps and you will have a score.</span>
+    </div>
+
+    @if (_errors.Count > 0)
+    {
+        <div class="stack g-1" style="background:var(--error-soft);color:var(--error-text);padding:12px 14px;border-radius:var(--r-md)">
+            @foreach (var error in _errors)
+            {
+                <span class="t-small">@error</span>
+            }
+        </div>
+    }
+
+    <EditForm Model="Input" method="post" OnValidSubmit="SubmitAsync" FormName="register" class="stack g-4">
+        <DataAnnotationsValidator />
+
+        <div class="field">
+            <label for="name">Full name</label>
+            <InputText id="name" class="input" @bind-Value="Input.FullName" autocomplete="name" />
+            <ValidationMessage For="() => Input.FullName" class="field-error" />
+        </div>
+
+        <div class="field">
+            <label for="email">Email</label>
+            <InputText id="email" class="input" @bind-Value="Input.Email" autocomplete="username" placeholder="you@college.ac.in" />
+            <ValidationMessage For="() => Input.Email" class="field-error" />
+        </div>
+
+        <div class="field">
+            <label for="password">Password</label>
+            <InputText id="password" type="password" class="input" @bind-Value="Input.Password" autocomplete="new-password" />
+            <span class="field-hint">At least 8 characters, with one uppercase letter and one digit.</span>
+            <ValidationMessage For="() => Input.Password" class="field-error" />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Create account</button>
+    </EditForm>
+
+    <span class="t-small t-muted" style="text-align:center">
+        Already registered? <a href="/signin">Sign in</a>
+    </span>
+</div>
+
+@code {
+    [SupplyParameterFromForm] private RegisterInput Input { get; set; } = default!;
+
+    private readonly List<string> _errors = [];
+
+    protected override void OnInitialized() => Input ??= new();
+
+    private async Task SubmitAsync()
+    {
+        _errors.Clear();
+
+        var user = new AppUser
+        {
+            UserName = Input.Email,
+            Email = Input.Email,
+            EmailConfirmed = true,
+            FullName = Input.FullName,
+        };
+
+        var result = await Users.CreateAsync(user, Input.Password);
+        if (!result.Succeeded)
+        {
+            _errors.AddRange(result.Errors.Select(e => e.Description));
+            return;
+        }
+
+        await SignInManager.SignInAsync(user, isPersistent: true);
+        Nav.NavigateTo("/onboarding/about");
+    }
+
+    private sealed class RegisterInput
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your name.")]
+        public string FullName { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your email.")]
+        [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "That does not look like an email address.")]
+        public string Email { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Choose a password.")]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 8, ErrorMessage = "Use at least 8 characters.")]
+        public string Password { get; set; } = "";
+    }
+}

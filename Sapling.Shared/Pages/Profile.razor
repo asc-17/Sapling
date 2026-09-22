@@ -1,0 +1,116 @@
+@page "/profile"
+@namespace Sapling.Shared.Pages
+@implements IDisposable
+@inject IProfileService Profiles
+@inject IThemeService Theme
+@inject IRecentFeaturesService Recents
+
+<PageTitle>Profile &amp; settings · Sapling</PageTitle>
+
+<div class="stack g-5" style="max-width:720px">
+    <div class="stack g-1">
+        <h1 style="font-size:28px;line-height:34px">Profile &amp; settings</h1>
+        <span class="t-muted">Your data, your call.</span>
+    </div>
+
+    @if (_profile is null)
+    {
+        <div class="card"><div class="skeleton" style="height:160px"></div></div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="row-top g-4 wrap">
+                <span class="avatar avatar-lg">@Initials</span>
+                <div class="stack grow g-1" style="min-width:200px">
+                    <h3>@_profile.FullName</h3>
+                    <span class="t-small t-muted">@_profile.Email</span>
+                    <span class="t-small t-muted">@_profile.Branch, @_profile.College</span>
+                    <div class="row g-2 wrap" style="margin-top:var(--sp-2)">
+                        <SapBadge Tone="neutral" Icon="graduation-cap">Class of @_profile.GraduationYear</SapBadge>
+                        <SapBadge Tone="neutral" Icon="map-pin">@_profile.City</SapBadge>
+                        <SapBadge Tone="neutral" Icon="award">CGPA @_profile.Cgpa.ToString("0.0")</SapBadge>
+                        @if (_profile.RiasecCode is not null)
+                        {
+                            <SapBadge Tone="primary" Icon="sparkles">Interest code @_profile.RiasecCode</SapBadge>
+                        }
+                    </div>
+                </div>
+                <a class="btn btn-secondary btn-sm" href="/onboarding/about">Edit</a>
+            </div>
+        </div>
+    }
+
+    <SapCard Title="Appearance" Subtitle="Follows your device by default">
+        <ChildContent>
+            <SapSegmented TValue="ThemeMode" Options="_themes" Value="Theme.Current" ValueChanged="SetThemeAsync" />
+        </ChildContent>
+    </SapCard>
+
+    <SapCard Title="Privacy" Subtitle="Data minimisation under the DPDP Act, 2023">
+        <ChildContent>
+            <div class="stack g-3">
+                <span class="t-small t-muted">
+                    Sapling stores only what your score is computed from. Your profile is never sold, and
+                    recommendations never use gender, category or college tier as ranking features.
+                </span>
+                <div class="row g-2 wrap">
+                    <button type="button" class="btn btn-secondary btn-sm" @onclick="ClearRecentAsync">
+                        Clear recently visited
+                    </button>
+                    <a class="btn btn-secondary btn-sm" href="/signout">
+                        <SapIcon Name="log-out" Size="15" />
+                        Sign out
+                    </a>
+                </div>
+                @if (_cleared)
+                {
+                    <span class="t-caption t-success">Recently visited history cleared on this device.</span>
+                }
+            </div>
+        </ChildContent>
+    </SapCard>
+</div>
+
+@code {
+    private readonly IReadOnlyList<SapSegmented<ThemeMode>.Option> _themes =
+    [
+        new(ThemeMode.System, "System"),
+        new(ThemeMode.Light, "Light"),
+        new(ThemeMode.Dark, "Dark"),
+    ];
+
+    private StudentProfileDto? _profile;
+    private bool _cleared;
+
+    private string Initials => string.Concat(
+        (_profile?.FullName ?? "Student").Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Take(2)
+            .Select(part => char.ToUpperInvariant(part[0])));
+
+    protected override async Task OnInitializedAsync()
+    {
+        Theme.Changed += OnThemeChanged;
+        _profile = await Profiles.GetAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Theme.InitializeAsync();
+        }
+    }
+
+    private async Task SetThemeAsync(ThemeMode mode) => await Theme.SetAsync(mode);
+
+    private async Task ClearRecentAsync()
+    {
+        await Recents.ClearAsync();
+        _cleared = true;
+    }
+
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Theme.Changed -= OnThemeChanged;
+}

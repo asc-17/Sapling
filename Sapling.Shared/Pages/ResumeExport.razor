@@ -1,0 +1,101 @@
+@page "/resume/export"
+@namespace Sapling.Shared.Pages
+@inject IResumeService Resumes
+@inject IProfileService Profiles
+@inject IJSRuntime Js
+
+<PageTitle>Export resume · Sapling</PageTitle>
+<RecordVisit Feature="@FeatureCatalog.Resume" />
+
+<div class="stack g-5" style="max-width:820px">
+    <div class="page-head no-print">
+        <div class="stack g-1">
+            <h1 style="font-size:28px;line-height:34px">Export</h1>
+            <span class="t-muted">Single column, standard headings, no text inside graphics. This is what parses.</span>
+        </div>
+        <div class="row g-2">
+            <a class="btn btn-ghost" href="/resume">Back</a>
+            <button type="button" class="btn btn-primary" @onclick="PrintAsync">
+                <SapIcon Name="download" Size="16" />
+                Save as PDF
+            </button>
+        </div>
+    </div>
+
+    @if (_resume is null || _profile is null)
+    {
+        <div class="card"><div class="skeleton" style="height:260px"></div></div>
+    }
+    else
+    {
+        <div class="card" id="resume-sheet">
+            <div class="stack g-5">
+                <div class="stack g-1">
+                    <h2>@_profile.FullName</h2>
+                    <span class="t-small t-muted">
+                        @_profile.Branch &middot; @_profile.College &middot; @_profile.City
+                    </span>
+                    <span class="t-small t-muted">@_profile.Email</span>
+                </div>
+
+                @foreach (var section in _resume.Sections)
+                {
+                    var lines = _resume.Suggestions.Where(s => s.Section == section).ToList();
+                    if (lines.Count == 0 && section is not ("Education" or "Certifications" or "Projects"))
+                    {
+                        continue;
+                    }
+
+                    <div class="stack g-2">
+                        <span class="t-overline t-subtle" style="border-bottom:1px solid var(--line);padding-bottom:4px">@section</span>
+                        @if (lines.Count > 0)
+                        {
+                            <ul class="stack g-2" style="margin:0;padding-left:18px">
+                                @foreach (var line in lines)
+                                {
+                                    <li class="t-small">@(line.Accepted ? line.Suggested : line.Original)</li>
+                                }
+                            </ul>
+                        }
+                        else if (section == "Education")
+                        {
+                            <span class="t-small">
+                                @_profile.Branch, @_profile.College, @_profile.GraduationYear —
+                                CGPA @_profile.Cgpa.ToString("0.0")/10@(_profile.Backlogs == 0 ? ", no backlogs" : $", {_profile.Backlogs} active backlogs")
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="t-small t-subtle">Complete roadmap items in this area to populate the section.</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <span class="t-caption t-subtle no-print">
+            @_resume.Suggestions.Count(s => s.Accepted) rewrites applied. Unaccepted lines export as originally written.
+        </span>
+    }
+</div>
+
+<style>
+    @@media print {
+        .no-print, .sidebar, .tabbar, .topbar { display: none !important; }
+        .page { padding: 0 !important; }
+        #resume-sheet { border: 0; box-shadow: none; }
+    }
+</style>
+
+@code {
+    private ResumeDto? _resume;
+    private StudentProfileDto? _profile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _resume = await Resumes.GetAsync();
+        _profile = await Profiles.GetAsync();
+    }
+
+    private async Task PrintAsync() => await Js.InvokeVoidAsync("sapling.print");
+}

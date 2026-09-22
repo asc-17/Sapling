@@ -1,21 +1,38 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+@using Microsoft.AspNetCore.Components.Endpoints
 
+<!DOCTYPE html>
+<html lang="en" data-sapling-theme="system">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1F5C9E" />
     <base href="/" />
+    <title>Sapling</title>
+    <link rel="icon" href="_content/Sapling.Shared/img/brand/logo-mark.svg" />
     <ResourcePreloader />
     <link rel="stylesheet" href="_content/Sapling.Shared/app.css" />
     <link rel="stylesheet" href="Sapling.Web.styles.css" />
+    <script>
+        // Applied before first paint so the theme never flashes.
+        try {
+            document.documentElement.setAttribute('data-sapling-theme', localStorage.getItem('sapling-theme') || 'system');
+        } catch { }
+    </script>
     <ImportMap />
-    <HeadOutlet @rendermode="InteractiveServer" />
+    <HeadOutlet @rendermode="RenderModeForPage" />
 </head>
-
 <body>
-    <Routes @rendermode="InteractiveServer" />
+    <Routes @rendermode="RenderModeForPage" />
     <ReconnectModal />
+    <script src="_content/Sapling.Shared/js/sapling.js"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
-
 </html>
+
+@code {
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    // Auth pages opt out of interactivity so they can sign a cookie into the response.
+    private IComponentRenderMode? RenderModeForPage =>
+        HttpContext.AcceptsInteractiveRouting() ? InteractiveServer : null;
+}

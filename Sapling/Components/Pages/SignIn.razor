@@ -1,0 +1,106 @@
+@page "/signin"
+@namespace Sapling.Components.Pages
+@layout AuthLayout
+@attribute [AllowAnonymous]
+@inject ApiAuthService Auth
+@inject NavigationManager Nav
+
+<PageTitle>Sign in · Sapling</PageTitle>
+
+<div class="stack g-4">
+    <div class="stack g-1">
+        <h3>Sign in</h3>
+        <span class="t-small t-subtle">Pick up where you left off.</span>
+    </div>
+
+    @if (_error is not null)
+    {
+        <div class="badge badge-error" style="padding:10px 14px;border-radius:var(--r-md);white-space:normal">
+            <SapIcon Name="alert-circle" Size="15" />
+            @_error
+        </div>
+    }
+
+    <div class="field">
+        <label for="email">Email</label>
+        <input id="email" class="input" type="email" inputmode="email" autocomplete="username"
+               placeholder="you@college.ac.in" @bind="_email" @bind:event="oninput" />
+    </div>
+
+    <div class="field">
+        <label for="password">Password</label>
+        <input id="password" class="input" type="password" autocomplete="current-password"
+               @bind="_password" @bind:event="oninput" @onkeydown="OnKeyDown" />
+    </div>
+
+    <button type="button" class="btn btn-primary btn-block" @onclick="SubmitAsync" disabled="@_busy">
+        @(_busy ? "Signing in…" : "Sign in")
+    </button>
+
+    <button type="button" class="btn btn-secondary btn-block" disabled>
+        Continue with Google
+        <SapBadge Tone="neutral">Coming soon</SapBadge>
+    </button>
+
+    <div class="stack g-1" style="text-align:center">
+        <span class="t-small t-muted">New here? <a href="/register">Create an account</a></span>
+        <button type="button" class="btn btn-ghost btn-sm" @onclick="UseDemoAsync">Use the demo account</button>
+    </div>
+</div>
+
+@code {
+    private const string DemoEmail = "demo@sapling.app";
+    private const string DemoPassword = "Sapling@2026";
+
+    private string _email = "";
+    private string _password = "";
+    private string? _error;
+    private bool _busy;
+
+    private async Task OnKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            await SubmitAsync();
+        }
+    }
+
+    private async Task UseDemoAsync()
+    {
+        _email = DemoEmail;
+        _password = DemoPassword;
+        await SubmitAsync();
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
+        {
+            _error = "Enter your email and password.";
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            var result = await Auth.SignInAsync(_email.Trim(), _password);
+            if (result.Succeeded)
+            {
+                Nav.NavigateTo("/home");
+                return;
+            }
+
+            _error = result.Error;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Could not reach the Sapling server. Check that it is running and reachable from this device.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

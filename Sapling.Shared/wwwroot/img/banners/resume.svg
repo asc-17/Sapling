@@ -1,0 +1,8 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 340" preserveAspectRatio="xMidYMid meet" role="presentation">
+  <rect x="78" y="56" width="180" height="228" rx="14" fill="#3D7FBF" fill-opacity="0.10" stroke="#3D7FBF" stroke-width="4" stroke-opacity="0.65"/>
+  <rect x="106" y="94" width="124" height="14" rx="7" fill="#3D7FBF" fill-opacity="0.8"/>
+  <rect x="106" y="128" width="92" height="12" rx="6" fill="#2A8C88" fill-opacity="0.65"/>
+  <rect x="106" y="160" width="124" height="12" rx="6" fill="#2A8C88" fill-opacity="0.45"/>
+  <rect x="106" y="192" width="76" height="12" rx="6" fill="#2A8C88" fill-opacity="0.45"/>
+  <circle cx="226" cy="238" r="26" fill="#3D7FBF" fill-opacity="0.8"/>
+</svg>

@@ -1,0 +1,140 @@
+@page "/interview/{Id:int}"
+@namespace Sapling.Shared.Pages
+@inject IInterviewService Interviews
+
+<PageTitle>Interview session · Sapling</PageTitle>
+<RecordVisit Feature="@FeatureCatalog.Interview" />
+
+@if (_session is null)
+{
+    <div class="card"><div class="skeleton" style="height:220px"></div></div>
+}
+else
+{
+    <div class="stack g-5" style="max-width:800px">
+        <div class="row between g-3 wrap">
+            <div class="stack g-1">
+                <h1 style="font-size:24px;line-height:30px">@_session.TargetRole</h1>
+                <span class="t-caption t-subtle">
+                    @if (_session.Status == "Active")
+                    {
+                        <text>@_session.Kind interview &middot; question @Math.Min(_session.QuestionsAsked, _session.QuestionLimit) of @_session.QuestionLimit</text>
+                    }
+                    else
+                    {
+                        <text>@_session.Kind interview &middot; complete</text>
+                    }
+                </span>
+            </div>
+            <a class="btn btn-ghost btn-sm" href="/interview">All sessions</a>
+        </div>
+
+        @if (_session.Status == "Active")
+        {
+            <SegmentedTracker Total="_session.QuestionLimit" Completed="AnswerCount" />
+        }
+
+        <div class="stack g-3">
+            @foreach (var turn in _session.Turns)
+            {
+                var fromInterviewer = turn.Role == "Interviewer";
+                <div class="row-top g-3" style="@(fromInterviewer ? null : "flex-direction:row-reverse")">
+                    <span class="avatar" style="@(fromInterviewer ? null : "background:var(--surface2);color:var(--muted)")">
+                        @(fromInterviewer ? "AI" : "You")
+                    </span>
+                    <div class="card" style="max-width:76%;@(fromInterviewer ? null : "background:var(--surface2)")">
+                        <span class="t-small">@turn.Text</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (_session.Status == "Active")
+        {
+            <div class="card stack g-3">
+                <textarea class="textarea" placeholder="Answer as you would out loud. Situation, what you did, what changed."
+                          @bind="_answer" @bind:event="oninput" disabled="@_busy"></textarea>
+                <div class="row between g-3 wrap">
+                    <span class="t-caption t-subtle">@WordCount words @(WordCount < 40 ? "· aim for 60 to 120" : "")</span>
+                    <div class="row g-2">
+                        <button type="button" class="btn btn-ghost" @onclick="FinishAsync" disabled="@_busy">End &amp; score</button>
+                        <button type="button" class="btn btn-primary" @onclick="SendAsync" disabled="@(_busy || string.IsNullOrWhiteSpace(_answer))">
+                            <SapIcon Name="send" Size="15" />
+                            Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (_session.Feedback is { } feedback)
+        {
+            <div class="card">
+                <div class="row-top g-6 wrap">
+                    <ScoreRing Value="feedback.Overall" Size="130" Caption="session score" Label="Score" />
+                    <div class="grow stack g-4" style="min-width:260px">
+                        <h3>Feedback</h3>
+                        @foreach (var rubric in feedback.Rubrics)
+                        {
+                            <div class="stack g-1">
+                                <LinearBar Percent="rubric.Score" Label="@rubric.Name" ValueText="@rubric.Score.ToString()" Small />
+                                <span class="t-caption t-subtle">@rubric.Comment</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-2">
+                <SapCard Title="What held up">
+                    <ChildContent>
+                        <ul class="stack g-2" style="margin:0;padding-left:18px">
+                            @foreach (var item in feedback.Strengths)
+                            {
+                                <li class="t-small">@item</li>
+                            }
+                        </ul>
+                    </ChildContent>
+                </SapCard>
+                <SapCard Title="The one change worth making">
+                    <ChildContent>
+                        @foreach (var item in feedback.Improvements)
+                        {
+                            <span class="t-small">@item</span>
+                        }
+                    </ChildContent>
+                </SapCard>
+            </div>
+
+            <a class="btn btn-primary" href="/interview" style="align-self:flex-start">Run another session</a>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private InterviewSessionDto? _session;
+    private string _answer = "";
+    private bool _busy;
+
+    private int WordCount => _answer.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+
+    private int AnswerCount => _session?.Turns.Count(t => t.Role == "Candidate") ?? 0;
+
+    protected override async Task OnParametersSetAsync() => _session = await Interviews.GetAsync(Id);
+
+    private async Task SendAsync()
+    {
+        _busy = true;
+        _session = await Interviews.AnswerAsync(Id, new AnswerInterviewRequest(_answer));
+        _answer = "";
+        _busy = false;
+    }
+
+    private async Task FinishAsync()
+    {
+        _busy = true;
+        _session = await Interviews.FinishAsync(Id);
+        _busy = false;
+    }
+}

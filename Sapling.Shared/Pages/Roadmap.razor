@@ -1,0 +1,127 @@
+@page "/roadmap"
+@namespace Sapling.Shared.Pages
+@inject IRoadmapService Roadmaps
+
+<PageTitle>Roadmap · Sapling</PageTitle>
+<RecordVisit Feature="@FeatureCatalog.Roadmap" />
+
+<div class="stack g-5">
+    <div class="page-head">
+        <div class="stack g-1">
+            <h1 style="font-size:28px;line-height:34px">Your roadmap</h1>
+            <span class="t-muted">@Subtitle</span>
+        </div>
+    </div>
+
+    @if (_roadmap is null)
+    {
+        <div class="card"><div class="skeleton" style="height:200px"></div></div>
+    }
+    else if (_roadmap.TotalItems == 0)
+    {
+        <SapEmptyState Title="No roadmap yet" Icon="route"
+                       Description="Pick a career path and we will build a week-by-week plan around your semester, free and government-subsidised courses first.">
+            <a class="btn btn-primary" href="/paths">Choose a path</a>
+        </SapEmptyState>
+    }
+    else
+    {
+        <SapCard Title="@($"Week {_roadmap.CurrentWeek} of {_roadmap.TotalWeeks}")">
+            <Header>
+                <SapBadge Tone="primary">@_roadmap.CompletedItems of @_roadmap.TotalItems done</SapBadge>
+            </Header>
+            <ChildContent>
+                <LinearBar Percent="Progress" Label="Plan progress" ValueText="@($"{Progress:0}%")" />
+            </ChildContent>
+        </SapCard>
+
+        @foreach (var week in _roadmap.Weeks)
+        {
+            var done = week.Items.All(i => i.Completed);
+            var active = week.WeekNumber == _roadmap.CurrentWeek;
+
+            <div class="card stack g-4" style="@(active ? "border-color:var(--primary)" : null)">
+                <div class="row between g-3 wrap">
+                    <div class="row g-3">
+                        <span class="row center t-num" style="width:38px;height:38px;flex:none;border-radius:var(--r-md);font-size:15px;
+                                     background:@(done ? "var(--primary)" : active ? "var(--primary-soft)" : "var(--surface2)");
+                                     color:@(done ? "var(--primary-on)" : active ? "var(--primary-text)" : "var(--subtle)")">
+                            @week.WeekNumber
+                        </span>
+                        <div class="stack" style="gap:0">
+                            <h4>@week.Focus</h4>
+                            <span class="t-caption t-subtle">Starts @week.StartsOn.ToString("d MMM")</span>
+                        </div>
+                    </div>
+                    @if (done)
+                    {
+                        <SapBadge Tone="success" Icon="check">Complete</SapBadge>
+                    }
+                    else if (active)
+                    {
+                        <SapBadge Tone="accent">This week</SapBadge>
+                    }
+                </div>
+
+                <div class="stack g-2">
+                    @foreach (var item in week.Items)
+                    {
+                        <div class="row-top g-3 card card-inset" style="padding:var(--sp-3)">
+                            <button type="button" class="btn btn-ghost btn-icon btn-sm" style="flex:none"
+                                    @onclick="() => ToggleAsync(item.Id, !item.Completed)"
+                                    aria-label="@(item.Completed ? "Mark not done" : "Mark done")">
+                                <span class="row center" style="width:20px;height:20px;border-radius:var(--r-sm);
+                                             border:@(item.Completed ? "none" : "2px solid var(--line)");
+                                             background:@(item.Completed ? "var(--primary)" : "transparent");
+                                             color:var(--primary-on)">
+                                    @if (item.Completed)
+                                    {
+                                        <SapIcon Name="check" Size="13" Stroke="3" />
+                                    }
+                                </span>
+                            </button>
+
+                            <div class="stack grow" style="gap:2px">
+                                <span class="t-small" style="font-weight:600;@(item.Completed ? "text-decoration:line-through;color:var(--subtle)" : null)">
+                                    @item.Title
+                                </span>
+                                @if (item.Detail is not null)
+                                {
+                                    <span class="t-caption t-subtle">@item.Detail</span>
+                                }
+                            </div>
+
+                            <div class="row g-2" style="flex:none">
+                                <SapBadge Tone="neutral" Icon="clock">@item.EstimatedHours h</SapBadge>
+                                @if (item.CourseId is { } courseId)
+                                {
+                                    <a class="btn btn-secondary btn-sm" href="@($"/roadmap/course/{courseId}")">Course</a>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private RoadmapDto? _roadmap;
+
+    private string Subtitle => _roadmap switch
+    {
+        null => "Loading your plan.",
+        { TotalItems: 0 } => "Nothing scheduled yet.",
+        _ => $"{_roadmap.TotalWeeks} weeks to {_roadmap.Goal}. Free and government-subsidised first.",
+    };
+
+    private double Progress => _roadmap is { TotalItems: > 0 }
+        ? 100.0 * _roadmap.CompletedItems / _roadmap.TotalItems
+        : 0;
+
+    protected override async Task OnInitializedAsync() => _roadmap = await Roadmaps.GetAsync();
+
+    private async Task ToggleAsync(int itemId, bool completed) =>
+        _roadmap = await Roadmaps.SetItemCompletedAsync(itemId, completed);
+}

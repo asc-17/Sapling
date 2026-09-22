@@ -1,19 +1,14 @@
-.status-bar-safe-area {
-    display: none;
+/* MAUI WebView specifics: no text selection chrome, no overscroll bounce. */
+
+html, body {
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-@supports (-webkit-touch-callout: none) {
-    .status-bar-safe-area {
-        display: flex;
-        position: sticky;
-        top: 0;
-        height: env(safe-area-inset-top);
-        background-color: #f7f7f7;
-        width: 100%;
-        z-index: 1;
-    }
-
-    .flex-column, .navbar-brand {
-        padding-left: env(safe-area-inset-left);
-    }
+.input, .textarea, .select {
+    user-select: text;
+    -webkit-user-select: text;
 }
+
+.status-bar-safe-area { display: none; }

@@ -1,0 +1,75 @@
+using Sapling.Shared.Contracts;
+
+namespace Sapling.Web.Api;
+
+public static class ApiEndpoints
+{
+    /// <summary>The web head calls these services in-process; the MAUI head reaches them over HTTP.</summary>
+    public static void MapSaplingApi(this IEndpointRouteBuilder app)
+    {
+        var api = app.MapGroup("/api").RequireAuthorization();
+
+        var profile = api.MapGroup("/profile");
+        profile.MapGet("/", (IProfileService s, CancellationToken ct) => s.GetAsync(ct));
+        profile.MapPut("/", (UpdateProfileRequest r, IProfileService s, CancellationToken ct) => s.UpdateAsync(r, ct));
+        profile.MapGet("/skills", (IProfileService s, CancellationToken ct) => s.GetSkillsAsync(ct));
+        profile.MapPut("/skills", (List<string> names, IProfileService s, CancellationToken ct) => s.SetClaimedSkillsAsync(names, ct));
+        profile.MapGet("/skill-suggestions", (IProfileService s, CancellationToken ct) => s.GetSkillSuggestionsAsync(ct));
+        profile.MapPost("/complete-onboarding", async (IProfileService s, CancellationToken ct) =>
+        {
+            await s.CompleteOnboardingAsync(ct);
+            return Results.NoContent();
+        });
+
+        var score = api.MapGroup("/score");
+        score.MapGet("/", (IScoreService s, CancellationToken ct) => s.GetAsync(ct));
+        score.MapGet("/home", (IScoreService s, CancellationToken ct) => s.GetHomeSummaryAsync(ct));
+
+        var paths = api.MapGroup("/paths");
+        paths.MapGet("/", (ICareerService s, CancellationToken ct) => s.GetPathsAsync(ct));
+        paths.MapGet("/{id:int}", async (int id, ICareerService s, CancellationToken ct) =>
+            await s.GetPathAsync(id, ct) is { } dto ? Results.Ok(dto) : Results.NotFound());
+
+        var skills = api.MapGroup("/skills");
+        skills.MapGet("/gaps", (ISkillGapService s, CancellationToken ct) => s.GetGapsAsync(ct));
+        skills.MapGet("/radar", (ISkillGapService s, CancellationToken ct) => s.GetRadarAsync(ct));
+
+        var roadmap = api.MapGroup("/roadmap");
+        roadmap.MapGet("/", (IRoadmapService s, CancellationToken ct) => s.GetAsync(ct));
+        roadmap.MapPost("/items/{id:int}/{completed:bool}", (int id, bool completed, IRoadmapService s, CancellationToken ct) =>
+            s.SetItemCompletedAsync(id, completed, ct));
+        roadmap.MapGet("/courses/{id:int}", async (int id, IRoadmapService s, CancellationToken ct) =>
+            await s.GetCourseAsync(id, ct) is { } dto ? Results.Ok(dto) : Results.NotFound());
+
+        var opportunities = api.MapGroup("/opportunities");
+        opportunities.MapGet("/", (IOpportunityService s, CancellationToken ct) => s.GetAllAsync(ct));
+        opportunities.MapGet("/{id:int}", async (int id, IOpportunityService s, CancellationToken ct) =>
+            await s.GetAsync(id, ct) is { } dto ? Results.Ok(dto) : Results.NotFound());
+        opportunities.MapPost("/{id:int}/apply", (int id, IOpportunityService s, CancellationToken ct) => s.ApplyAsync(id, ct));
+
+        var resume = api.MapGroup("/resume");
+        resume.MapGet("/", (IResumeService s, CancellationToken ct) => s.GetAsync(ct));
+        resume.MapPost("/suggestions/{id:int}/{accepted:bool}", (int id, bool accepted, IResumeService s, CancellationToken ct) =>
+            s.SetSuggestionAcceptedAsync(id, accepted, ct));
+        resume.MapPost("/tailor/{opportunityId:int}", (int opportunityId, IResumeService s, CancellationToken ct) =>
+            s.TailorAsync(opportunityId, ct));
+
+        var interview = api.MapGroup("/interview");
+        interview.MapGet("/", (IInterviewService s, CancellationToken ct) => s.GetSessionsAsync(ct));
+        interview.MapPost("/", (StartInterviewRequest r, IInterviewService s, CancellationToken ct) => s.StartAsync(r, ct));
+        interview.MapGet("/{id:int}", async (int id, IInterviewService s, CancellationToken ct) =>
+            await s.GetAsync(id, ct) is { } dto ? Results.Ok(dto) : Results.NotFound());
+        interview.MapPost("/{id:int}/answer", (int id, AnswerInterviewRequest r, IInterviewService s, CancellationToken ct) =>
+            s.AnswerAsync(id, r, ct));
+        interview.MapPost("/{id:int}/finish", (int id, IInterviewService s, CancellationToken ct) => s.FinishAsync(id, ct));
+
+        var govt = api.MapGroup("/govt");
+        govt.MapGet("/", (IGovtService s, CancellationToken ct) => s.GetExamsAsync(ct));
+        govt.MapGet("/{id:int}", async (int id, IGovtService s, CancellationToken ct) =>
+            await s.GetExamAsync(id, ct) is { } dto ? Results.Ok(dto) : Results.NotFound());
+
+        var quiz = api.MapGroup("/quiz");
+        quiz.MapGet("/", (IQuizService s, CancellationToken ct) => s.GetQuestionsAsync(ct));
+        quiz.MapPost("/", (QuizSubmissionRequest r, IQuizService s, CancellationToken ct) => s.SubmitAsync(r, ct));
+    }
+}

@@ -1,0 +1,196 @@
+/* Sapling design tokens. Light theme per design system 01; dark theme uses zero-hue neutrals. */
+
+:root {
+    color-scheme: light;
+
+    /* Surfaces */
+    --bg: #F6F8FB;
+    --surface: #FFFFFF;
+    --surface2: #EDF1F6;
+    --line: #DCE3EB;
+
+    /* Ink */
+    --ink: #16202B;
+    --muted: #44505C;
+    --subtle: #5A6672;
+
+    /* Primary */
+    --primary: #1F5C9E;
+    --primary-hover: #1A4E86;
+    --primary-soft: #DCEAF7;
+    --primary-text: #1B5490;
+    --primary-on: #FFFFFF;
+    --track: #DCEAF7;
+
+    /* Accent - reserved for "do something" affordances only */
+    --accent: #E39A3B;
+    --accent-hover: #CE8A2F;
+    --accent-soft: #FAEEDC;
+    --accent-on: #38220A;
+
+    /* Semantic */
+    --success: #2E8757;
+    --success-soft: #E4F1EA;
+    --success-text: #1F6343;
+    --warn: #C7891F;
+    --warn-soft: #FBF0D8;
+    --warn-text: #6B4E14;
+    --error: #C0392B;
+    --error-soft: #FAE6E3;
+    --error-text: #8E2A1F;
+    --info: #5B6ABF;
+    --info-soft: #E8EAF8;
+    --info-text: #3B4795;
+
+    /* Data-viz series. Accent is deliberately absent. */
+    --viz-1: #1F5C9E;
+    --viz-2: #2A8C88;
+    --viz-3: #8E5A96;
+    --viz-4: #B0722E;
+    --viz-5: #8FC0E8;
+
+    /* Brand mark colours - logo only, never UI chrome */
+    --brand-stem: #006838;
+    --brand-leaf: #2E9163;
+    --brand-seed: #FF6B4A;
+
+    /* Elevation */
+    --shadow: 0 1px 2px rgba(20, 40, 60, .07);
+    --shadow-overlay: 0 6px 20px rgba(20, 40, 60, .10);
+
+    /* Spacing (8pt base) */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 24px;
+    --sp-6: 32px;
+    --sp-7: 48px;
+    --sp-8: 64px;
+
+    /* Radii */
+    --r-sm: 8px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-pill: 999px;
+
+    /* Layout */
+    --sidebar-w: 240px;
+    --tabbar-h: 62px;
+    --topbar-h: 56px;
+    --content-max: 1200px;
+
+    /* Type */
+    --font-display: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-body: 'Mukta', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+    --dur-fast: 120ms;
+    --dur: 200ms;
+    --dur-slow: 900ms;
+}
+
+/* Dark: pure neutral greys, no hue. Elevation comes from surface steps, not shadow. */
+html[data-sapling-theme='dark'] {
+    color-scheme: dark;
+
+    --bg: #121212;
+    --surface: #1A1A1A;
+    --surface2: #232323;
+    --line: #2E2E2E;
+
+    --ink: #ECECEC;
+    --muted: #BDBDBD;
+    --subtle: #8A8A8A;
+
+    --primary: #8FC0E8;
+    --primary-hover: #A7D0F0;
+    --primary-soft: #1E2A33;
+    --primary-text: #A7D0F0;
+    --primary-on: #10171D;
+    --track: #2A2A2A;
+
+    --accent: #EDB268;
+    --accent-hover: #F3C186;
+    --accent-soft: #2C2519;
+    --accent-on: #241606;
+
+    --success: #6FBF8F;
+    --success-soft: #1B2620;
+    --success-text: #93D3AE;
+    --warn: #E0A93F;
+    --warn-soft: #29231A;
+    --warn-text: #E9C77E;
+    --error: #E4796A;
+    --error-soft: #2A1D1B;
+    --error-text: #F2A79B;
+    --info: #96A0E4;
+    --info-soft: #1F2030;
+    --info-text: #BCC3F2;
+
+    --viz-1: #8FC0E8;
+    --viz-2: #6FC3BF;
+    --viz-3: #C29BC9;
+    --viz-4: #D9A566;
+    --viz-5: #5B8FBF;
+
+    --brand-stem: #4FA97A;
+    --brand-leaf: #7FC49A;
+    --brand-seed: #FF8264;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+    --shadow-overlay: 0 6px 20px rgba(0, 0, 0, .45);
+}
+
+/* Applies only while the user has chosen "System". */
+@media (prefers-color-scheme: dark) {
+    html[data-sapling-theme='system'] {
+        color-scheme: dark;
+
+        --bg: #121212;
+        --surface: #1A1A1A;
+        --surface2: #232323;
+        --line: #2E2E2E;
+
+        --ink: #ECECEC;
+        --muted: #BDBDBD;
+        --subtle: #8A8A8A;
+
+        --primary: #8FC0E8;
+        --primary-hover: #A7D0F0;
+        --primary-soft: #1E2A33;
+        --primary-text: #A7D0F0;
+        --primary-on: #10171D;
+        --track: #2A2A2A;
+
+        --accent: #EDB268;
+        --accent-hover: #F3C186;
+        --accent-soft: #2C2519;
+        --accent-on: #241606;
+
+        --success: #6FBF8F;
+        --success-soft: #1B2620;
+        --success-text: #93D3AE;
+        --warn: #E0A93F;
+        --warn-soft: #29231A;
+        --warn-text: #E9C77E;
+        --error: #E4796A;
+        --error-soft: #2A1D1B;
+        --error-text: #F2A79B;
+        --info: #96A0E4;
+        --info-soft: #1F2030;
+        --info-text: #BCC3F2;
+
+        --viz-1: #8FC0E8;
+        --viz-2: #6FC3BF;
+        --viz-3: #C29BC9;
+        --viz-4: #D9A566;
+        --viz-5: #5B8FBF;
+
+        --brand-stem: #4FA97A;
+        --brand-leaf: #7FC49A;
+        --brand-seed: #FF8264;
+
+        --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+        --shadow-overlay: 0 6px 20px rgba(0, 0, 0, .45);
+    }
+}

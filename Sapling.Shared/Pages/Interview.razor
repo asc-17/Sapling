@@ -1,0 +1,108 @@
+@page "/interview"
+@namespace Sapling.Shared.Pages
+@inject IInterviewService Interviews
+@inject ICareerService Careers
+@inject NavigationManager Nav
+
+<PageTitle>Mock interview · Sapling</PageTitle>
+<RecordVisit Feature="@FeatureCatalog.Interview" />
+
+<div class="stack g-5">
+    <div class="stack g-1">
+        <h1 style="font-size:28px;line-height:34px">Mock interview</h1>
+        <span class="t-muted">Adaptive follow-ups and a scored rubric. Five questions, about fifteen minutes.</span>
+    </div>
+
+    <div class="card stack g-4">
+        <div class="grid grid-2">
+            <div class="field">
+                <label for="role">Target role</label>
+                <select id="role" class="select" @bind="_role">
+                    @foreach (var path in _paths)
+                    {
+                        <option value="@path.Title">@path.Title</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label for="kind">Interview type</label>
+                <select id="kind" class="select" @bind="_kind">
+                    <option value="Technical">Technical</option>
+                    <option value="HR">HR</option>
+                    <option value="Aptitude">Aptitude</option>
+                    <option value="Case">Case</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row between g-3 wrap">
+            <div class="row g-2">
+                <button type="button" class="btn btn-secondary btn-icon" disabled
+                        title="Voice mode is not enabled in this build" aria-label="Voice mode, coming soon">
+                    <SapIcon Name="mic" Size="18" />
+                </button>
+                <span class="t-caption t-subtle">Voice and Hindi mode arrive in the next release.</span>
+            </div>
+            <button type="button" class="btn btn-primary" @onclick="StartAsync" disabled="@_starting">
+                <SapIcon Name="play" Size="15" />
+                Start session
+            </button>
+        </div>
+    </div>
+
+    <div class="stack g-3">
+        <span class="t-overline t-subtle">Past sessions</span>
+        @if (_sessions.Count == 0)
+        {
+            <SapEmptyState Title="No sessions yet" Icon="mic"
+                           Description="Your first attempt sets the baseline. Most students gain 15 points by the third." />
+        }
+        else
+        {
+            <div class="stack g-2">
+                @foreach (var session in _sessions)
+                {
+                    <a class="card row between g-4 wrap" href="@($"/interview/{session.Id}")">
+                        <div class="stack grow" style="gap:2px;min-width:200px">
+                            <span style="font-weight:600">@session.TargetRole &middot; @session.Kind</span>
+                            <span class="t-caption t-subtle">
+                                @session.StartedAt.ToLocalTime().ToString("d MMM, h:mm tt") &middot;
+                                @session.QuestionsAsked of @session.QuestionLimit questions
+                            </span>
+                        </div>
+                        @if (session.Feedback is not null)
+                        {
+                            <ScoreRing Value="session.Feedback.Overall" Size="60" Thickness="7" Animate="false" Label="Score" />
+                        }
+                        else
+                        {
+                            <SapBadge Tone="accent">In progress</SapBadge>
+                        }
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<CareerPathDto> _paths = [];
+    private List<InterviewSessionDto> _sessions = [];
+    private string _role = "";
+    private string _kind = "Technical";
+    private bool _starting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _paths = await Careers.GetPathsAsync();
+        _role = _paths.FirstOrDefault()?.Title ?? "Backend Developer";
+        _sessions = [.. await Interviews.GetSessionsAsync()];
+    }
+
+    private async Task StartAsync()
+    {
+        _starting = true;
+        var session = await Interviews.StartAsync(new StartInterviewRequest(_role, _kind));
+        Nav.NavigateTo($"/interview/{session.Id}");
+    }
+}

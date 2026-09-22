@@ -1,0 +1,19 @@
+@namespace Sapling.Shared
+@inject NavigationManager Nav
+@inject IFormFactor FormFactor
+
+@code {
+    protected override void OnInitialized()
+    {
+        var target = Nav.ToBaseRelativePath(Nav.Uri);
+        var returnUrl = string.IsNullOrEmpty(target) || target.StartsWith("signin", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : $"?returnUrl=/{target}";
+
+        // The web sign-in page is static SSR, so it needs a real request; the MAUI WebView has no server to reload from.
+        Nav.NavigateTo(
+            $"/signin{returnUrl}",
+            forceLoad: FormFactor.Kind == FormFactorKind.Desktop,
+            replace: true);
+    }
+}

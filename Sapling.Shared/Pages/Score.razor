@@ -1,0 +1,78 @@
+@page "/score"
+@namespace Sapling.Shared.Pages
+@inject IScoreService Scores
+
+<PageTitle>Employability Score · Sapling</PageTitle>
+<RecordVisit Feature="@FeatureCatalog.Score" />
+
+<div class="stack g-5">
+    @if (_score is null)
+    {
+        <div class="card stack center g-4" style="padding:var(--sp-7)">
+            <div class="skeleton" style="width:150px;height:150px;border-radius:50%"></div>
+            <div class="skeleton" style="width:220px;height:14px"></div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="row-top g-6 wrap">
+                <div class="stack center g-3" style="flex:none">
+                    <ScoreRing Value="_score.Total" Size="164" Caption="@($"As of {_score.AsOf:d MMM yyyy}")" />
+                    @if (_score.Total != _score.PreviousTotal)
+                    {
+                        <SapBadge Tone="@(Delta > 0 ? "success" : "neutral")" Icon="@(Delta > 0 ? "trending-up" : "minus")">
+                            @(Delta > 0 ? "+" : "")@Delta since last month
+                        </SapBadge>
+                    }
+                </div>
+
+                <div class="grow stack g-4" style="min-width:280px">
+                    <div class="stack g-2">
+                        <h1 style="font-size:30px;line-height:36px">@Headline</h1>
+                        <p class="t-muted">
+                            This is a starting line, not a verdict. Every point below is traceable to something
+                            you have done, and the component with the largest weight is the one worth attacking first.
+                        </p>
+                    </div>
+                    <div class="row g-2 wrap">
+                        <a class="btn btn-primary" href="/roadmap">Open your roadmap</a>
+                        <a class="btn btn-secondary" href="/skills">See what is missing</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stack g-3">
+            <span class="t-overline t-subtle">Six things make up your score</span>
+            <div class="grid grid-2">
+                @foreach (var component in _score.Components)
+                {
+                    <div class="card stack g-3">
+                        <div class="row between g-2">
+                            <h4>@component.Name</h4>
+                            <SapBadge Tone="neutral">@component.Weight% of total</SapBadge>
+                        </div>
+                        <LinearBar Percent="component.Value" ValueText="@($"{component.Value} / 100")" />
+                        <span class="t-small t-muted">@component.Summary</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private EmployabilityScoreDto? _score;
+
+    private int Delta => _score is null ? 0 : _score.Total - _score.PreviousTotal;
+
+    private string Headline => _score is null ? "" : _score.Total switch
+    {
+        >= 75 => "You are placement-ready. Now widen the shortlist.",
+        >= 55 => "You are close. Two gaps are holding the number down.",
+        _ => "Your score is a starting line",
+    };
+
+    protected override async Task OnInitializedAsync() => _score = await Scores.GetAsync();
+}

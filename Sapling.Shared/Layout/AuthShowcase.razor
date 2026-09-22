@@ -1,0 +1,121 @@
+@namespace Sapling.Shared.Layout
+
+<section class="container section" id="features">
+    <div class="stack g-2" style="margin-bottom:var(--sp-5)">
+        <span class="t-overline t-subtle">What is inside</span>
+        <h2>Eight modules, one continuous journey.</h2>
+    </div>
+    <div class="grid grid-4">
+        @foreach (var feature in FeatureCatalog.All)
+        {
+            <div class="card feature-card">
+                <span class="icon-tile"><SapIcon Name="@feature.Icon" Size="20" /></span>
+                <h4>@feature.Title</h4>
+                <span class="t-small t-muted">@feature.LongBlurb</span>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="container section">
+    <div class="stack g-2" style="margin-bottom:var(--sp-5)">
+        <span class="t-overline t-subtle">How it works</span>
+        <h2>Four steps from profile to placed.</h2>
+    </div>
+    <div class="grid grid-4">
+        @foreach (var (step, index) in _steps.Select((s, i) => (s, i)))
+        {
+            <div class="card stack g-2">
+                <span class="t-num t-primary" style="font-size:28px">0@(index + 1)</span>
+                <h4>@step.Title</h4>
+                <span class="t-small t-muted">@step.Detail</span>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="container section">
+    <div class="card">
+        <div class="row-top g-6 wrap">
+            <div class="stack center g-3" style="flex:none">
+                <ScoreRing Value="52" Size="150" Caption="Sample student, week 1" />
+            </div>
+            <div class="grow stack g-4" style="min-width:280px">
+                <div class="stack g-2">
+                    <span class="t-overline t-subtle">Employability Score</span>
+                    <h2>One number, six honest parts.</h2>
+                    <p class="t-small t-muted">
+                        No black box. Every point is traceable to something you did, and the breakdown is
+                        always visible so you know which lever moves fastest.
+                    </p>
+                </div>
+                <div class="grid grid-2">
+                    @foreach (var part in _scoreParts)
+                    {
+                        <LinearBar Percent="part.Value" Label="@part.Name" ValueText="@($"{part.Weight}%")" Small />
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="container section">
+    <div class="grid grid-4">
+        @foreach (var item in _trust)
+        {
+            <div class="stack g-2">
+                <span class="t-primary"><SapIcon Name="@item.Icon" Size="22" /></span>
+                <h4>@item.Title</h4>
+                <span class="t-small t-muted">@item.Detail</span>
+            </div>
+        }
+    </div>
+</section>
+
+<footer class="container section" style="border-top:1px solid var(--line)">
+    <div class="row between g-4 wrap">
+        <div class="stack g-2">
+            <SapLogo Size="28" WordSize="19" />
+            <span class="t-small t-subtle">Campus to Corporate &middot; built for Madhya Pradesh.</span>
+        </div>
+        <div class="row g-2 wrap">
+            <a class="btn btn-secondary" href="/register">Create an account</a>
+            <a class="btn btn-primary" href="/signin">Sign in</a>
+        </div>
+    </div>
+</footer>
+
+@code {
+    private sealed record Step(string Title, string Detail);
+
+    private sealed record Part(string Name, int Weight, int Value);
+
+    private sealed record Trust(string Icon, string Title, string Detail);
+
+    private static readonly Step[] _steps =
+    [
+        new("Build your profile", "Academics, skills and interests in one place, with a fifteen-minute interest assessment."),
+        new("See your score", "A measured 0 to 100 employability score with the six components that produced it."),
+        new("Follow the roadmap", "A week-by-week plan that puts free and government-subsidised courses first."),
+        new("Get placed", "Matched opportunities, a tailored resume, and interview practice that scores you."),
+    ];
+
+    private static readonly Part[] _scoreParts =
+    [
+        new("Verified technical skills", 30, 44),
+        new("Communication & interview", 20, 55),
+        new("Academics", 15, 72),
+        new("Projects & portfolio", 15, 38),
+        new("Certifications", 10, 30),
+        new("Industry exposure", 10, 20),
+    ];
+
+    private static readonly Trust[] _trust =
+    [
+        new("shield-check", "Verified, not claimed", "Only skills you can evidence count toward your score or a recruiter shortlist."),
+        new("info", "Explainable by default", "Every recommendation carries a \"why this?\" you can open and argue with."),
+        new("lock", "Your data stays yours", "Consent-first, minimal collection, and deletion on request under the DPDP Act."),
+        new("book-open", "Hindi-ready", "Built on a dual-script type system so Hindi is a first-class language, not a bolt-on."),
+    ];
+}
