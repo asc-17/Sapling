@@ -75,6 +75,11 @@ public static class Icons
         ["trash"] = "M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3",
         ["sidebar-close"] = "M3 4h18v16H3ZM9 4v16M15 10l-3 2 3 2",
         ["sidebar-open"] = "M3 4h18v16H3ZM9 4v16M14 10l3 2-3 2",
+        ["camera"] = "M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+        ["rotate-cw"] = "M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5",
+        ["zoom-in"] = "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM21 21l-4.3-4.3M11 8v6M8 11h6",
+        ["zoom-out"] = "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM21 21l-4.3-4.3M8 11h6",
+        ["edit-2"] = "M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z",
     };
 
     public static string Get(string name) =>

@@ -17,6 +17,8 @@ public interface IProfileService
     Task<IReadOnlyList<CollegeDto>> SearchCollegesAsync(string query, string? state = null, CancellationToken ct = default);
 
     Task CompleteOnboardingAsync(CancellationToken ct = default);
+
+    Task<StudentProfileDto> SetAvatarAsync(string? dataUrl, CancellationToken ct = default);
 }
 
 public interface IScoreService

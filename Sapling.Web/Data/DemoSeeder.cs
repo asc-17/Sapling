@@ -293,6 +293,13 @@ public static class DemoSeeder
                     await alterCmd.ExecuteNonQueryAsync();
                 }
 
+                if (!existingCols.Contains("AvatarDataUrl"))
+                {
+                    using var alterCmd = conn.CreateCommand();
+                    alterCmd.CommandText = "ALTER TABLE StudentProfiles ADD COLUMN AvatarDataUrl TEXT NULL;";
+                    await alterCmd.ExecuteNonQueryAsync();
+                }
+
                 // Ensure Colleges table exists with Category and Aliases
                 using var tableCmd = conn.CreateCommand();
                 tableCmd.CommandText = """

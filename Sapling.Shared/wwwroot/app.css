@@ -751,3 +751,159 @@
     overflow: hidden;
 }
 
+/* ---------- Avatar photo upload ---------- */
+
+.avatar-photo-wrap {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    cursor: pointer;
+}
+
+.avatar-photo-wrap:hover .avatar-camera-overlay {
+    opacity: 1;
+}
+
+.avatar-camera-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--r-pill);
+    background: rgba(0, 0, 0, .45);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    opacity: 0;
+    transition: opacity var(--dur-fast) ease;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-align: center;
+    pointer-events: none;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--r-pill);
+    display: block;
+}
+
+/* Crop/zoom editor canvas */
+.avatar-crop-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-3);
+}
+
+.avatar-crop-canvas {
+    border-radius: var(--r-lg);
+    border: 1px solid var(--line);
+    display: block;
+    cursor: grab;
+    touch-action: none;
+    background: #111;
+}
+
+.avatar-crop-canvas:active {
+    cursor: grabbing;
+}
+
+.avatar-crop-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+
+.avatar-crop-controls .zoom-track {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 140px;
+    height: 4px;
+    border-radius: var(--r-pill);
+    background: var(--track);
+    outline: none;
+    cursor: pointer;
+}
+
+.avatar-crop-controls .zoom-track::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: var(--r-pill);
+    background: var(--primary);
+    cursor: pointer;
+}
+
+.avatar-crop-controls .zoom-track::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: var(--r-pill);
+    background: var(--primary);
+    border: 0;
+    cursor: pointer;
+}
+
+.avatar-modal-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    padding: var(--sp-2) 0;
+}
+
+.avatar-current-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-2);
+}
+
+.avatar-upload-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: var(--sp-3);
+    border: 2px dashed var(--line);
+    border-radius: var(--r-lg);
+    padding: var(--sp-6) var(--sp-5);
+    cursor: pointer;
+    transition: border-color var(--dur-fast) ease, background var(--dur-fast) ease, transform var(--dur-fast) ease;
+    width: 100%;
+    max-width: 420px;
+    margin-inline: auto;
+    background: var(--surface2);
+}
+
+.avatar-upload-zone:hover {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+}
+
+.avatar-upload-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--r-pill);
+    background: var(--primary-soft);
+    color: var(--primary-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform var(--dur-fast) ease;
+}
+
+.avatar-upload-zone:hover .avatar-upload-icon {
+    transform: scale(1.06);
+}
+
+

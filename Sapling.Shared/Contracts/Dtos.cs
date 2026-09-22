@@ -12,7 +12,10 @@ public sealed record StudentProfileDto(
     string PreferredLanguage,
     bool OnboardingComplete,
     string? RiasecCode,
-    string State = "");
+    string State = "",
+    string? AvatarDataUrl = null);
+
+public sealed record UpdateAvatarRequest(string? AvatarDataUrl);
 
 public sealed record UpdateProfileRequest(
     string FullName,

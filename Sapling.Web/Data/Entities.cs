@@ -56,7 +56,11 @@ public class StudentProfile
     public int PreviousAtsScore { get; set; }
 
     public string? ResumeTailoredForRole { get; set; }
+
+    /// <summary>Cropped profile photo stored as a Base64 PNG data-URL. Null means "use initials".</summary>
+    public string? AvatarDataUrl { get; set; }
 }
+
 
 public class College
 {

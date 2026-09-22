@@ -82,6 +82,13 @@ public sealed class HttpProfileService(IHttpClientFactory factory) : IProfileSer
 
     public async Task CompleteOnboardingAsync(CancellationToken ct = default) =>
         (await Client.PostAsync("api/profile/complete-onboarding", null, ct)).EnsureSuccessStatusCode();
+
+    public async Task<StudentProfileDto> SetAvatarAsync(string? dataUrl, CancellationToken ct = default)
+    {
+        var response = await Client.PutAsJsonAsync("api/profile/avatar", new UpdateAvatarRequest(dataUrl), ct);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<StudentProfileDto>(ct))!;
+    }
 }
 
 public sealed class HttpScoreService(IHttpClientFactory factory) : IScoreService

@@ -24,6 +24,8 @@ public static class ApiEndpoints
             await s.CompleteOnboardingAsync(ct);
             return Results.NoContent();
         });
+        profile.MapPut("/avatar", (UpdateAvatarRequest r, IProfileService s, CancellationToken ct) =>
+            s.SetAvatarAsync(r.AvatarDataUrl, ct));
 
         var score = api.MapGroup("/score");
         score.MapGet("/", (IScoreService s, CancellationToken ct) => s.GetAsync(ct));

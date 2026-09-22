@@ -85,6 +85,14 @@ public sealed class ProfileService(SaplingDbContext db, StudentContext ctx, ICol
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task<StudentProfileDto> SetAvatarAsync(string? dataUrl, CancellationToken ct = default)
+    {
+        var profile = await ctx.GetProfileAsync(ct);
+        profile.AvatarDataUrl = dataUrl;
+        await db.SaveChangesAsync(ct);
+        return Map(profile);
+    }
+
     private static StudentProfileDto Map(StudentProfile p) => new(
         p.User?.FullName ?? "Student",
         p.User?.Email ?? "",
@@ -97,5 +105,6 @@ public sealed class ProfileService(SaplingDbContext db, StudentContext ctx, ICol
         p.PreferredLanguage,
         p.OnboardingComplete,
         p.RiasecCode,
-        p.State);
+        p.State,
+        p.AvatarDataUrl);
 }

@@ -1,5 +1,6 @@
 @namespace Sapling.Shared.Layout
 @inject IJSRuntime Js
+@inject IProfileService Profiles
 
 <div class="shell-desktop">
     <nav class="sidebar @(_collapsed ? "collapsed" : null)">
@@ -28,7 +29,14 @@
 
         <div class="sidebar-foot">
             <NavLink class="nav-item" href="/profile" title="@(_collapsed ? "Profile & settings" : null)">
-                <span class="avatar" style="width:26px;height:26px;font-size:11px">@Initials</span>
+                @if (!string.IsNullOrEmpty(AvatarDataUrl))
+                {
+                    <img src="@AvatarDataUrl" alt="@DisplayName" class="avatar" style="width:26px;height:26px;object-fit:cover;border-radius:var(--r-pill)" />
+                }
+                else
+                {
+                    <span class="avatar" style="width:26px;height:26px;font-size:11px">@Initials</span>
+                }
                 <span class="stack grow" style="gap:0">
                     <span style="font-size:13px">@DisplayName</span>
                     <span class="t-caption t-subtle" style="font-weight:400">Profile &amp; settings</span>
@@ -59,6 +67,7 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private string DisplayName { get; set; } = "Student";
+    private string? AvatarDataUrl { get; set; }
     private bool _collapsed;
 
     private string Initials => string.Concat(
@@ -97,6 +106,16 @@
         if (!string.IsNullOrWhiteSpace(name))
         {
             DisplayName = name.Contains('@') ? name[..name.IndexOf('@')] : name;
+        }
+
+        try
+        {
+            var profile = await Profiles.GetAsync();
+            AvatarDataUrl = profile.AvatarDataUrl;
+        }
+        catch
+        {
+            // Ignore if unauthenticated or offline
         }
     }
 }

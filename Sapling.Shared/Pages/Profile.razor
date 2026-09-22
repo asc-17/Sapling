@@ -21,7 +21,22 @@
     {
         <div class="card">
             <div class="row-top g-4 wrap">
-                <span class="avatar avatar-lg">@Initials</span>
+                <div class="avatar-photo-wrap" @onclick="OpenAvatarModal" title="Change profile photo" role="button" tabindex="0" @onkeydown="@(e => { if (e.Key == "Enter" || e.Key == " ") OpenAvatarModal(); })">
+                    @if (!string.IsNullOrEmpty(_profile.AvatarDataUrl))
+                    {
+                        <span class="avatar avatar-xl" style="overflow:hidden">
+                            <img src="@_profile.AvatarDataUrl" alt="@_profile.FullName" class="avatar-img" />
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="avatar avatar-xl">@Initials</span>
+                    }
+                    <div class="avatar-camera-overlay">
+                        <SapIcon Name="camera" Size="22" />
+                        <span>Edit</span>
+                    </div>
+                </div>
                 <div class="stack grow g-1" style="min-width:200px">
                     <h3>@_profile.FullName</h3>
                     <span class="t-small t-muted">@_profile.Email</span>
@@ -147,6 +162,13 @@
         </SapModal>
     }
 
+    @if (_showAvatarModal && _profile is not null)
+    {
+        <AvatarEditorModal CurrentAvatarUrl="@_profile.AvatarDataUrl"
+                           OnSave="HandleSaveAvatar"
+                           OnClose="CloseAvatarModal" />
+    }
+
     <SapCard Title="Appearance" Subtitle="Follows your device by default">
         <ChildContent>
             <SapSegmented TValue="ThemeMode" Options="_themes" Value="Theme.Current" ValueChanged="SetThemeAsync" />
@@ -191,6 +213,7 @@
 
     // In-place edit state
     private bool _showEditModal;
+    private bool _showAvatarModal;
     private bool _isSaving;
     private string? _saveError;
     private string _editFullName = "";
@@ -251,6 +274,29 @@
     {
         _showEditModal = false;
         _saveError = null;
+    }
+
+    private void OpenAvatarModal()
+    {
+        _showAvatarModal = true;
+    }
+
+    private void CloseAvatarModal()
+    {
+        _showAvatarModal = false;
+    }
+
+    private async Task HandleSaveAvatar(string? dataUrl)
+    {
+        try
+        {
+            _profile = await Profiles.SetAvatarAsync(dataUrl);
+            _showAvatarModal = false;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error saving avatar: {ex.Message}");
+        }
     }
 
     private void OnEditCollegeSelected(CollegeDto college)
