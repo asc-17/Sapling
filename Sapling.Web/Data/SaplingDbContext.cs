@@ -35,6 +35,8 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
 
     public DbSet<QuizQuestion> QuizQuestions => Set<QuizQuestion>();
 
+    public DbSet<College> Colleges => Set<College>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -94,5 +96,7 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<Skill>().HasIndex(s => s.Name).IsUnique();
+
+        builder.Entity<College>().HasIndex(c => c.Name);
     }
 }

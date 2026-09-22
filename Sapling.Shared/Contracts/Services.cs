@@ -14,6 +14,8 @@ public interface IProfileService
 
     Task<IReadOnlyList<SkillSuggestionDto>> GetSkillCatalogueAsync(CancellationToken ct = default);
 
+    Task<IReadOnlyList<CollegeDto>> SearchCollegesAsync(string query, string? state = null, CancellationToken ct = default);
+
     Task CompleteOnboardingAsync(CancellationToken ct = default);
 }
 

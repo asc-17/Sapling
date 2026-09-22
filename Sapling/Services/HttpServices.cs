@@ -70,6 +70,16 @@ public sealed class HttpProfileService(IHttpClientFactory factory) : IProfileSer
     public async Task<IReadOnlyList<SkillSuggestionDto>> GetSkillCatalogueAsync(CancellationToken ct = default) =>
         await Client.GetJsonAsync<List<SkillSuggestionDto>>("api/profile/skill-catalogue", ct);
 
+    public async Task<IReadOnlyList<CollegeDto>> SearchCollegesAsync(string query, string? state = null, CancellationToken ct = default)
+    {
+        var url = $"api/profile/colleges?q={Uri.EscapeDataString(query)}";
+        if (!string.IsNullOrWhiteSpace(state))
+        {
+            url += $"&state={Uri.EscapeDataString(state)}";
+        }
+        return await Client.GetJsonAsync<List<CollegeDto>>(url, ct);
+    }
+
     public async Task CompleteOnboardingAsync(CancellationToken ct = default) =>
         (await Client.PostAsync("api/profile/complete-onboarding", null, ct)).EnsureSuccessStatusCode();
 }

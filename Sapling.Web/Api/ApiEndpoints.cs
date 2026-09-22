@@ -1,4 +1,5 @@
 using Sapling.Shared.Contracts;
+using Sapling.Web.Services;
 
 namespace Sapling.Web.Api;
 
@@ -16,6 +17,8 @@ public static class ApiEndpoints
         profile.MapPut("/skills", (List<string> names, IProfileService s, CancellationToken ct) => s.SetClaimedSkillsAsync(names, ct));
         profile.MapGet("/skill-suggestions", (IProfileService s, CancellationToken ct) => s.GetSkillSuggestionsAsync(ct));
         profile.MapGet("/skill-catalogue", (IProfileService s, CancellationToken ct) => s.GetSkillCatalogueAsync(ct));
+        profile.MapGet("/colleges", (string? q, string? state, ICollegeCatalogService catalog) =>
+            catalog.Search(q ?? "", state, 20)).AllowAnonymous();
         profile.MapPost("/complete-onboarding", async (IProfileService s, CancellationToken ct) =>
         {
             await s.CompleteOnboardingAsync(ct);

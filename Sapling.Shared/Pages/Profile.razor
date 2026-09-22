@@ -39,9 +39,112 @@
                         }
                     </div>
                 </div>
-                <a class="btn btn-secondary btn-sm" href="/onboarding/about">Edit</a>
+                <div class="row g-2 items-center">
+                    <button type="button" class="btn btn-secondary btn-sm" @onclick="OpenEditModal">
+                        <SapIcon Name="edit-2" Size="14" />
+                        Edit profile
+                    </button>
+                    <a class="btn btn-ghost btn-sm t-muted" href="/onboarding/about" title="Redo complete onboarding">
+                        Onboarding
+                    </a>
+                </div>
             </div>
         </div>
+    }
+
+    @if (_showEditModal && _profile is not null)
+    {
+        <SapModal Title="Edit profile details" OnClose="CloseEditModal">
+            <ChildContent>
+                <div class="stack g-4" style="min-width:320px;max-width:540px">
+                    <div class="field">
+                        <label for="editName">Full name</label>
+                        <input id="editName" class="input" type="text" @bind="_editFullName" />
+                    </div>
+
+                    <div class="field" style="position:relative">
+                        <div class="row between items-center">
+                            <label for="editCollege">College</label>
+                            <span class="t-caption t-subtle" style="font-size:11px">Auto-fills state &amp; city</span>
+                        </div>
+                        <CollegeAutocomplete Id="editCollege"
+                                             @bind-Value="_editCollege"
+                                             OnCollegeSelected="OnEditCollegeSelected"
+                                             StateFilter="@_editState" />
+                    </div>
+
+                    <div class="grid grid-2">
+                        <div class="field">
+                            <label for="editState">State</label>
+                            <select id="editState" class="select" value="@_editState" @onchange="OnEditStateChanged">
+                                <option value="">Select state</option>
+                                @foreach (var s in LocationCatalog.GetStates())
+                                {
+                                    <option value="@s">@s</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="editCity">City</label>
+                            <select id="editCity" class="select" @bind="_editCity" disabled="@string.IsNullOrEmpty(_editState)">
+                                @if (string.IsNullOrEmpty(_editState))
+                                {
+                                    <option value="">Select state first</option>
+                                }
+                                else
+                                {
+                                    <option value="">Select city</option>
+                                    @foreach (var c in LocationCatalog.GetCitiesForState(_editState))
+                                    {
+                                        <option value="@c">@c</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-2">
+                        <div class="field">
+                            <label for="editBranch">Branch / Specialisation</label>
+                            <input id="editBranch" class="input" type="text" @bind="_editBranch" />
+                        </div>
+                        <div class="field">
+                            <label for="editYear">Graduation year</label>
+                            <select id="editYear" class="select" @bind="_editGradYear">
+                                @for (var y = 2020; y <= 2035; y++)
+                                {
+                                    <option value="@y">@y</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-2">
+                        <div class="field">
+                            <label for="editCgpa">CGPA (out of 10)</label>
+                            <input id="editCgpa" class="input" type="number" step="0.1" min="0" max="10" @bind="_editCgpa" />
+                        </div>
+                        <div class="field">
+                            <label for="editBacklogs">Active backlogs</label>
+                            <input id="editBacklogs" class="input" type="number" min="0" max="20" @bind="_editBacklogs" />
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_saveError))
+                    {
+                        <div class="badge badge-error" style="white-space:normal;padding:8px 12px">@_saveError</div>
+                    }
+                </div>
+            </ChildContent>
+            <Footer>
+                <div class="row end g-2">
+                    <button type="button" class="btn btn-ghost btn-sm" @onclick="CloseEditModal">Cancel</button>
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="SaveProfileAsync" disabled="@_isSaving">
+                        @(_isSaving ? "Saving…" : "Save changes")
+                    </button>
+                </div>
+            </Footer>
+        </SapModal>
     }
 
     <SapCard Title="Appearance" Subtitle="Follows your device by default">
@@ -86,6 +189,19 @@
     private StudentProfileDto? _profile;
     private bool _cleared;
 
+    // In-place edit state
+    private bool _showEditModal;
+    private bool _isSaving;
+    private string? _saveError;
+    private string _editFullName = "";
+    private string _editCollege = "";
+    private string _editBranch = "";
+    private int _editGradYear;
+    private string _editState = "";
+    private string _editCity = "";
+    private double _editCgpa;
+    private int _editBacklogs;
+
     private string LocationDisplay
     {
         get
@@ -113,6 +229,109 @@
         if (firstRender)
         {
             await Theme.InitializeAsync();
+        }
+    }
+
+    private void OpenEditModal()
+    {
+        if (_profile is null) return;
+        _editFullName = _profile.FullName;
+        _editCollege = _profile.College;
+        _editBranch = _profile.Branch;
+        _editGradYear = _profile.GraduationYear == 0 ? DateTime.Today.Year + 1 : _profile.GraduationYear;
+        _editState = _profile.State;
+        _editCity = _profile.City;
+        _editCgpa = _profile.Cgpa;
+        _editBacklogs = _profile.Backlogs;
+        _saveError = null;
+        _showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        _showEditModal = false;
+        _saveError = null;
+    }
+
+    private void OnEditCollegeSelected(CollegeDto college)
+    {
+        _editCollege = college.Name;
+
+        if (!string.IsNullOrWhiteSpace(college.State))
+        {
+            var states = LocationCatalog.GetStates();
+            var matchedState = states.FirstOrDefault(s => string.Equals(s, college.State, StringComparison.OrdinalIgnoreCase))
+                ?? LocationCatalog.InferStateFromCity(college.City);
+
+            if (!string.IsNullOrEmpty(matchedState))
+            {
+                _editState = matchedState;
+            }
+            else
+            {
+                _editState = college.State;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(college.City))
+        {
+            var cities = LocationCatalog.GetCitiesForState(_editState);
+            var matchedCity = cities.FirstOrDefault(c => string.Equals(c, college.City, StringComparison.OrdinalIgnoreCase));
+            _editCity = matchedCity ?? college.City;
+        }
+    }
+
+    private void OnEditStateChanged(ChangeEventArgs e)
+    {
+        _editState = e.Value?.ToString() ?? "";
+        var cities = LocationCatalog.GetCitiesForState(_editState);
+        if (!cities.Contains(_editCity))
+        {
+            _editCity = cities.FirstOrDefault() ?? "";
+        }
+    }
+
+    private async Task SaveProfileAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_editFullName))
+        {
+            _saveError = "Please enter your full name.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_editCollege))
+        {
+            _saveError = "Please select or enter your college.";
+            return;
+        }
+
+        _isSaving = true;
+        _saveError = null;
+
+        try
+        {
+            var request = new UpdateProfileRequest(
+                FullName: _editFullName.Trim(),
+                College: _editCollege.Trim(),
+                Branch: _editBranch.Trim(),
+                GraduationYear: _editGradYear,
+                City: _editCity,
+                Cgpa: Math.Clamp(_editCgpa, 0, 10),
+                Backlogs: Math.Max(0, _editBacklogs),
+                PreferredLanguage: _profile?.PreferredLanguage ?? "English",
+                State: _editState
+            );
+
+            _profile = await Profiles.UpdateAsync(request);
+            _showEditModal = false;
+        }
+        catch (Exception ex)
+        {
+            _saveError = ex.Message;
+        }
+        finally
+        {
+            _isSaving = false;
         }
     }
 

@@ -58,6 +58,23 @@ public class StudentProfile
     public string? ResumeTailoredForRole { get; set; }
 }
 
+public class College
+{
+    public int Id { get; set; }
+
+    public string Name { get; set; } = "";
+
+    public string State { get; set; } = "";
+
+    public string City { get; set; } = "";
+
+    public string? AicteId { get; set; }
+
+    public string Category { get; set; } = "AICTE Approved";
+
+    public string Aliases { get; set; } = "";
+}
+
 public class Skill
 {
     public int Id { get; set; }

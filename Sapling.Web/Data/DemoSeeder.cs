@@ -33,6 +33,9 @@ public static class DemoSeeder
         {
             await SeedDemoStudentAsync(db, users);
         }
+
+        // Seed colleges directory from AICTE dataset if not already populated
+        await EnsureCollegesSeededAsync(db);
     }
 
     /// <summary>Ensures any missing columns (such as State) are added to existing SQLite database.</summary>
@@ -64,6 +67,48 @@ public static class DemoSeeder
                     alterCmd.CommandText = "ALTER TABLE StudentProfiles ADD COLUMN State TEXT NOT NULL DEFAULT '';";
                     await alterCmd.ExecuteNonQueryAsync();
                 }
+
+                // Ensure Colleges table exists with Category and Aliases
+                using var tableCmd = conn.CreateCommand();
+                tableCmd.CommandText = """
+                    CREATE TABLE IF NOT EXISTS "Colleges" (
+                        "Id" INTEGER NOT NULL CONSTRAINT "PK_Colleges" PRIMARY KEY AUTOINCREMENT,
+                        "Name" TEXT NOT NULL,
+                        "State" TEXT NOT NULL,
+                        "City" TEXT NOT NULL,
+                        "AicteId" TEXT NULL,
+                        "Category" TEXT NOT NULL DEFAULT 'AICTE Approved',
+                        "Aliases" TEXT NOT NULL DEFAULT ''
+                    );
+                    CREATE INDEX IF NOT EXISTS "IX_Colleges_Name" ON "Colleges" ("Name");
+                    CREATE INDEX IF NOT EXISTS "IX_Colleges_State" ON "Colleges" ("State");
+                    CREATE INDEX IF NOT EXISTS "IX_Colleges_City" ON "Colleges" ("City");
+                    """;
+                await tableCmd.ExecuteNonQueryAsync();
+
+                // Ensure Category and Aliases columns exist if table was already created
+                var collegeCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using var colCmd = conn.CreateCommand();
+                colCmd.CommandText = "PRAGMA table_info(Colleges);";
+                using var colReader = await colCmd.ExecuteReaderAsync();
+                while (await colReader.ReadAsync())
+                {
+                    collegeCols.Add(colReader.GetString(1));
+                }
+
+                if (!collegeCols.Contains("Category"))
+                {
+                    using var addCat = conn.CreateCommand();
+                    addCat.CommandText = "ALTER TABLE Colleges ADD COLUMN Category TEXT NOT NULL DEFAULT 'AICTE Approved';";
+                    await addCat.ExecuteNonQueryAsync();
+                }
+
+                if (!collegeCols.Contains("Aliases"))
+                {
+                    using var addAliases = conn.CreateCommand();
+                    addAliases.CommandText = "ALTER TABLE Colleges ADD COLUMN Aliases TEXT NOT NULL DEFAULT '';";
+                    await addAliases.ExecuteNonQueryAsync();
+                }
             }
             finally
             {
@@ -78,6 +123,57 @@ public static class DemoSeeder
             // Non-SQLite or already applied
         }
     }
+
+    /// <summary>Seeds all Indian colleges from the AICTE/AISHE dataset if the table is empty.</summary>
+    private static async Task EnsureCollegesSeededAsync(SaplingDbContext db)
+    {
+        try
+        {
+            if (await db.Colleges.AnyAsync())
+                return;
+
+            var candidates = new[]
+            {
+                Path.Combine(AppContext.BaseDirectory, "Data", "aicte_colleges.json"),
+                Path.Combine(Directory.GetCurrentDirectory(), "Data", "aicte_colleges.json"),
+                Path.Combine(Directory.GetCurrentDirectory(), "Sapling.Web", "Data", "aicte_colleges.json"),
+                @"C:\Users\Abhijeet\source\repos\Sapling\Sapling.Web\Data\aicte_colleges.json",
+            };
+
+            var jsonPath = candidates.FirstOrDefault(File.Exists);
+            if (jsonPath is null)
+                return;
+
+            await using var stream = File.OpenRead(jsonPath);
+            var items = await System.Text.Json.JsonSerializer.DeserializeAsync<List<CollegeSeedItem>>(stream);
+            if (items is not null && items.Count > 0)
+            {
+                const int chunkSize = 1500;
+                for (int i = 0; i < items.Count; i += chunkSize)
+                {
+                    var chunk = items.Skip(i).Take(chunkSize)
+                        .Select(c => new College 
+                        { 
+                            Name = c.name, 
+                            State = c.state, 
+                            City = c.city, 
+                            AicteId = c.aicte_id,
+                            Category = c.category ?? "AICTE Approved",
+                            Aliases = c.aliases ?? ""
+                        })
+                        .ToList();
+                    db.Colleges.AddRange(chunk);
+                    await db.SaveChangesAsync();
+                }
+            }
+        }
+        catch
+        {
+            // Avoid startup failure if dataset file is inaccessible
+        }
+    }
+
+    private sealed record CollegeSeedItem(string name, string state, string city, string? aicte_id, string? category = null, string? aliases = null);
 
     /// <summary>Adds any catalogue skills that are missing from an existing database (idempotent).</summary>
     private static async Task EnsureSkillCatalogueAsync(SaplingDbContext db)

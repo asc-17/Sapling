@@ -77,8 +77,12 @@ builder.Services.AddScoped<IQuizService, QuizService>();
 builder.Services.AddSingleton<IFormFactor, DesktopFormFactor>();
 builder.Services.AddScoped<IThemeService, BrowserThemeService>();
 builder.Services.AddScoped<IRecentFeaturesService, BrowserRecentFeaturesService>();
+builder.Services.AddSingleton<ICollegeCatalogService, CollegeCatalogService>();
 
 var app = builder.Build();
+
+// Pre-initialize in-memory college catalog
+_ = Task.Run(() => app.Services.GetRequiredService<ICollegeCatalogService>().InitializeAsync());
 
 if (!app.Environment.IsDevelopment())
 {

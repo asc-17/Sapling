@@ -25,6 +25,13 @@ public sealed record UpdateProfileRequest(
     string PreferredLanguage,
     string State = "");
 
+public sealed record CollegeDto(
+    string Name,
+    string State,
+    string City,
+    string? AicteId = null,
+    string? Category = null);
+
 public sealed record SkillDto(
     int Id,
     string Name,

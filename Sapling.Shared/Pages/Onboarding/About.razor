@@ -1,6 +1,7 @@
-﻿@page "/onboarding/about"
+@page "/onboarding/about"
 @namespace Sapling.Shared.Pages.Onboarding
 @using Sapling.Shared.Content
+@using Sapling.Shared.Contracts
 @inject IProfileService Profiles
 @inject NavigationManager Nav
 
@@ -32,9 +33,16 @@
                 </div>
             </div>
 
-            <div class="field">
-                <label for="college">College</label>
-                <InputText id="college" class="input" @bind-Value="_form.College" placeholder="e.g. SGSITS, Indore" />
+            <!-- College field with AICTE & Premier Directory Autocomplete -->
+            <div class="field" style="position:relative">
+                <div class="row between items-center">
+                    <label for="college">College</label>
+                    <span class="t-caption t-subtle" style="font-size:11px">Auto-fills your state &amp; city</span>
+                </div>
+                <CollegeAutocomplete Id="college"
+                                     @bind-Value="_form.College"
+                                     OnCollegeSelected="SelectCollege"
+                                     StateFilter="@_form.State" />
                 <ValidationMessage For="() => _form.College" class="field-error" />
             </div>
 
@@ -190,6 +198,7 @@
     private string _backlogsText = "0";
     private string _backlogsError = "";
 
+
     protected override async Task OnInitializedAsync()
     {
         var profile = await Profiles.GetAsync();
@@ -225,6 +234,38 @@
             Backlogs = profile.Backlogs,
             PreferredLanguage = string.IsNullOrWhiteSpace(profile.PreferredLanguage) ? "English" : profile.PreferredLanguage,
         };
+    }
+
+    private void SelectCollege(CollegeDto college)
+    {
+        if (_form is null) return;
+
+        _form.College = college.Name;
+
+        // 1. Auto-select State
+        if (!string.IsNullOrWhiteSpace(college.State))
+        {
+            var states = LocationCatalog.GetStates();
+            var matchedState = states.FirstOrDefault(s => string.Equals(s, college.State, StringComparison.OrdinalIgnoreCase))
+                ?? LocationCatalog.InferStateFromCity(college.City);
+
+            if (!string.IsNullOrEmpty(matchedState))
+            {
+                _form.State = matchedState;
+            }
+            else
+            {
+                _form.State = college.State;
+            }
+        }
+
+        // 2. Auto-select City based on state's cities
+        if (!string.IsNullOrWhiteSpace(college.City))
+        {
+            var cities = LocationCatalog.GetCitiesForState(_form.State);
+            var matchedCity = cities.FirstOrDefault(c => string.Equals(c, college.City, StringComparison.OrdinalIgnoreCase));
+            _form.City = matchedCity ?? college.City;
+        }
     }
 
     private static (string First, string Last) SplitName(string fullName)
@@ -381,14 +422,14 @@
 
     private sealed class Form
     {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your college.")]
+        public string College { get; set; } = "";
+
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your first name.")]
         public string FirstName { get; set; } = "";
 
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your last name.")]
         public string LastName { get; set; } = "";
-
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Enter your college.")]
-        public string College { get; set; } = "";
 
         public string Course { get; set; } = "";
 

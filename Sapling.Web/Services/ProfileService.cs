@@ -4,7 +4,7 @@ using Sapling.Web.Data;
 
 namespace Sapling.Web.Services;
 
-public sealed class ProfileService(SaplingDbContext db, StudentContext ctx) : IProfileService
+public sealed class ProfileService(SaplingDbContext db, StudentContext ctx, ICollegeCatalogService catalog) : IProfileService
 {
     public async Task<StudentProfileDto> GetAsync(CancellationToken ct = default)
     {
@@ -71,6 +71,12 @@ public sealed class ProfileService(SaplingDbContext db, StudentContext ctx) : IP
     public async Task<IReadOnlyList<SkillSuggestionDto>> GetSkillCatalogueAsync(CancellationToken ct = default) =>
         await db.Skills.OrderBy(s => s.Category).ThenBy(s => s.Name)
             .Select(s => new SkillSuggestionDto(s.Name, s.Category)).ToListAsync(ct);
+
+    public Task<IReadOnlyList<CollegeDto>> SearchCollegesAsync(string query, string? state = null, CancellationToken ct = default)
+    {
+        var results = catalog.Search(query, state, limit: 20);
+        return Task.FromResult(results);
+    }
 
     public async Task CompleteOnboardingAsync(CancellationToken ct = default)
     {
