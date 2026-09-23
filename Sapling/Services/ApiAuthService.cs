@@ -3,10 +3,13 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components.Authorization;
+using Sapling.Shared.Content;
+using Sapling.Shared.Contracts;
 
 namespace Sapling.Services;
 
-public sealed record AuthResult(bool Succeeded, string? Error);
+/// <summary>A null <see cref="Error"/> on failure means the student backed out, so there is nothing to show.</summary>
+public sealed record AuthResult(bool Succeeded, string? Error, bool IsNewUser = false);
 
 /// <summary>
 /// Talks to the Identity API endpoints with bearer tokens and keeps them in SecureStorage,
@@ -54,6 +57,48 @@ public sealed class ApiAuthService(IHttpClientFactory factory, TokenStore tokens
         _user = Build(email, await FetchFullNameAsync());
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_user)));
         return new AuthResult(true, null);
+    }
+
+    /// <summary>WebAuthenticator is Android-only here; the Windows head has no callback handler for the app link.</summary>
+    public static bool GoogleSignInSupported => DeviceInfo.Platform == DevicePlatform.Android;
+
+    public async Task<AuthResult> SignInWithGoogleAsync()
+    {
+        WebAuthenticatorResult result;
+        try
+        {
+            result = await WebAuthenticator.Default.AuthenticateAsync(
+                new Uri(new Uri(SaplingApi.BaseAddress), "account/google/mobile"),
+                new Uri(ExternalAuth.AppCallback));
+        }
+        catch (TaskCanceledException)
+        {
+            return new AuthResult(false, null);
+        }
+
+        if (result.Properties.TryGetValue("error", out var error) || !result.Properties.TryGetValue("code", out var code))
+        {
+            return new AuthResult(false, ExternalSignInErrors.Message(error));
+        }
+
+        var client = factory.CreateClient(SaplingApi.Anonymous);
+        var response = await client.PostAsJsonAsync("api/identity/google/exchange", new { code });
+        var payload = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<LoginResponse>() : null;
+        if (payload is null || string.IsNullOrEmpty(payload.AccessToken))
+        {
+            return new AuthResult(false, ExternalSignInErrors.Message(null));
+        }
+
+        using var infoRequest = new HttpRequestMessage(HttpMethod.Get, "api/identity/manage/info");
+        infoRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", payload.AccessToken);
+        using var infoResponse = await client.SendAsync(infoRequest);
+        var info = infoResponse.IsSuccessStatusCode ? await infoResponse.Content.ReadFromJsonAsync<InfoResponse>() : null;
+        var email = info?.Email ?? "student";
+
+        await tokens.SaveAsync(payload.AccessToken, payload.RefreshToken, email);
+        _user = Build(email, await FetchFullNameAsync());
+        NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_user)));
+        return new AuthResult(true, null, result.Properties.ContainsKey("new"));
     }
 
     private async Task<string?> FetchFullNameAsync()
@@ -120,6 +165,8 @@ public sealed class ApiAuthService(IHttpClientFactory factory, TokenStore tokens
     private sealed record LoginResponse(
         [property: JsonPropertyName("accessToken")] string AccessToken,
         [property: JsonPropertyName("refreshToken")] string? RefreshToken);
+
+    private sealed record InfoResponse([property: JsonPropertyName("email")] string? Email);
 }
 
 public sealed class TokenStore

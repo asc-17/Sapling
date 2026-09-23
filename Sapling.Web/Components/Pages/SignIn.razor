@@ -49,10 +49,7 @@
         <span class="grow divider" style="margin:0"></span>
     </div>
 
-    <button type="button" class="btn btn-secondary btn-block" disabled title="Google sign-in is not enabled yet">
-        Continue with Google
-        <SapBadge Tone="neutral">Coming soon</SapBadge>
-    </button>
+    <GoogleSignInButton ReturnUrl="@ReturnUrl" />
 
     <div class="stack g-2" style="text-align:center">
         <span class="t-small t-muted">New here? <a href="/register">Create an account</a></span>
@@ -65,9 +62,18 @@
 
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
+    [SupplyParameterFromQuery(Name = "error")] private string? ExternalError { get; set; }
+
     private string? _error;
 
-    protected override void OnInitialized() => Input ??= new();
+    protected override void OnInitialized()
+    {
+        Input ??= new();
+        if (!string.IsNullOrEmpty(ExternalError))
+        {
+            _error = ExternalSignInErrors.Message(ExternalError);
+        }
+    }
 
     private async Task SubmitAsync()
     {

@@ -40,6 +40,14 @@
         @(_busy ? "Creating…" : "Create account")
     </button>
 
+    @if (ApiAuthService.GoogleSignInSupported)
+    {
+        <button type="button" class="btn btn-secondary btn-block" @onclick="GoogleAsync" disabled="@_busy">
+            <GoogleMark />
+            Continue with Google
+        </button>
+    }
+
     <span class="t-small t-muted" style="text-align:center">
         Already registered? <a href="/signin">Sign in</a>
     </span>
@@ -68,6 +76,32 @@
             if (result.Succeeded)
             {
                 Nav.NavigateTo("/onboarding/about");
+                return;
+            }
+
+            _error = result.Error;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Could not reach the Sapling server. Check that it is running and reachable from this device.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task GoogleAsync()
+    {
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            var result = await Auth.SignInWithGoogleAsync();
+            if (result.Succeeded)
+            {
+                Nav.NavigateTo(result.IsNewUser ? "/onboarding/about" : "/home");
                 return;
             }
 

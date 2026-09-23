@@ -44,6 +44,21 @@ builder.Services.AddAuthorizationBuilder()
         .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme)
         .RequireAuthenticatedUser());
 
+// Registered only when configured, so a checkout without credentials still starts; the button then says so.
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    builder.Services.AddAuthentication().AddGoogle(options =>
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = googleClientSecret;
+        ExternalAuthEndpoints.ConfigureGoogle(options);
+    });
+}
+
+builder.Services.AddMemoryCache();
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/signin";
@@ -86,6 +101,13 @@ builder.Services.AddSingleton<ICollegeCatalogService, CollegeCatalogService>();
 
 var app = builder.Build();
 
+if (string.IsNullOrWhiteSpace(googleClientId) != string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    app.Logger.LogWarning(
+        "Google sign-in is off: set both Authentication:Google:ClientId and Authentication:Google:ClientSecret ({Missing} is missing).",
+        string.IsNullOrWhiteSpace(googleClientId) ? "ClientId" : "ClientSecret");
+}
+
 // Pre-initialize in-memory college catalog
 _ = Task.Run(() => app.Services.GetRequiredService<ICollegeCatalogService>().InitializeAsync());
 
@@ -105,6 +127,7 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapGroup("/api/identity").MapIdentityApi<AppUser>();
+app.MapExternalAuth();
 app.MapSaplingApi();
 
 app.MapRazorComponents<App>()
