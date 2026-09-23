@@ -9,12 +9,17 @@ public static class SaplingApi
     public const string Anonymous = "sapling-api-anon";
 
     /// <summary>
-    /// The Android emulator reaches the host machine through 10.0.2.2. Point this at your LAN
-    /// address when deploying to a physical device.
+    /// The PC running Sapling.Web, as a phone on the same Wi-Fi sees it (ipconfig, "Wireless LAN adapter Wi-Fi").
+    /// Update it if the router hands the PC a different address.
     /// </summary>
-    public static string BaseAddress => DeviceInfo.Platform == DevicePlatform.Android && DeviceInfo.DeviceType == DeviceType.Virtual
-        ? "http://10.0.2.2:5250/"
-        : "http://localhost:5250/";
+    private const string DevMachineHost = "192.168.1.68";
+
+    // The emulator reaches the host through 10.0.2.2; a physical phone needs the PC's LAN address.
+    public static string BaseAddress => DeviceInfo.Platform != DevicePlatform.Android
+        ? "http://localhost:5250/"
+        : DeviceInfo.DeviceType == DeviceType.Virtual
+            ? "http://10.0.2.2:5250/"
+            : $"http://{DevMachineHost}:5250/";
 }
 
 internal static class HttpExtensions
