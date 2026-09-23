@@ -8,8 +8,11 @@ using Sapling.Shared.Contracts;
 
 namespace Sapling.Services;
 
-/// <summary>A null <see cref="Error"/> on failure means the student backed out, so there is nothing to show.</summary>
-public sealed record AuthResult(bool Succeeded, string? Error, bool IsNewUser = false);
+/// <summary>
+/// A null <see cref="Error"/> on failure means the student backed out, so there is nothing to show.
+/// <see cref="Restart"/> means an email verification expired and the flow goes back to its first step.
+/// </summary>
+public sealed record AuthResult(bool Succeeded, string? Error, bool IsNewUser = false, string? Ticket = null, bool Restart = false);
 
 /// <summary>
 /// Talks to the Identity API endpoints with bearer tokens and keeps them in SecureStorage,
@@ -121,22 +124,61 @@ public sealed class ApiAuthService(IHttpClientFactory factory, TokenStore tokens
         return null;
     }
 
-    public async Task<AuthResult> RegisterAsync(string email, string password)
+    public async Task<AuthResult> SendCodeAsync(string purpose, string email)
     {
         var client = factory.CreateClient(SaplingApi.Anonymous);
-        var response = await client.PostAsJsonAsync("api/identity/register", new { email, password });
+        return await ToResultAsync(await client.PostAsJsonAsync($"api/account/{purpose}/code", new SendCodeRequest(email)));
+    }
 
-        if (response.IsSuccessStatusCode)
+    public async Task<AuthResult> VerifyCodeAsync(string purpose, string email, string code)
+    {
+        var client = factory.CreateClient(SaplingApi.Anonymous);
+        var response = await client.PostAsJsonAsync($"api/account/{purpose}/verify", new VerifyCodeRequest(email, code));
+        if (!response.IsSuccessStatusCode)
         {
-            return await SignInAsync(email, password);
+            return await ToResultAsync(response);
         }
 
-        var problem = await response.Content.ReadAsStringAsync();
-        var message = problem.Contains("DuplicateUserName", StringComparison.OrdinalIgnoreCase)
-            ? "An account with that email already exists."
-            : "Could not create the account. Passwords need 8 characters with an uppercase letter and a digit.";
+        var verified = await response.Content.ReadFromJsonAsync<VerifyCodeResponse>();
+        return new AuthResult(true, null, Ticket: verified?.Ticket);
+    }
 
-        return new AuthResult(false, message);
+    public async Task<AuthResult> CompleteRegistrationAsync(string email, string ticket, string password)
+    {
+        var client = factory.CreateClient(SaplingApi.Anonymous);
+        var result = await ToResultAsync(await client.PostAsJsonAsync(
+            "api/account/register", new CompleteRegistrationRequest(email, ticket, password, null)));
+
+        return result.Succeeded ? await SignInAsync(email, password) with { IsNewUser = true } : result;
+    }
+
+    public async Task<AuthResult> ResetPasswordAsync(string email, string ticket, string password)
+    {
+        var client = factory.CreateClient(SaplingApi.Anonymous);
+        var result = await ToResultAsync(await client.PostAsJsonAsync(
+            "api/account/reset-password", new ResetPasswordRequest(email, ticket, password)));
+
+        return result.Succeeded ? await SignInAsync(email, password) : result;
+    }
+
+    private static async Task<AuthResult> ToResultAsync(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return new AuthResult(true, null);
+        }
+
+        AccountError? error = null;
+        try
+        {
+            error = await response.Content.ReadFromJsonAsync<AccountError>();
+        }
+        catch (Exception)
+        {
+            // A proxy or an older server may answer with HTML; fall through to the generic message.
+        }
+
+        return new AuthResult(false, error?.Message ?? "Something went wrong. Try again.", Restart: error?.Restart ?? false);
     }
 
     public async Task SignOutAsync()

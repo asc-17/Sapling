@@ -1,4 +1,5 @@
 using Anthropic.SDK;
+using Azure.Communication.Email;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
@@ -93,6 +94,24 @@ builder.Services.AddScoped<IInterviewService, InterviewService>();
 builder.Services.AddScoped<IGovtService, GovtService>();
 builder.Services.AddScoped<IQuizService, QuizService>();
 builder.Services.AddScoped<ICommunityService, CommunityService>();
+builder.Services.AddScoped<AccountFlowService>();
+
+var azureEmailConnection = builder.Configuration["Email:Azure:ConnectionString"];
+var azureEmailSender = builder.Configuration["Email:Azure:SenderAddress"];
+if (!string.IsNullOrWhiteSpace(azureEmailConnection) && !string.IsNullOrWhiteSpace(azureEmailSender))
+{
+    builder.Services.AddSingleton(new EmailClient(azureEmailConnection));
+    builder.Services.AddSingleton<IEmailDelivery>(sp => new AzureEmailDelivery(
+        sp.GetRequiredService<EmailClient>(), azureEmailSender, sp.GetRequiredService<ILogger<AzureEmailDelivery>>()));
+}
+else if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSingleton<IEmailDelivery, LoggedEmailDelivery>();
+}
+else
+{
+    builder.Services.AddSingleton<IEmailDelivery, UnconfiguredEmailDelivery>();
+}
 
 builder.Services.AddSingleton<IFormFactor, DesktopFormFactor>();
 builder.Services.AddScoped<IThemeService, BrowserThemeService>();
@@ -126,7 +145,8 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
-app.MapGroup("/api/identity").MapIdentityApi<AppUser>();
+app.MapGroup("/api/identity").MapIdentityApi<AppUser>().RetireUnverifiedIdentityRoutes();
+app.MapAccountApi();
 app.MapExternalAuth();
 app.MapSaplingApi();
 

@@ -539,6 +539,14 @@
     line-height: 20px;
 }
 
+/* One-time code box: spaced digits read like the code in the email. */
+.otp-input {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 22px;
+    letter-spacing: .5em;
+    text-align: center;
+}
+
 /* The kind badge drops to its own line before the name gets squeezed to nothing. */
 .post-head-text {
     min-width: 150px;

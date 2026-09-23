@@ -35,7 +35,10 @@
         </div>
 
         <div class="field">
-            <label for="password">Password</label>
+            <div class="row between g-2">
+                <label for="password">Password</label>
+                <a class="t-small" href="/forgot-password">Forgot password?</a>
+            </div>
             <InputText id="password" type="password" class="input" @bind-Value="Input.Password" autocomplete="current-password" />
             <ValidationMessage For="() => Input.Password" class="field-error" />
         </div>
