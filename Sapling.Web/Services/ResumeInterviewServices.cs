@@ -77,7 +77,6 @@ public sealed class ResumeService(SaplingDbContext db, StudentContext ctx) : IRe
 public sealed class InterviewService(
     SaplingDbContext db,
     StudentContext ctx,
-    ScoreService scores,
     IChatClient chat) : IInterviewService
 {
     private static readonly Dictionary<string, string[]> Openers = new()
@@ -195,7 +194,6 @@ public sealed class InterviewService(
         await db.SaveChangesAsync(ct);
 
         var profile = await ctx.GetProfileAsync(ct);
-        await scores.RecomputeAsync(profile, ct);
 
         return Map(session);
     }
@@ -216,8 +214,8 @@ public sealed class InterviewService(
         try
         {
             var profile = await ctx.GetProfileAsync(ct);
-            var facts = $"Branch: {profile.Branch}; CGPA: {profile.Cgpa}; verified skills: "
-                      + string.Join(", ", profile.Skills.Where(s => s.Verified).Select(s => s.Skill?.Name));
+            var facts = $"Branch: {profile.Branch}; CGPA: {profile.Cgpa}; skills: "
+                      + string.Join(", ", profile.Skills.Select(s => s.Skill?.Name));
             var transcript = string.Join('\n', session.Turns.Select(t => $"{t.Role}: {t.Text}"));
 
             var response = await chat.GetResponseAsync(

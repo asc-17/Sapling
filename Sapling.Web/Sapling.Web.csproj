@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <None Update="Data\aicte_colleges.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Data\careers.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

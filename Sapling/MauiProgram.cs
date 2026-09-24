@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Logging;
 using Sapling.Services;
 using Sapling.Shared.Contracts;
@@ -30,7 +30,7 @@ public static class MauiProgram
             .AddHttpMessageHandler<BearerTokenHandler>();
 
         builder.Services.AddScoped<IProfileService, HttpProfileService>();
-        builder.Services.AddScoped<IScoreService, HttpScoreService>();
+        builder.Services.AddScoped<IHomeService, HttpHomeService>();
         builder.Services.AddScoped<ICareerService, HttpCareerService>();
         builder.Services.AddScoped<ISkillGapService, HttpSkillGapService>();
         builder.Services.AddScoped<IRoadmapService, HttpRoadmapService>();

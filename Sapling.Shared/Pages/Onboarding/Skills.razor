@@ -1,71 +1,90 @@
-﻿@page "/onboarding/skills"
+@page "/onboarding/skills"
 @namespace Sapling.Shared.Pages.Onboarding
 @inject IProfileService Profiles
 @inject NavigationManager Nav
 
 <PageTitle>Your skills - Sapling</PageTitle>
 
-<div class="stack g-5" style="max-width:640px;margin-inline:auto">
+<div class="stack g-5" style="max-width:720px;margin-inline:auto">
     <OnboardingSteps Current="2" />
 
     <div class="stack g-1">
         <h1 style="font-size:28px;line-height:34px">What can you already do?</h1>
         <span class="t-muted">
-            Claim anything you have touched. Claimed skills help us match you; only verified skills
-            count toward your score, and you can verify them later.
+            Add anything you have worked with, even a little: coursework, projects or practice.
+            We take your word for it: every skill you add counts towards how well you fit each role.
         </span>
-
-        @if (!string.IsNullOrEmpty(_course))
-        {
-            <div class="row g-2 items-center" style="margin-top:var(--sp-2)">
-                <span class="badge" style="font-size:12px;padding:3px 10px;border-radius:12px;background:var(--primary-soft);color:var(--primary);font-weight:600">
-                    <SapIcon Name="compass" Size="13" />
-                    @(_filteredByCourse ? $"Tailored for {_course}" : "Showing all categories")
-                </span>
-                <button type="button" class="btn btn-ghost btn-sm" style="font-size:12px;padding:2px 8px;height:auto" @onclick="ToggleShowAll">
-                    @(_filteredByCourse ? "Show all skills" : $"Filter to {_course}")
-                </button>
-            </div>
-        }
     </div>
 
-    <div class="card stack g-4">
-        @if (_verified.Count > 0)
-        {
+    @if (_picker is null)
+    {
+        <div class="card stack g-3">
+            <div class="skeleton" style="height:44px"></div>
+            <div class="skeleton" style="height:120px"></div>
+        </div>
+    }
+    else
+    {
+        <div class="card stack g-5">
             <div class="stack g-2">
-                <span class="t-overline t-subtle">Already verified</span>
-                <div class="row g-2 wrap">
-                    @foreach (var skill in _verified)
+                <label class="sr-only" for="skill-search">Search skills</label>
+                <input id="skill-search" class="input" type="search" placeholder="Search any skill, for example Docker, Tally or AutoCAD"
+                       autocomplete="off" @bind="_query" @bind:event="oninput" />
+
+                @if (!string.IsNullOrWhiteSpace(_query))
+                {
+                    @if (SearchResults.Count == 0)
                     {
-                        <span class="chip chip-verified">
-                            <SapIcon Name="check" Size="13" Stroke="2.5" />
-                            @skill.Name
-                        </span>
+                        <span class="t-small t-muted">No skill called "@_query.Trim()" in our list yet.</span>
+                    }
+                    else
+                    {
+                        <div class="row g-2 wrap">
+                            @foreach (var name in SearchResults)
+                            {
+                                @AddPill(name)
+                            }
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="stack g-2">
+                <div class="row between g-2">
+                    <span class="t-overline t-subtle">Your skills</span>
+                    @if (_selected.Count > 0)
+                    {
+                        <span class="t-caption t-subtle">@_selected.Count added &middot; tap to remove</span>
                     }
                 </div>
-                <span class="t-caption t-subtle">Verified from certificates, assessments or code. These cannot be removed here.</span>
+
+                @if (_selected.Count == 0)
+                {
+                    <span class="t-small t-muted">Nothing yet. Search above or tap a suggestion below.</span>
+                }
+                else
+                {
+                    <div class="row g-2 wrap">
+                        @foreach (var name in _selected)
+                        {
+                            <button type="button" class="chip chip-button chip-selected" aria-label="@($"Remove {name}")"
+                                    @onclick="() => _selected.Remove(name)" @key="name">
+                                @name
+                                <SapIcon Name="x" Size="13" Stroke="2.5" />
+                            </button>
+                        }
+                    </div>
+                }
             </div>
-            <hr class="divider" />
-        }
 
-        <div class="stack g-4">
-            <span class="t-overline t-subtle">Tap everything you have used</span>
-
-            @foreach (var group in _groupedAvailable)
+            @if (Suggestions.Count > 0)
             {
                 <div class="stack g-2">
-                    <span class="t-caption" style="font-weight:600;color:var(--muted)">@group.Label</span>
+                    <span class="t-overline t-subtle">@(_picker.Course is { } course ? $"Popular for {course}" : "Popular skills")</span>
                     <div class="row g-2 wrap">
-                        @foreach (var name in group.Skills)
+                        @foreach (var name in Suggestions)
                         {
-                            <button type="button" class="chip chip-button @(_selected.Contains(name) ? "chip-selected" : "chip-claimed")"
-                                    @onclick="() => Toggle(name)">
-                                @if (_selected.Contains(name))
-                                {
-                                    <SapIcon Name="check" Size="13" Stroke="2.5" />
-                                }
-                                @name
-                            </button>
+                            @AddPill(name)
                         }
                     </div>
                 </div>
@@ -73,216 +92,63 @@
         </div>
 
         <div class="row between g-3">
-            <div class="row g-3">
-                <button type="button" class="btn btn-ghost" @onclick="GoBack">
-                    <SapIcon Name="chevron-left" Size="15" />
-                    Back
-                </button>
-                <span class="t-caption t-subtle">@_selected.Count selected &middot; Step 2 of 3</span>
-            </div>
-            <button type="button" class="btn btn-primary" disabled="@_saving" @onclick="SaveAsync">Continue</button>
+            <button type="button" class="btn btn-ghost" @onclick="@(() => Nav.NavigateTo("/onboarding/about"))">
+                <SapIcon Name="chevron-left" Size="15" />
+                Back
+            </button>
+            <button type="button" class="btn btn-primary" disabled="@_saving" @onclick="SaveAsync">
+                @(_saving ? "Saving…" : "Continue")
+            </button>
         </div>
-    </div>
+    }
 </div>
 
 @code {
-    private static readonly (string Category, string Label)[] CategoryOrder =
-    [
-        ("Programming", "Languages"),
-        ("Web", "Web Development"),
-        ("Backend", "Backend & APIs"),
-        ("Data", "Data & Analytics"),
-        ("Cloud", "Cloud & DevOps"),
-        ("Tooling", "Tools"),
-        ("Fundamentals", "Fundamentals"),
-        ("Professional", "Professional Skills"),
-        ("Quality", "Quality & Testing"),
-        ("Mobile", "Mobile Development"),
-        ("Cybersecurity", "Cybersecurity"),
-        ("Commerce", "Commerce & Finance"),
-        ("Government", "Government"),
-    ];
-
-    /// <summary>Categories visible for each course. Courses not listed here see all categories.</summary>
-    private static readonly Dictionary<string, HashSet<string>> CourseCategories = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["B.Com"] = ["Commerce", "Data", "Professional", "Fundamentals", "Tooling", "Government"],
-        ["BBA"]   = ["Commerce", "Data", "Professional", "Fundamentals", "Tooling", "Government"],
-        ["B.Tech"]= ["Programming", "Web", "Backend", "Data", "Cloud", "Tooling", "Fundamentals", "Professional", "Quality", "Mobile", "Cybersecurity", "Government"],
-        ["BCA"]   = ["Programming", "Web", "Backend", "Data", "Cloud", "Tooling", "Fundamentals", "Professional", "Quality", "Mobile", "Cybersecurity", "Government"],
-        ["B.Sc"]  = ["Programming", "Web", "Backend", "Data", "Cloud", "Tooling", "Fundamentals", "Professional", "Government"],
-    };
-
-    /// <summary>For limited-category courses, only show these specific skills from the Data category.</summary>
-    private static readonly Dictionary<string, HashSet<string>> CourseDataSkillFilter = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["B.Com"] = ["SQL", "Excel", "Data visualisation", "Power BI", "Tableau", "Statistics", "Business analytics"],
-        ["BBA"]   = ["Excel", "Data visualisation", "Power BI", "Tableau", "Statistics", "Business analytics"],
-    };
-
-    private record SkillGroup(string Label, List<string> Skills);
-
-    private List<SkillGroup> _groupedAvailable = [];
-    private List<SkillDto> _verified = [];
+    private SkillPickerDto? _picker;
     private IReadOnlyList<SkillSuggestionDto> _catalogue = [];
-    private readonly HashSet<string> _selected = [];
+
+    // A list rather than a set so skills stay in the order they were added.
+    private readonly List<string> _selected = [];
+    private string _query = "";
     private bool _saving;
-    private bool _filteredByCourse = true;
-    private string _course = "";
-    private string _branch = "";
+
+    private bool Has(string name) => _selected.Contains(name, StringComparer.OrdinalIgnoreCase);
+
+    private List<string> Suggestions => _picker!.Recommended.Where(n => !Has(n)).ToList();
+
+    private List<string> SearchResults => _catalogue
+        .Select(s => s.Name)
+        .Where(n => n.Contains(_query.Trim(), StringComparison.OrdinalIgnoreCase) && !Has(n))
+        .OrderBy(n => !n.StartsWith(_query.Trim(), StringComparison.OrdinalIgnoreCase))
+        .ThenBy(n => n)
+        .Take(10)
+        .ToList();
 
     protected override async Task OnInitializedAsync()
     {
         var mine = await Profiles.GetSkillsAsync();
         _catalogue = await Profiles.GetSkillCatalogueAsync();
-
-        // Fetch profile to determine student's course & branch
-        var profile = await Profiles.GetAsync();
-        (_course, _branch) = ExtractCourseAndBranch(profile.Branch);
-
-        _verified = mine.Where(s => s.Verified).ToList();
-
-        RebuildGroups();
-
-        foreach (var skill in mine.Where(s => !s.Verified))
-        {
-            _selected.Add(skill.Name);
-        }
+        _picker = await Profiles.GetSkillPickerAsync();
+        _selected.AddRange(mine.Select(s => s.Name));
     }
 
-    private void RebuildGroups()
+    private RenderFragment AddPill(string name) => __builder =>
     {
-        var verifiedNames = _verified.Select(v => v.Name).ToHashSet();
+        <button type="button" class="chip chip-button chip-claimed" aria-label="@($"Add {name}")"
+                @onclick="() => Add(name)" @key="name">
+            <SapIcon Name="plus" Size="13" Stroke="2.5" />
+            @name
+        </button>
+    };
 
-        HashSet<string>? visibleCategories = null;
-        HashSet<string>? dataSkillFilter = null;
-
-        if (_filteredByCourse && !string.IsNullOrEmpty(_course))
-        {
-            if (CourseCategories.TryGetValue(_course, out var allowed))
-            {
-                visibleCategories = new HashSet<string>(allowed);
-            }
-
-            // Non-CS / Non-Math B.Sc: hide deep software categories
-            if (_course.Equals("B.Sc", StringComparison.OrdinalIgnoreCase) &&
-                !_branch.Contains("Computer", StringComparison.OrdinalIgnoreCase) &&
-                !_branch.Contains("Math", StringComparison.OrdinalIgnoreCase))
-            {
-                visibleCategories = ["Data", "Tooling", "Fundamentals", "Professional", "Government"];
-            }
-
-            if (CourseDataSkillFilter.TryGetValue(_course, out var dataFilter))
-            {
-                dataSkillFilter = dataFilter;
-            }
-        }
-
-        var grouped = new Dictionary<string, List<string>>();
-        foreach (var skill in _catalogue)
-        {
-            if (verifiedNames.Contains(skill.Name))
-                continue;
-
-            // Skip categories not relevant to this course
-            if (visibleCategories is not null && !visibleCategories.Contains(skill.Category))
-                continue;
-
-            // For limited courses, filter specific skills within the Data category
-            if (dataSkillFilter is not null && skill.Category == "Data" && !dataSkillFilter.Contains(skill.Name))
-                continue;
-
-            if (!grouped.ContainsKey(skill.Category))
-                grouped[skill.Category] = [];
-            grouped[skill.Category].Add(skill.Name);
-        }
-
-        _groupedAvailable = [];
-        foreach (var (category, label) in CategoryOrder)
-        {
-            if (grouped.TryGetValue(category, out var skills) && skills.Count > 0)
-            {
-                _groupedAvailable.Add(new SkillGroup(label, skills));
-                grouped.Remove(category);
-            }
-        }
-        foreach (var (cat, skills) in grouped)
-        {
-            if (skills.Count > 0)
-                _groupedAvailable.Add(new SkillGroup(cat, skills));
-        }
-    }
-
-    private void ToggleShowAll()
+    // The search text stays, so someone who typed "S" can add SQL, then Spring Boot, without retyping.
+    private void Add(string name)
     {
-        _filteredByCourse = !_filteredByCourse;
-        RebuildGroups();
-    }
-
-    /// <summary>Extracts course and branch from a stored string, supporting multiple separator conventions.</summary>
-    private static (string Course, string Branch) ExtractCourseAndBranch(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-            return ("B.Tech", "Computer Science & Engineering");
-
-        // Normalize unicode dashes (en-dash, em-dash)
-        var normalized = raw.Replace('\u2013', '-').Replace('\u2014', '-').Trim();
-
-        var sepIndex = normalized.IndexOf(" - ", StringComparison.Ordinal);
-        if (sepIndex > 0)
-        {
-            var c = normalized[..sepIndex].Trim();
-            var b = normalized[(sepIndex + 3)..].Trim();
-            return (c, b);
-        }
-
-        // Check if string begins with any known course
-        foreach (var course in new[] { "B.Tech", "B.Sc", "BCA", "B.Com", "BBA" })
-        {
-            if (normalized.StartsWith(course, StringComparison.OrdinalIgnoreCase))
-            {
-                var rest = normalized[course.Length..].TrimStart(' ', '-', ':');
-                return (course, string.IsNullOrEmpty(rest) ? "General" : rest);
-            }
-        }
-
-        // Branch-based inference
-        if (normalized.Contains("Computer", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Contains("Engineering", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Contains("Information Technology", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Contains("Electronics", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Contains("Mechanical", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Contains("Civil", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Contains("Electrical", StringComparison.OrdinalIgnoreCase))
-        {
-            return ("B.Tech", normalized);
-        }
-
-        if (normalized.Contains("Commerce", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Contains("Accounting", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Contains("Finance", StringComparison.OrdinalIgnoreCase))
-        {
-            return ("B.Com", "General");
-        }
-
-        if (normalized.Contains("Management", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Contains("Business", StringComparison.OrdinalIgnoreCase))
-        {
-            return ("BBA", "General");
-        }
-
-        return ("Other", normalized);
-    }
-
-    private void Toggle(string name)
-    {
-        if (!_selected.Remove(name))
+        if (!Has(name))
         {
             _selected.Add(name);
         }
     }
-
-    private void GoBack() => Nav.NavigateTo("/onboarding/about");
 
     private async Task SaveAsync()
     {

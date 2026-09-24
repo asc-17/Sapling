@@ -1,22 +1,20 @@
 # Sapling
 
-A career-readiness app for college students in Madhya Pradesh. It gives each student an Employability Score, suggests career paths that fit them, shows their skill gaps, and builds a week-by-week plan to close those gaps.
+A career-readiness app for college students in Madhya Pradesh. It shows each student how well they fit the career paths their course leads to, what skills they are missing, and a week-by-week plan to close those gaps.
 
 Sapling runs as a Blazor Server web app and as a .NET MAUI app for Android and Windows. Both share the same pages and components.
 
 ## Features
 
 - **Onboarding.** A short setup covering the student's details (college search with state and city filled in automatically, course, branch, graduation year, CGPA, backlogs), their skills, and an interest quiz.
-- **Employability Score.** A score from 0 to 100 built from academics, verified skills, projects, communication, certifications and exposure. The full breakdown is always visible.
-- **Career paths.** Ranked roles, each with a fit score, salary bands for Madhya Pradesh and for metro cities, the demand trend, and a plain-language reason for the recommendation.
-- **Skills and gaps.** The student's skills compared with what their target roles need. Each gap is ranked by impact against effort and comes with an estimate of how long it takes to close.
-- **Roadmap.** A week-by-week plan with milestones. Free and government-subsidised courses come first, and each course has its own detail page.
+- **Career & skills.** One page for the student's career. Until they choose, it lists all 104 roles (built from the O\*NET database, U.S. Department of Labor), filterable to their course, searchable, and sortable by skill match or job outlook; each role opens in full with a "Make this my target" button. Once chosen, the page shows the target in full (description, fit, reasons and things to weigh, day-to-day tasks, preparation, technologies, related careers) together with the student's skills: what's missing ranked by O\*NET importance with rough time estimates, what's already covered, and their own skill list. "Change career" brings the list back. Fit is 75% skills (the share of the role's requirements the student has, more important ones counting for more), 15% whether their course is a usual route into it, and 10% how their interest quiz matches the role. Skill lists are trusted as entered. Salary and Indian demand data are not included yet.
+- **Roadmap.** For each skill the target role asks for, a free course with a link and checkpoints to tick off: 48 NPTEL courses from the IITs and IISc, and 10 Microsoft Learn learning paths. Where a skill has both, the student picks which to follow, and only that one counts towards progress. Steps can be sorted by missing first, importance, or skills already acquired. Finishing a course that teaches a skill directly adds it to the student's skills; "builds the foundations" courses teach the subject beneath a tool, so the student confirms the tool themselves. Skills neither platform teaches are left out.
 - **Opportunities.** Internships, jobs and campus drives ranked by fit. Roles the student isn't ready for still appear, with a list of what's missing.
 - **Resume.** An ATS compatibility score, line-by-line rewrite suggestions the student accepts or rejects, and export.
 - **Mock interview.** Technical, HR and aptitude interview sessions with follow-up questions and scored feedback.
 - **Government track.** MPPSC, MPESB, SSC, Railways and Banking exams, each with an eligibility check.
 - **Community.** A private feed for each college, where it posts workshops, events, opportunities and announcements. Students of that college can upvote posts and comment in threads, while only the college itself can post. Posts carry a verified badge.
-- **Home dashboard.** Banners, recently visited features, roadmap progress and the latest community posts.
+- **Home dashboard.** The student's target role and how well they fit it, banners, recently visited features, roadmap progress and the latest community posts.
 - **Profile.** Editable details and a profile picture.
 - **Accounts.**
   - Sign-up with email verification: the student enters an email, types in a 6-digit code sent to it, then chooses a password.
@@ -46,6 +44,16 @@ The web app runs at `http://localhost:5250`. On first start it creates `sapling.
 To run the mobile app, start `Sapling.Web` first, then deploy the `Sapling` project from Visual Studio.
 - **Android emulator:** reaches the server at `10.0.2.2`, with no changes needed.
 - **Physical phone:** set `DevMachineHost` in `Sapling/Services/HttpServices.cs` to your PC's Wi-Fi IP address, and allow inbound TCP port 5250 through Windows Firewall.
+
+## Updating career data
+
+The role catalogue lives in `tools/careers/catalogue.json`. It lists which O\*NET occupations to include, their Indian job titles, and which courses and branches lead to each one. To rebuild `Sapling.Web/Data/careers.json` after editing it, run:
+
+```bash
+dotnet run tools/careers/import.cs
+```
+
+The same run fetches the NPTEL courses and Microsoft Learn paths listed in the catalogue's `nptel` and `microsoftLearn` maps (details and lecture lists, cached locally) and turns their lectures into checkpoints. The importer downloads the O\*NET CSV files the first time, then prints any in-demand technologies that don't yet have a matching Sapling skill. The web app loads the new data the next time it starts. O\*NET data is used under CC BY 4.0, and the app credits it on every role page.
 
 ## Configuration
 

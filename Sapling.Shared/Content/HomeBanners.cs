@@ -13,16 +13,16 @@ public static class HomeBanners
 
     public static readonly IReadOnlyList<Banner> All =
     [
-        new("Your score is a starting line",
-            "See the six things that make it up, and which one moves fastest.",
-            Dir + "score.svg", "/score", "View breakdown"),
+        new("See the roles that fit you",
+            "Ranked by your skills, interests and course, with the reasoning shown.",
+            Dir + "score.svg", "/paths", "See career paths"),
 
         new("MPESB notification is out",
             "Check your eligibility before the window closes.",
             Dir + "govt.svg", "/govt", "Check eligibility"),
 
-        new("Free NPTEL and SWAYAM courses",
-            "Government-subsidised first. Close a gap without spending anything.",
+        new("Free IIT courses for your gaps",
+            "NPTEL courses matched to what your target role needs, with checkpoints to track.",
             Dir + "courses.svg", "/roadmap", "Open roadmap"),
 
         new("What your college is running this month",

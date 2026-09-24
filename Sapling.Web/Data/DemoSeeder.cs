@@ -17,6 +17,7 @@ public static class DemoSeeder
 
         // Ensure State column exists in StudentProfiles table on SQLite
         await EnsureSchemaColumnsAsync(db);
+        await EnsureCareerSchemaAsync(db);
 
         if (!await db.Skills.AnyAsync())
         {
@@ -27,6 +28,10 @@ public static class DemoSeeder
             // Ensure any new catalogue skills are added to an existing DB.
             await EnsureSkillCatalogueAsync(db);
         }
+
+        // Roles must exist before the demo student, who is aimed at one of them.
+        var catalogue = scope.ServiceProvider.GetRequiredService<Services.CareerCatalogueFile>();
+        await catalogue.SyncAsync(db, scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("CareerCatalogue"));
 
         var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         if (await users.FindByEmailAsync(DemoEmail) is null)
@@ -53,6 +58,152 @@ public static class DemoSeeder
             await SeedCommunityAsync(db);
         }
     }
+
+    /// <summary>
+    /// Older databases hold the three hand-written demo roles. This adds the O*NET-based columns and the course
+    /// link table, and drops the unsourced columns (salary, demand, employers, outlook, fixed fit score).
+    /// </summary>
+    private static async Task EnsureCareerSchemaAsync(SaplingDbContext db)
+    {
+        var roleColumns = await ColumnsAsync(db, "CareerRoles");
+        (string Name, string Sql)[] added =
+        [
+            ("OnetCode", "TEXT NOT NULL DEFAULT ''"), ("OnetTitle", "TEXT NOT NULL DEFAULT ''"),
+            ("Description", "TEXT NOT NULL DEFAULT ''"), ("Tasks", "TEXT NOT NULL DEFAULT ''"),
+            ("AlsoCalled", "TEXT NOT NULL DEFAULT ''"), ("Technologies", "TEXT NOT NULL DEFAULT ''"),
+            ("JobZone", "INTEGER NOT NULL DEFAULT 0"), ("Outlook", "TEXT NOT NULL DEFAULT ''"), ("Preparation", "TEXT NOT NULL DEFAULT ''"),
+            ("Education", "TEXT NOT NULL DEFAULT ''"), ("Interests", "TEXT NOT NULL DEFAULT ''"),
+            ("RelatedCodes", "TEXT NOT NULL DEFAULT ''"),
+        ];
+
+        foreach (var (name, sql) in added.Where(c => !roleColumns.Contains(c.Name)))
+        {
+            var alter = $"ALTER TABLE CareerRoles ADD COLUMN {name} {sql};";
+            await db.Database.ExecuteSqlRawAsync(alter);
+        }
+
+        string[] dropped = ["Tier", "FitScore", "EntrySalaryMp", "EntrySalaryMetro", "DemandTrend", "FiveYearOutlook", "Employers", "Reasons", "CoreSkills", "CounterCase"];
+        foreach (var name in dropped.Where(roleColumns.Contains))
+        {
+            var drop = $"ALTER TABLE CareerRoles DROP COLUMN {name};";
+            await db.Database.ExecuteSqlRawAsync(drop);
+        }
+
+        // Skills are simply claimed or not; levels, verification and required levels were removed.
+        foreach (var (table, column) in new[] { ("StudentSkills", "Level"), ("StudentSkills", "Verified"), ("StudentSkills", "Source"), ("RoleSkillRequirements", "RequiredLevel") })
+        {
+            if ((await ColumnsAsync(db, table)).Contains(column))
+            {
+                var dropColumn = $"ALTER TABLE {table} DROP COLUMN {column};";
+                await db.Database.ExecuteSqlRawAsync(dropColumn);
+            }
+        }
+
+        // The hand-written weekly plan and its demo courses gave way to NPTEL courses with checkpoints.
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE IF EXISTS RoadmapItems;");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE IF EXISTS Courses;");
+        // The first roadmap version stored NPTEL-only courses; rename in place so students keep their ticks.
+        if ((await ColumnsAsync(db, "NptelCourses")).Count > 0 && (await ColumnsAsync(db, "LearningCourses")).Count == 0)
+        {
+            string[] renames =
+            [
+                "ALTER TABLE NptelCourses RENAME TO LearningCourses;",
+                "ALTER TABLE LearningCourses RENAME COLUMN NptelId TO ExternalId;",
+                "ALTER TABLE LearningCourses RENAME COLUMN Lectures TO Lessons;",
+                "ALTER TABLE LearningCourses DROP COLUMN Professor;",
+                "ALTER TABLE LearningCourses DROP COLUMN Institute;",
+                "ALTER TABLE LearningCourses ADD COLUMN Provider TEXT NOT NULL DEFAULT 'NPTEL';",
+                "ALTER TABLE LearningCourses ADD COLUMN Byline TEXT NOT NULL DEFAULT '';",
+                "ALTER TABLE LearningCourses ADD COLUMN Minutes INTEGER NOT NULL DEFAULT 0;",
+                "ALTER TABLE CourseCheckpoints RENAME COLUMN NptelCourseId TO LearningCourseId;",
+                "ALTER TABLE CourseCheckpoints RENAME COLUMN Lectures TO Lessons;",
+                "ALTER TABLE CourseCheckpoints ADD COLUMN Minutes INTEGER NOT NULL DEFAULT 0;",
+                "ALTER TABLE SkillCourses RENAME COLUMN NptelCourseId TO LearningCourseId;",
+            ];
+            foreach (var sql in renames)
+            {
+                await db.Database.ExecuteSqlRawAsync(sql);
+            }
+        }
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "LearningCourses" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_LearningCourses" PRIMARY KEY AUTOINCREMENT,
+                "Provider" TEXT NOT NULL,
+                "ExternalId" TEXT NOT NULL,
+                "Title" TEXT NOT NULL,
+                "Byline" TEXT NOT NULL,
+                "Url" TEXT NOT NULL,
+                "Lessons" INTEGER NOT NULL,
+                "Minutes" INTEGER NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_LearningCourses_ExternalId" ON "LearningCourses" ("ExternalId");
+            CREATE TABLE IF NOT EXISTS "CourseCheckpoints" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_CourseCheckpoints" PRIMARY KEY AUTOINCREMENT,
+                "LearningCourseId" INTEGER NOT NULL,
+                "Order" INTEGER NOT NULL,
+                "Title" TEXT NOT NULL,
+                "Lessons" INTEGER NOT NULL,
+                "Minutes" INTEGER NOT NULL,
+                CONSTRAINT "FK_CourseCheckpoints_LearningCourses_LearningCourseId" FOREIGN KEY ("LearningCourseId") REFERENCES "LearningCourses" ("Id") ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS "SkillCourses" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_SkillCourses" PRIMARY KEY AUTOINCREMENT,
+                "SkillId" INTEGER NOT NULL,
+                "LearningCourseId" INTEGER NOT NULL,
+                "Match" TEXT NOT NULL,
+                CONSTRAINT "FK_SkillCourses_LearningCourses_LearningCourseId" FOREIGN KEY ("LearningCourseId") REFERENCES "LearningCourses" ("Id") ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS "CheckpointProgress" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_CheckpointProgress" PRIMARY KEY AUTOINCREMENT,
+                "StudentProfileId" INTEGER NOT NULL,
+                "CourseCheckpointId" INTEGER NOT NULL,
+                "CompletedAtUtc" TEXT NOT NULL,
+                CONSTRAINT "FK_CheckpointProgress_CourseCheckpoints_CourseCheckpointId" FOREIGN KEY ("CourseCheckpointId") REFERENCES "CourseCheckpoints" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_CheckpointProgress_StudentProfiles_StudentProfileId" FOREIGN KEY ("StudentProfileId") REFERENCES "StudentProfiles" ("Id") ON DELETE CASCADE
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_CheckpointProgress_StudentProfileId_CourseCheckpointId" ON "CheckpointProgress" ("StudentProfileId", "CourseCheckpointId");
+            CREATE TABLE IF NOT EXISTS "StudentCourseChoices" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_StudentCourseChoices" PRIMARY KEY AUTOINCREMENT,
+                "StudentProfileId" INTEGER NOT NULL,
+                "SkillId" INTEGER NOT NULL,
+                "LearningCourseId" INTEGER NOT NULL,
+                CONSTRAINT "FK_StudentCourseChoices_LearningCourses_LearningCourseId" FOREIGN KEY ("LearningCourseId") REFERENCES "LearningCourses" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_StudentCourseChoices_StudentProfiles_StudentProfileId" FOREIGN KEY ("StudentProfileId") REFERENCES "StudentProfiles" ("Id") ON DELETE CASCADE
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_StudentCourseChoices_StudentProfileId_SkillId" ON "StudentCourseChoices" ("StudentProfileId", "SkillId");
+            """);
+
+        if (!(await ColumnsAsync(db, "StudentProfiles")).Contains("TargetChosen"))
+        {
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE StudentProfiles ADD COLUMN TargetChosen INTEGER NOT NULL DEFAULT 0;");
+        }
+
+        // The Employability Score was removed; role fit is the only score now.
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE IF EXISTS ScoreSnapshots;");
+
+        if (!(await ColumnsAsync(db, "RoleSkillRequirements")).Contains("Kind"))
+        {
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE RoleSkillRequirements ADD COLUMN Kind TEXT NOT NULL DEFAULT 'Technology';");
+        }
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "CourseRoleLinks" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_CourseRoleLinks" PRIMARY KEY AUTOINCREMENT,
+                "CareerRoleId" INTEGER NOT NULL,
+                "Course" TEXT NOT NULL,
+                "Branch" TEXT NOT NULL,
+                "Relevance" TEXT NOT NULL,
+                CONSTRAINT "FK_CourseRoleLinks_CareerRoles_CareerRoleId" FOREIGN KEY ("CareerRoleId") REFERENCES "CareerRoles" ("Id") ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS "IX_CourseRoleLinks_CareerRoleId" ON "CourseRoleLinks" ("CareerRoleId");
+            CREATE INDEX IF NOT EXISTS "IX_CareerRoles_OnetCode" ON "CareerRoles" ("OnetCode");
+            """);
+    }
+
+    private static async Task<HashSet<string>> ColumnsAsync(SaplingDbContext db, string table) =>
+        (await db.Database.SqlQuery<string>($"SELECT name AS Value FROM pragma_table_info({table})").ToListAsync())
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>EnsureCreated skips databases that already exist, so community tables are added here for older demo DBs.</summary>
     private static async Task EnsureCommunitySchemaAsync(SaplingDbContext db)
@@ -500,95 +651,6 @@ public static class DemoSeeder
         db.Skills.AddRange(skills);
         await db.SaveChangesAsync();
 
-        var byName = skills.ToDictionary(s => s.Name, s => s.Id);
-
-        var roles = new[]
-        {
-            new CareerRole
-            {
-                Title = "Backend Developer",
-                Family = "Software Engineering",
-                Tier = "Safe",
-                FitScore = 78,
-                EntrySalaryMp = "₹3.6 – 5.5 LPA",
-                EntrySalaryMetro = "₹6 – 9 LPA",
-                DemandTrend = "Rising",
-                FiveYearOutlook = "Senior engineer or tech lead at ₹18 – 28 LPA, with a clear path into architecture.",
-                Employers = "TCS|Infosys|Persistent (Indore)|Impetus (Indore)|Yash Technologies (Bhopal)",
-                Reasons = "Your Java and SQL are already at working level|Backend roles are the largest single category of openings in Indore and Bhopal|Your CGPA clears the 6.5 cut-off most service companies apply|The two gaps that block you take about nine weeks together",
-                CoreSkills = "Java|SQL|REST APIs|Data structures|Git|Cloud fundamentals",
-                CounterCase = "Service-company backend roles in MP start lower than the metro figures you see online, and the first two years are often maintenance work rather than new development.",
-                Requirements =
-                [
-                    new() { SkillId = byName["Java"], RequiredLevel = 70, Impact = 9, Effort = 4, WeeksToClose = 3, Rationale = "Named in 82% of backend JDs you matched." },
-                    new() { SkillId = byName["SQL"], RequiredLevel = 70, Impact = 8, Effort = 3, WeeksToClose = 2, Rationale = "Every shortlisted JD asks for joins and indexing." },
-                    new() { SkillId = byName["REST APIs"], RequiredLevel = 65, Impact = 8, Effort = 4, WeeksToClose = 3, Rationale = "The standard first-round coding task." },
-                    new() { SkillId = byName["Data structures"], RequiredLevel = 75, Impact = 10, Effort = 6, WeeksToClose = 6, Rationale = "Decides the online assessment round." },
-                    new() { SkillId = byName["Cloud fundamentals"], RequiredLevel = 60, Impact = 9, Effort = 5, WeeksToClose = 4, Rationale = "Blocks 41% of the open roles you otherwise fit." },
-                    new() { SkillId = byName["Docker"], RequiredLevel = 45, Impact = 6, Effort = 3, WeeksToClose = 2, Rationale = "Increasingly assumed, rarely taught in the syllabus." },
-                    new() { SkillId = byName["Git"], RequiredLevel = 60, Impact = 5, Effort = 2, WeeksToClose = 1, Rationale = "Screened for in the portfolio review." },
-                    new() { SkillId = byName["Communication"], RequiredLevel = 65, Impact = 7, Effort = 5, WeeksToClose = 6, Rationale = "The HR round eliminates more candidates than the coding round." },
-                ],
-            },
-            new CareerRole
-            {
-                Title = "Data Analyst",
-                Family = "Data & Analytics",
-                Tier = "Stretch",
-                FitScore = 66,
-                EntrySalaryMp = "₹3.0 – 4.8 LPA",
-                EntrySalaryMetro = "₹5.5 – 8 LPA",
-                DemandTrend = "Rising fast",
-                FiveYearOutlook = "Analytics lead or data scientist at ₹15 – 24 LPA if you add modelling depth.",
-                Employers = "Deloitte (Indore)|Infobeans|Mindtree|IDFC First|State analytics cells",
-                Reasons = "Your statistics marks are the strongest part of your transcript|Analyst roles accept non-CS branches more readily than engineering roles|Three of your four biggest gaps are shared with the backend track, so effort is not wasted|Remote analyst roles are unusually accessible from tier-2 cities",
-                CoreSkills = "SQL|Python|Pandas|Statistics|Data visualisation|Excel",
-                CounterCase = "Analyst openings in Madhya Pradesh are fewer than backend openings, so you would be competing for remote roles against metro candidates with internships you do not have yet.",
-                Requirements =
-                [
-                    new() { SkillId = byName["SQL"], RequiredLevel = 80, Impact = 10, Effort = 3, WeeksToClose = 3, Rationale = "The single most tested skill in analyst interviews." },
-                    new() { SkillId = byName["Python"], RequiredLevel = 65, Impact = 8, Effort = 4, WeeksToClose = 4, Rationale = "Expected for anything beyond reporting." },
-                    new() { SkillId = byName["Pandas"], RequiredLevel = 60, Impact = 7, Effort = 3, WeeksToClose = 3, Rationale = "Appears in the take-home assignment." },
-                    new() { SkillId = byName["Statistics"], RequiredLevel = 70, Impact = 8, Effort = 5, WeeksToClose = 4, Rationale = "Separates analysts from report builders." },
-                    new() { SkillId = byName["Data visualisation"], RequiredLevel = 60, Impact = 7, Effort = 3, WeeksToClose = 2, Rationale = "Power BI or Tableau named in most JDs." },
-                    new() { SkillId = byName["Communication"], RequiredLevel = 70, Impact = 9, Effort = 5, WeeksToClose = 6, Rationale = "You are hired to explain numbers to people who do not like numbers." },
-                ],
-            },
-            new CareerRole
-            {
-                Title = "Cloud & DevOps Engineer",
-                Family = "Infrastructure",
-                Tier = "Aspirational",
-                FitScore = 54,
-                EntrySalaryMp = "₹4.0 – 6.0 LPA",
-                EntrySalaryMetro = "₹7 – 11 LPA",
-                DemandTrend = "Rising",
-                FiveYearOutlook = "Platform or SRE lead at ₹22 – 35 LPA; the steepest salary curve of the three.",
-                Employers = "Persistent|TCS iON|Nagarro|Cloud partners in Indore|Remote-first startups",
-                Reasons = "The highest entry salary band available to you locally|Your Linux comfort is an unusual head start|Certification-led hiring means a credential can offset a tier-3 college|It shares cloud fundamentals with your backend track",
-                CoreSkills = "Linux|Cloud fundamentals|Docker|Git|Python|System design",
-                CounterCase = "Almost nobody is hired into DevOps straight from campus. The realistic route is two years of backend work first, so treat this as a 24-month target and not a placement-season plan.",
-                Requirements =
-                [
-                    new() { SkillId = byName["Cloud fundamentals"], RequiredLevel = 75, Impact = 10, Effort = 6, WeeksToClose = 6, Rationale = "A cloud practitioner certification is effectively the entry ticket." },
-                    new() { SkillId = byName["Docker"], RequiredLevel = 70, Impact = 9, Effort = 4, WeeksToClose = 4, Rationale = "Containers are the daily unit of work." },
-                    new() { SkillId = byName["Linux"], RequiredLevel = 70, Impact = 8, Effort = 3, WeeksToClose = 3, Rationale = "Interviews are hands-on shell exercises." },
-                    new() { SkillId = byName["Python"], RequiredLevel = 60, Impact = 7, Effort = 4, WeeksToClose = 4, Rationale = "Automation scripting is most of the job." },
-                    new() { SkillId = byName["System design"], RequiredLevel = 55, Impact = 8, Effort = 8, WeeksToClose = 10, Rationale = "Needed for anything above junior level." },
-                ],
-            },
-        };
-        db.CareerRoles.AddRange(roles);
-
-        db.Courses.AddRange(
-            new Course { Title = "Programming in Java", Provider = "NPTEL", Cost = "Free", IsFree = true, IsGovernmentSubsidised = true, Hours = 36, Level = "Intermediate", Url = "https://nptel.ac.in", TeachesSkills = "Java|Data structures", Summary = "IIT-run twelve-week course with a proctored exam; the certificate is recognised by most MP recruiters." },
-            new Course { Title = "Database Management Systems", Provider = "SWAYAM", Cost = "Free", IsFree = true, IsGovernmentSubsidised = true, Hours = 30, Level = "Intermediate", Url = "https://swayam.gov.in", TeachesSkills = "SQL", Summary = "Covers joins, indexing and normalisation, which is exactly what the first interview round tests." },
-            new Course { Title = "Cloud Computing Fundamentals", Provider = "NPTEL", Cost = "Free", IsFree = true, IsGovernmentSubsidised = true, Hours = 28, Level = "Beginner", Url = "https://nptel.ac.in", TeachesSkills = "Cloud fundamentals", Summary = "Closes the single gap that blocks the largest share of roles you otherwise fit." },
-            new Course { Title = "AWS Certified Cloud Practitioner", Provider = "AWS", Cost = "₹8,300 exam fee", IsFree = false, IsGovernmentSubsidised = false, Hours = 25, Level = "Beginner", Url = "https://aws.amazon.com/certification", TeachesSkills = "Cloud fundamentals", Summary = "Paid, but the credential is named directly in several Indore job descriptions." },
-            new Course { Title = "MP Skill Development: Employability Communication", Provider = "MP Skill Mission", Cost = "Subsidised", IsFree = false, IsGovernmentSubsidised = true, Hours = 40, Level = "Beginner", Url = "https://mpskills.mp.gov.in", TeachesSkills = "Communication", Summary = "State-subsidised spoken English and interview communication programme delivered in district centres." },
-            new Course { Title = "Docker for Beginners", Provider = "Udemy", Cost = "₹499", IsFree = false, IsGovernmentSubsidised = false, Hours = 12, Level = "Beginner", Url = "https://udemy.com", TeachesSkills = "Docker|Linux", Summary = "Short and practical; enough to containerise your capstone project." },
-            new Course { Title = "Data Analysis with Python", Provider = "SWAYAM", Cost = "Free", IsFree = true, IsGovernmentSubsidised = true, Hours = 32, Level = "Intermediate", Url = "https://swayam.gov.in", TeachesSkills = "Python|Pandas|Statistics", Summary = "The fastest route into the analyst track using material you can access without paying." },
-            new Course { Title = "Git & GitHub Essentials", Provider = "Microsoft Learn", Cost = "Free", IsFree = true, IsGovernmentSubsidised = false, Hours = 6, Level = "Beginner", Url = "https://learn.microsoft.com", TeachesSkills = "Git", Summary = "One weekend. Recruiters check your GitHub before they check your resume." });
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         db.Opportunities.AddRange(
@@ -649,7 +711,7 @@ public static class DemoSeeder
             return;
         }
 
-        var backend = await db.CareerRoles.FirstAsync(r => r.Title == "Backend Developer");
+        var softwareDeveloper = await db.CareerRoles.FirstAsync(r => r.OnetCode == "15-1252.00");
         var skillIds = await db.Skills.ToDictionaryAsync(s => s.Name, s => s.Id);
 
         var profile = new StudentProfile
@@ -665,74 +727,21 @@ public static class DemoSeeder
             PreferredLanguage = "English",
             OnboardingComplete = true,
             RiasecCode = "IRC",
-            TargetRoleId = backend.Id,
+            TargetRoleId = softwareDeveloper.Id,
+            TargetChosen = true,
             AtsScore = 61,
             PreviousAtsScore = 61,
         };
 
-        (string Skill, int Level, bool Verified, string Source)[] studentSkills =
+        string[] studentSkills =
         [
-            ("Java", 70, true, "NPTEL certificate"),
-            ("SQL", 62, true, "Micro-assessment"),
-            ("Data structures", 64, true, "Micro-assessment"),
-            ("Git", 55, true, "GitHub analysis"),
-            ("HTML & CSS", 60, false, "Self-claimed"),
-            ("JavaScript", 35, false, "Self-claimed"),
-            ("Python", 40, false, "Self-claimed"),
-            ("Linux", 45, false, "Self-claimed"),
-            ("REST APIs", 30, false, "Self-claimed"),
-            ("Cloud fundamentals", 12, false, "Self-claimed"),
-            ("Docker", 0, false, "Not started"),
-            ("Communication", 48, false, "Interview transcript"),
-            ("Aptitude", 65, true, "Micro-assessment"),
-            ("Statistics", 72, true, "Academic record"),
+            "Java", "SQL", "Data structures", "Git", "HTML & CSS", "JavaScript", "Python",
+            "Linux", "REST APIs", "Communication", "Aptitude", "Statistics",
         ];
 
         profile.Skills = studentSkills
-            .Select(s => new StudentSkill { SkillId = skillIds[s.Skill], Level = s.Level, Verified = s.Verified, Source = s.Source })
+            .Select(name => new StudentSkill { SkillId = skillIds[name] })
             .ToList();
-
-        profile.Scores =
-        [
-            new ScoreSnapshot { AsOf = DateOnly.FromDateTime(DateTime.Today.AddDays(-30)), Total = 44, Academic = 72, TechnicalSkills = 36, Projects = 30, Communication = 48, Certifications = 20, Exposure = 10 },
-        ];
-
-        var courses = await db.Courses.ToDictionaryAsync(c => c.Title, c => c.Id);
-
-        (int Week, string Focus, string Title, string Kind, string? Detail, string? Course, int Hours, bool Done)[] plan =
-        [
-            (1, "Close the SQL gap", "Database Management Systems — weeks 1 to 2", "Course", "Joins, indexing, normalisation.", "Database Management Systems", 8, true),
-            (1, "Close the SQL gap", "Solve 20 SQL problems on joins", "Practice", "Use any free problem set; log your wrong answers.", null, 4, true),
-            (2, "Close the SQL gap", "Database Management Systems — weeks 3 to 4", "Course", "Transactions and query plans.", "Database Management Systems", 8, true),
-            (2, "Close the SQL gap", "Add a query-optimisation note to your project README", "Project", "Recruiters read the README before the code.", null, 2, true),
-            (3, "Version control and portfolio", "Git & GitHub Essentials", "Course", "One weekend, then clean up your profile.", "Git & GitHub Essentials", 6, false),
-            (3, "Version control and portfolio", "Publish two existing college projects with proper READMEs", "Project", "Screenshots, setup steps, what you would do differently.", null, 5, false),
-            (4, "Cloud fundamentals", "Cloud Computing Fundamentals — weeks 1 to 2", "Course", "The gap that blocks 41% of your matched roles.", "Cloud Computing Fundamentals", 8, false),
-            (5, "Cloud fundamentals", "Cloud Computing Fundamentals — weeks 3 to 4", "Course", "Storage, networking, cost models.", "Cloud Computing Fundamentals", 8, false),
-            (6, "Cloud fundamentals", "Deploy one project to a free cloud tier", "Project", "A live URL is worth more than a certificate line.", null, 6, false),
-            (7, "Containers", "Docker for Beginners", "Course", "Containerise the project you just deployed.", "Docker for Beginners", 12, false),
-            (8, "Java depth", "Programming in Java — first half", "Course", "Collections, concurrency, exceptions.", "Programming in Java", 12, false),
-            (9, "Java depth", "Programming in Java — second half", "Course", "Streams, JDBC, testing.", "Programming in Java", 12, false),
-            (10, "Communication", "MP Skill Development: Employability Communication", "Course", "State-subsidised; attend the Indore centre.", "MP Skill Development: Employability Communication", 10, false),
-            (10, "Communication", "Three mock interviews with feedback review", "Practice", "Target a rubric score above 70 on structure.", null, 3, false),
-            (11, "Placement sprint", "Aptitude practice for the TCS NQT pattern", "Practice", "Two full mock papers, timed.", null, 8, false),
-            (11, "Placement sprint", "Tailor your resume to the Persistent internship JD", "Task", "Accept the rewrite suggestions, then export.", null, 2, false),
-            (12, "Placement sprint", "Capstone: REST API with authentication and tests", "Project", "The single artefact that carries your portfolio.", null, 16, false),
-            (12, "Placement sprint", "Apply to every matched opportunity above 65% fit", "Task", "Do not wait until you feel ready.", null, 2, false),
-        ];
-
-        profile.RoadmapItems = plan.Select((p, i) => new RoadmapItem
-        {
-            WeekNumber = p.Week,
-            WeekFocus = p.Focus,
-            Title = p.Title,
-            Kind = p.Kind,
-            Detail = p.Detail,
-            CourseId = p.Course is null ? null : courses[p.Course],
-            EstimatedHours = p.Hours,
-            Completed = p.Done,
-            Order = i,
-        }).ToList();
 
         (string Section, string Original, string Suggested, string Why)[] suggestions =
         [

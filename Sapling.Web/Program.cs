@@ -81,10 +81,10 @@ else
     builder.Services.AddSingleton<IChatClient, ScriptedChatClient>();
 }
 
+builder.Services.AddSingleton(CareerCatalogueFile.Load());
 builder.Services.AddScoped<StudentContext>();
-builder.Services.AddScoped<ScoreService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
-builder.Services.AddScoped<IScoreService>(sp => sp.GetRequiredService<ScoreService>());
+builder.Services.AddScoped<IHomeService, HomeService>();
 builder.Services.AddScoped<ICareerService, CareerService>();
 builder.Services.AddScoped<ISkillGapService, SkillGapService>();
 builder.Services.AddScoped<IRoadmapService, RoadmapService>();

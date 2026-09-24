@@ -9,7 +9,8 @@ namespace Sapling.Web.Services;
 public sealed class StudentContext(
     SaplingDbContext db,
     IHttpContextAccessor http,
-    IServiceProvider services)
+    IServiceProvider services,
+    CareerCatalogueFile catalogue)
 {
     private StudentProfile? _cached;
 
@@ -50,7 +51,8 @@ public sealed class StudentContext(
 
         if (_cached is null)
         {
-            var defaultRole = await db.CareerRoles.OrderByDescending(r => r.FitScore).FirstAsync(ct);
+            var defaultCode = catalogue.DefaultRoleFor(null).Onet;
+            var defaultRole = await db.CareerRoles.FirstAsync(r => r.OnetCode == defaultCode, ct);
             _cached = new StudentProfile
             {
                 UserId = userId,

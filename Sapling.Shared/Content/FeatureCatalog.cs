@@ -12,28 +12,23 @@ public sealed record Feature(
 public static class FeatureCatalog
 {
     public const string CareerPaths = "career-paths";
-    public const string SkillGap = "skill-gap";
     public const string Roadmap = "roadmap";
     public const string Opportunities = "opportunities";
     public const string Resume = "resume";
     public const string Interview = "interview";
     public const string GovtTrack = "govt-track";
     public const string Community = "community";
-    public const string Score = "score";
     public const string Profile = "profile";
 
     public static readonly IReadOnlyList<Feature> All =
     [
-        new(CareerPaths, "Career paths", "Roles that fit you, and why.",
-            "Ranked career options with a fit score, salary bands for Madhya Pradesh and metros, demand trend, and a plain-language reason for every recommendation.",
-            "compass", "/paths"),
+        new(CareerPaths, "Career & skills", "Pick a role and see what it takes.",
+            "Every role your course leads to, ranked by fit. Choose one and see how well you fit it, the work it involves, and exactly which skills you have and which are missing.",
+            "compass", "/career"),
 
-        new(SkillGap, "Skills & gaps", "What you have vs what roles need.",
-            "Your verified skills measured against live job descriptions, with each gap ranked by impact against effort and an honest time-to-close estimate.",
-            "radar", "/skills"),
 
-        new(Roadmap, "Roadmap", "A week-by-week plan you can follow.",
-            "A time-phased plan built around your semester, putting free and government-subsidised courses first, with milestones and project deliverables.",
+        new(Roadmap, "Roadmap", "NPTEL courses for what you're missing.",
+            "Free NPTEL courses from the IITs for each skill your target role asks for and you don't have yet, most important first, with checkpoints to tick off as you study.",
             "route", "/roadmap"),
 
         new(Opportunities, "Opportunities", "Internships and jobs matched to you.",
@@ -56,13 +51,10 @@ public static class FeatureCatalog
             "Workshops, events, openings and announcements posted by your own college. Only its students can see them, and only the college can post.",
             "users", "/community"),
 
-        new(Score, "Employability Score", "One number that actually moves.",
-            "A 0 to 100 score built from academics, verified skills, projects, communication, certifications and exposure, with the full breakdown always visible.",
-            "gauge", "/score"),
     ];
 
     public static readonly IReadOnlyList<Feature> HomeCards =
-        All.Where(f => f.Key != Score).ToList();
+        All.ToList();
 
     public static Feature? Find(string key) => All.FirstOrDefault(f => f.Key == key);
 }

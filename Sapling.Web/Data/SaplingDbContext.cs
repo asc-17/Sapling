@@ -15,9 +15,18 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
 
     public DbSet<RoleSkillRequirement> RoleSkillRequirements => Set<RoleSkillRequirement>();
 
-    public DbSet<Course> Courses => Set<Course>();
+    public DbSet<CourseRoleLink> CourseRoleLinks => Set<CourseRoleLink>();
 
-    public DbSet<RoadmapItem> RoadmapItems => Set<RoadmapItem>();
+
+    public DbSet<LearningCourse> LearningCourses => Set<LearningCourse>();
+
+    public DbSet<CourseCheckpoint> CourseCheckpoints => Set<CourseCheckpoint>();
+
+    public DbSet<SkillCourse> SkillCourses => Set<SkillCourse>();
+
+    public DbSet<CheckpointProgress> CheckpointProgress => Set<CheckpointProgress>();
+
+    public DbSet<StudentCourseChoice> StudentCourseChoices => Set<StudentCourseChoice>();
 
     public DbSet<Opportunity> Opportunities => Set<Opportunity>();
 
@@ -30,8 +39,6 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
     public DbSet<InterviewTurn> InterviewTurns => Set<InterviewTurn>();
 
     public DbSet<GovtExam> GovtExams => Set<GovtExam>();
-
-    public DbSet<ScoreSnapshot> ScoreSnapshots => Set<ScoreSnapshot>();
 
     public DbSet<QuizQuestion> QuizQuestions => Set<QuizQuestion>();
 
@@ -61,11 +68,47 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
             .HasForeignKey(s => s.StudentProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Entity<StudentProfile>()
-            .HasMany(p => p.RoadmapItems)
+        builder.Entity<LearningCourse>()
+            .HasMany(c => c.Checkpoints)
             .WithOne()
-            .HasForeignKey(i => i.StudentProfileId)
+            .HasForeignKey(c => c.LearningCourseId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<LearningCourse>().HasIndex(c => c.ExternalId).IsUnique();
+
+        builder.Entity<SkillCourse>()
+            .HasOne<LearningCourse>()
+            .WithMany()
+            .HasForeignKey(s => s.LearningCourseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<StudentCourseChoice>()
+            .HasOne<LearningCourse>()
+            .WithMany()
+            .HasForeignKey(c => c.LearningCourseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<StudentCourseChoice>()
+            .HasOne<StudentProfile>()
+            .WithMany()
+            .HasForeignKey(c => c.StudentProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<StudentCourseChoice>().HasIndex(c => new { c.StudentProfileId, c.SkillId }).IsUnique();
+
+        builder.Entity<CheckpointProgress>()
+            .HasOne<CourseCheckpoint>()
+            .WithMany()
+            .HasForeignKey(p => p.CourseCheckpointId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<CheckpointProgress>()
+            .HasOne<StudentProfile>()
+            .WithMany()
+            .HasForeignKey(p => p.StudentProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<CheckpointProgress>().HasIndex(p => new { p.StudentProfileId, p.CourseCheckpointId }).IsUnique();
 
         builder.Entity<StudentProfile>()
             .HasMany(p => p.Applications)
@@ -85,12 +128,6 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
             .HasForeignKey(s => s.StudentProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Entity<StudentProfile>()
-            .HasMany(p => p.Scores)
-            .WithOne()
-            .HasForeignKey(s => s.StudentProfileId)
-            .OnDelete(DeleteBehavior.Cascade);
-
         builder.Entity<InterviewSession>()
             .HasMany(s => s.Turns)
             .WithOne()
@@ -102,6 +139,14 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
             .WithOne()
             .HasForeignKey(r => r.CareerRoleId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<CareerRole>()
+            .HasMany(r => r.CourseLinks)
+            .WithOne()
+            .HasForeignKey(l => l.CareerRoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<CareerRole>().HasIndex(r => r.OnetCode);
 
         builder.Entity<Skill>().HasIndex(s => s.Name).IsUnique();
 

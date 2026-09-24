@@ -86,7 +86,7 @@
 </div>
 
 @code {
-    private IReadOnlyList<CareerPathDto> _paths = [];
+    private IReadOnlyList<CareerPathSummaryDto> _paths = [];
     private List<InterviewSessionDto> _sessions = [];
     private string _role = "";
     private string _kind = "Technical";
@@ -95,7 +95,7 @@
     protected override async Task OnInitializedAsync()
     {
         _paths = await Careers.GetPathsAsync();
-        _role = _paths.FirstOrDefault()?.Title ?? "Backend Developer";
+        _role = (_paths.FirstOrDefault(p => p.IsTarget) ?? _paths.FirstOrDefault())?.Title ?? "Software Developer";
         _sessions = [.. await Interviews.GetSessionsAsync()];
     }
 

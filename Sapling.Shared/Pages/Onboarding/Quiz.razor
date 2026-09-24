@@ -96,7 +96,7 @@
         await QuizService.SubmitAsync(new QuizSubmissionRequest(
             _answers.Select(a => new QuizAnswerDto(a.Key, a.Value)).ToList()));
         await Profiles.CompleteOnboardingAsync();
-        Nav.NavigateTo("/score?reveal=true");
+        Nav.NavigateTo("/career");
     }
 
     private void Back() => _index = Math.Max(0, _index - 1);
@@ -107,6 +107,6 @@
     {
         _skipping = true;
         await Profiles.CompleteOnboardingAsync();
-        Nav.NavigateTo("/score?reveal=true");
+        Nav.NavigateTo("/career");
     }
 }

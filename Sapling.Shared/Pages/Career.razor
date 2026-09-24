@@ -1,0 +1,210 @@
+@page "/career"
+@page "/paths"
+@page "/skills"
+@namespace Sapling.Shared.Pages
+@inject ICareerService Careers
+@inject ISkillGapService Gaps
+@inject IProfileService Profiles
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Career &amp; skills · Sapling</PageTitle>
+<RecordVisit Feature="@FeatureCatalog.CareerPaths" />
+
+@if (_coverage is null)
+{
+    <div class="card stack g-3">
+        <div class="skeleton" style="height:28px;width:50%"></div>
+        <div class="skeleton" style="height:160px"></div>
+    </div>
+}
+else if (Choosing)
+{
+    <div class="stack g-5">
+        <div class="page-head">
+            <div class="stack g-1">
+                <h1 style="font-size:28px;line-height:34px">@(_coverage.TargetChosen ? "Change your career" : "Choose your career")</h1>
+                <span class="t-muted">Every role, ranked by how well it fits you. Open one to read it in full, then make it your target.</span>
+            </div>
+            @if (_coverage.TargetChosen)
+            {
+                <a class="btn btn-secondary btn-sm" href="/career">
+                    <SapIcon Name="chevron-left" Size="15" />
+                    Back to @_coverage.RoleName
+                </a>
+            }
+        </div>
+
+        <CareerChooser />
+    </div>
+}
+else if (_path is not null && _gaps is not null)
+{
+    <div class="stack g-5">
+        <div class="page-head" style="margin-bottom:0">
+            <div class="stack g-1">
+                <h1 style="font-size:28px;line-height:34px">Career &amp; skills</h1>
+                <span class="t-muted">Your target role, how well you fit it, and what's left to learn.</span>
+            </div>
+        </div>
+
+        <CareerDetails Path="_path">
+            <Actions>
+                <a class="btn btn-primary" href="/roadmap">
+                    <SapIcon Name="route" Size="16" />
+                    Open roadmap
+                </a>
+                <a class="btn btn-secondary" href="/paths">
+                    <SapIcon Name="compass" Size="16" />
+                    Change career
+                </a>
+            </Actions>
+            <Skills>
+                <div class="stack g-3">
+                    <div class="row between g-3 wrap">
+                        <span class="t-overline t-subtle">
+                            @(Missing.Count == 0 ? "You have everything this role asks for" : "What's missing, most important first")
+                        </span>
+                        <span class="t-caption t-subtle">@_path.Have of @_path.Total covered</span>
+                    </div>
+
+                    @foreach (var gap in Missing)
+                    {
+                        <div class="card stack g-2" @key="gap.Id">
+                            <div class="row g-2 wrap">
+                                <h4>@gap.SkillName</h4>
+                                <SapBadge Tone="@SeverityTone(gap.Severity)" Icon="@SeverityIcon(gap.Severity)">@gap.Severity</SapBadge>
+                                <span class="t-caption t-subtle" style="align-self:center">Importance @gap.Impact/10</span>
+                                @if (gap.WeeksToClose > 0)
+                                {
+                                    <SapBadge Tone="neutral" Icon="clock">About @gap.WeeksToClose @(gap.WeeksToClose == 1 ? "week" : "weeks") at 6 hrs/week</SapBadge>
+                                }
+                            </div>
+                            <span class="t-small t-muted">@gap.Rationale</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="grid grid-2">
+                    <SapCard Title="Already covered" Subtitle="What this role asks for that you have">
+                        <ChildContent>
+                            @if (Covered.Count == 0)
+                            {
+                                <span class="t-small t-muted">Nothing yet. Every skill you add moves your fit.</span>
+                            }
+                            else
+                            {
+                                <div class="row g-2 wrap">
+                                    @foreach (var gap in Covered)
+                                    {
+                                        <span class="chip chip-selected">
+                                            <SapIcon Name="check" Size="13" Stroke="2.5" />
+                                            @gap.SkillName
+                                        </span>
+                                    }
+                                </div>
+                            }
+                        </ChildContent>
+                    </SapCard>
+
+                    <SapCard Title="Your skills" Subtitle="@($"{_skills.Count} on your profile")">
+                        <ChildContent>
+                            @if (_skills.Count == 0)
+                            {
+                                <span class="t-small t-muted">You haven't added any skills yet.</span>
+                            }
+                            else
+                            {
+                                <div class="row g-2 wrap">
+                                    @foreach (var skill in _skills)
+                                    {
+                                        <span class="chip chip-claimed">@skill.Name</span>
+                                    }
+                                </div>
+                            }
+                        </ChildContent>
+                        <Footer>
+                            <span class="t-caption t-subtle">Knowledge areas also count related skills, such as Data structures towards Computers &amp; electronics.</span>
+                            <a class="btn btn-secondary btn-sm" href="/onboarding/skills">Edit skills</a>
+                        </Footer>
+                    </SapCard>
+                </div>
+
+                <span class="t-caption t-subtle">
+                    Requirements and their importance come from O*NET. Time estimates are Sapling's rough guide for a
+                    student starting from scratch.
+                </span>
+            </Skills>
+        </CareerDetails>
+    </div>
+}
+
+@code {
+    private SkillCoverageDto? _coverage;
+    private CareerPathDto? _path;
+    private IReadOnlyList<SkillGapDto>? _gaps;
+    private IReadOnlyList<SkillDto> _skills = [];
+
+    // /paths always browses; /career and /skills show the target once the student has chosen one.
+    private bool Choosing => !_coverage!.TargetChosen
+        || Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimEnd('/').Equals("paths", StringComparison.OrdinalIgnoreCase);
+
+    private List<SkillGapDto> Missing => (_gaps ?? []).Where(g => !g.Have).ToList();
+
+    private List<SkillGapDto> Covered => (_gaps ?? []).Where(g => g.Have).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // /career, /paths and /skills share this page, so moving between them keeps the same instance and never
+        // re-runs parameter hooks. Reload on every navigation instead.
+        Nav.LocationChanged += OnLocationChanged;
+        await LoadAsync();
+    }
+
+    private static readonly string[] OwnRoutes = ["career", "paths", "skills"];
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        // Leaving for another page disposes this one; only switches between its own routes need a reload.
+        var route = Nav.ToBaseRelativePath(e.Location).Split('?', '#')[0].TrimEnd('/');
+        if (!OwnRoutes.Contains(route, StringComparer.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        await InvokeAsync(async () =>
+        {
+            await LoadAsync();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+
+    private async Task LoadAsync()
+    {
+        _coverage = await Gaps.GetCoverageAsync();
+        if (Choosing)
+        {
+            return;
+        }
+
+        _path = await Careers.GetPathAsync(_coverage.RoleId);
+        _gaps = await Gaps.GetGapsAsync();
+        _skills = await Profiles.GetSkillsAsync();
+    }
+
+    private static string SeverityTone(string severity) => severity switch
+    {
+        "Critical" => "error",
+        "Important" => "warn",
+        _ => "neutral",
+    };
+
+    private static string SeverityIcon(string severity) => severity switch
+    {
+        "Critical" => "alert-circle",
+        "Important" => "alert-triangle",
+        _ => "info",
+    };
+}

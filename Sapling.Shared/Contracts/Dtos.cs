@@ -38,10 +38,7 @@ public sealed record CollegeDto(
 public sealed record SkillDto(
     int Id,
     string Name,
-    string Category,
-    int Level,
-    bool Verified,
-    string Source);
+    string Category);
 
 public sealed record ScoreComponentDto(
     string Name,
@@ -49,79 +46,125 @@ public sealed record ScoreComponentDto(
     int Value,
     string Summary);
 
-public sealed record EmployabilityScoreDto(
-    int Total,
-    int PreviousTotal,
-    DateOnly AsOf,
-    IReadOnlyList<ScoreComponentDto> Components);
-
-public sealed record CareerPathDto(
+/// <summary>One card on the career paths list. The fit score is worked out for the signed-in student.</summary>
+public sealed record CareerPathSummaryDto(
     int Id,
     string Title,
     string Family,
     string Tier,
     int FitScore,
-    string EntrySalaryMp,
-    string EntrySalaryMetro,
-    string DemandTrend,
-    string FiveYearOutlook,
-    IReadOnlyList<string> Employers,
-    IReadOnlyList<string> Reasons,
-    IReadOnlyList<string> CoreSkills,
-    string? CounterCase);
+    string? CourseRelevance,
+    string TopReason,
+    bool IsTarget,
+    IReadOnlyList<string> Outlook);
 
+public sealed record CareerPathDto(
+    int Id,
+    string OnetCode,
+    string Title,
+    string OnetTitle,
+    string Family,
+    string Tier,
+    int FitScore,
+    int Have,
+    int Total,
+    FitBreakdownDto Fit,
+    string? CourseRelevance,
+    bool IsTarget,
+    string Description,
+    IReadOnlyList<string> Tasks,
+    IReadOnlyList<string> AlsoCalled,
+    IReadOnlyList<string> Technologies,
+    IReadOnlyList<string> Outlook,
+    string Preparation,
+    string Education,
+    IReadOnlyList<string> Reasons,
+    IReadOnlyList<string> Considerations,
+    IReadOnlyList<CareerRequirementDto> Requirements,
+    IReadOnlyList<RelatedCareerDto> Related,
+    CareerSourceDto Source);
+
+/// <summary>Each part is 0 to 100. Interests is null until the quiz is taken; Course is null without a course.</summary>
+public sealed record FitBreakdownDto(int Skills, int? Interests, int? Course);
+
+public sealed record CareerRequirementDto(string Skill, string Kind, int Impact, bool Have, string Rationale);
+
+public sealed record RelatedCareerDto(int Id, string Title);
+
+public sealed record CareerSourceDto(
+    string Name,
+    string Publisher,
+    string Url,
+    string License,
+    string LicenseUrl,
+    string OccupationUrl,
+    string ImportedOn,
+    string OutlookSource,
+    string CourseMapping);
+
+/// <summary>One requirement of the target role. Have is true once the student has claimed the skill.</summary>
 public sealed record SkillGapDto(
     int Id,
     string SkillName,
+    string Kind,
     string Severity,
     int Impact,
     int Effort,
     int WeeksToClose,
-    int CurrentLevel,
-    int RequiredLevel,
+    bool Have,
     string Rationale);
 
-public sealed record SkillRadarDto(
-    IReadOnlyList<string> Axes,
-    IReadOnlyList<double> You,
-    IReadOnlyList<double> RoleTarget,
-    string RoleName);
+/// <summary>How much of the target role the student covers, weighted by O*NET importance.</summary>
+public sealed record SkillCoverageDto(
+    int RoleId,
+    string RoleName,
+    int Fit,
+    int Have,
+    int Total,
+    bool TargetChosen);
 
-public sealed record CourseDto(
-    int Id,
-    string Title,
-    string Provider,
-    string Cost,
-    bool IsFree,
-    bool IsGovernmentSubsidised,
-    int Hours,
-    string Level,
-    string Url,
-    IReadOnlyList<string> TeachesSkills,
-    string Summary);
-
-public sealed record RoadmapItemDto(
-    int Id,
-    string Title,
-    string Kind,
-    string? Detail,
-    int? CourseId,
-    bool Completed,
-    int EstimatedHours);
-
-public sealed record RoadmapWeekDto(
-    int WeekNumber,
-    string Focus,
-    DateOnly StartsOn,
-    IReadOnlyList<RoadmapItemDto> Items);
-
+/// <summary>
+/// The student's roadmap to their target role: one step per required skill (or group of skills sharing an NPTEL
+/// course), missing skills first and then by importance.
+/// </summary>
 public sealed record RoadmapDto(
-    string Goal,
-    int TotalWeeks,
-    int CurrentWeek,
-    int CompletedItems,
-    int TotalItems,
-    IReadOnlyList<RoadmapWeekDto> Weeks);
+    int RoleId,
+    string RoleName,
+    int CompletedCheckpoints,
+    int TotalCheckpoints,
+    IReadOnlyList<RoadmapStepDto> Steps,
+    string Source);
+
+/// <summary>
+/// Impact is O*NET importance (1-10) for the role; Have is true once the student has every skill in the step.
+/// Course is the one the student is following, picked from Options (one per provider that teaches it).
+/// </summary>
+public sealed record RoadmapStepDto(
+    IReadOnlyList<RoadmapSkillDto> Skills,
+    string Severity,
+    int Impact,
+    bool Have,
+    RoadmapCourseDto Course,
+    IReadOnlyList<RoadmapCourseDto> Options);
+
+public sealed record RoadmapSkillDto(int Id, string Name, bool Have);
+
+/// <summary>
+/// Provider is "NPTEL" or "Microsoft Learn". Match is "direct" (the course teaches the skill) or "foundation"
+/// (the subject underneath a tool). Lessons are NPTEL lectures or Microsoft Learn modules.
+/// </summary>
+public sealed record RoadmapCourseDto(
+    int Id,
+    string Provider,
+    string Title,
+    string Byline,
+    string Url,
+    int Lessons,
+    int Minutes,
+    string Match,
+    IReadOnlyList<RoadmapCheckpointDto> Checkpoints);
+
+public sealed record RoadmapCheckpointDto(int Id, string Title, int Lessons, int Minutes, bool Done);
 
 public sealed record OpportunityDto(
     int Id,
@@ -213,12 +256,12 @@ public sealed record QuizResultDto(string RiasecCode, IReadOnlyList<ScoreCompone
 public sealed record HomeSummaryDto(
     string FirstName,
     bool OnboardingComplete,
-    int Score,
-    int CurrentWeek,
-    int TotalWeeks,
-    int CompletedItems,
-    int TotalItems,
-    string? NextTask,
+    int? TargetRoleId,
+    string? TargetRole,
+    int? TargetFit,
+    int CompletedCheckpoints,
+    int TotalCheckpoints,
+    string? NextCheckpoint,
     int NewOpportunities,
     int ClosingSoonExams,
     int NewCommunityPosts = 0);
@@ -226,6 +269,12 @@ public sealed record HomeSummaryDto(
 public sealed record SkillSuggestionDto(
     string Name,
     string Category);
+
+/// <summary>
+/// Skills to suggest at onboarding, most common first across the roles the student's course leads to.
+/// Course is the label the suggestions are for, or null when the profile has no course yet.
+/// </summary>
+public sealed record SkillPickerDto(IReadOnlyList<string> Recommended, string? Course);
 
 public static class PostKinds
 {

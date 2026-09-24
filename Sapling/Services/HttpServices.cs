@@ -75,6 +75,9 @@ public sealed class HttpProfileService(IHttpClientFactory factory) : IProfileSer
     public async Task<IReadOnlyList<SkillSuggestionDto>> GetSkillCatalogueAsync(CancellationToken ct = default) =>
         await Client.GetJsonAsync<List<SkillSuggestionDto>>("api/profile/skill-catalogue", ct);
 
+    public async Task<SkillPickerDto> GetSkillPickerAsync(CancellationToken ct = default) =>
+        await Client.GetFromJsonAsync<SkillPickerDto>("api/profile/skill-picker", ct) ?? new SkillPickerDto([], null);
+
     public async Task<IReadOnlyList<CollegeDto>> SearchCollegesAsync(string query, string? state = null, CancellationToken ct = default)
     {
         var url = $"api/profile/colleges?q={Uri.EscapeDataString(query)}";
@@ -96,26 +99,29 @@ public sealed class HttpProfileService(IHttpClientFactory factory) : IProfileSer
     }
 }
 
-public sealed class HttpScoreService(IHttpClientFactory factory) : IScoreService
+public sealed class HttpHomeService(IHttpClientFactory factory) : IHomeService
 {
     private HttpClient Client => factory.CreateClient(SaplingApi.Authenticated);
 
-    public async Task<EmployabilityScoreDto> GetAsync(CancellationToken ct = default) =>
-        (await Client.GetFromJsonAsync<EmployabilityScoreDto>("api/score", ct))!;
-
-    public async Task<HomeSummaryDto> GetHomeSummaryAsync(CancellationToken ct = default) =>
-        (await Client.GetFromJsonAsync<HomeSummaryDto>("api/score/home", ct))!;
+    public async Task<HomeSummaryDto> GetSummaryAsync(CancellationToken ct = default) =>
+        (await Client.GetFromJsonAsync<HomeSummaryDto>("api/home", ct))!;
 }
 
 public sealed class HttpCareerService(IHttpClientFactory factory) : ICareerService
 {
     private HttpClient Client => factory.CreateClient(SaplingApi.Authenticated);
 
-    public async Task<IReadOnlyList<CareerPathDto>> GetPathsAsync(CancellationToken ct = default) =>
-        await Client.GetJsonAsync<List<CareerPathDto>>("api/paths", ct);
+    public async Task<IReadOnlyList<CareerPathSummaryDto>> GetPathsAsync(bool all = false, CancellationToken ct = default) =>
+        await Client.GetJsonAsync<List<CareerPathSummaryDto>>(all ? "api/paths?all=true" : "api/paths", ct);
 
     public Task<CareerPathDto?> GetPathAsync(int id, CancellationToken ct = default) =>
         Client.GetJsonOrNullAsync<CareerPathDto>($"api/paths/{id}", ct);
+
+    public async Task<CareerPathDto?> SetTargetAsync(int id, CancellationToken ct = default)
+    {
+        var response = await Client.PostAsync($"api/paths/{id}/target", null, ct);
+        return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<CareerPathDto>(ct) : null;
+    }
 }
 
 public sealed class HttpSkillGapService(IHttpClientFactory factory) : ISkillGapService
@@ -125,8 +131,8 @@ public sealed class HttpSkillGapService(IHttpClientFactory factory) : ISkillGapS
     public async Task<IReadOnlyList<SkillGapDto>> GetGapsAsync(CancellationToken ct = default) =>
         await Client.GetJsonAsync<List<SkillGapDto>>("api/skills/gaps", ct);
 
-    public async Task<SkillRadarDto> GetRadarAsync(CancellationToken ct = default) =>
-        (await Client.GetFromJsonAsync<SkillRadarDto>("api/skills/radar", ct))!;
+    public async Task<SkillCoverageDto> GetCoverageAsync(CancellationToken ct = default) =>
+        (await Client.GetFromJsonAsync<SkillCoverageDto>("api/skills/coverage", ct))!;
 }
 
 public sealed class HttpRoadmapService(IHttpClientFactory factory) : IRoadmapService
@@ -136,11 +142,14 @@ public sealed class HttpRoadmapService(IHttpClientFactory factory) : IRoadmapSer
     public async Task<RoadmapDto> GetAsync(CancellationToken ct = default) =>
         (await Client.GetFromJsonAsync<RoadmapDto>("api/roadmap", ct))!;
 
-    public Task<RoadmapDto> SetItemCompletedAsync(int itemId, bool completed, CancellationToken ct = default) =>
-        Client.PostJsonAsync<RoadmapDto>($"api/roadmap/items/{itemId}/{completed.ToString().ToLowerInvariant()}", null, ct);
+    public Task<RoadmapDto> SetCheckpointAsync(int checkpointId, bool done, CancellationToken ct = default) =>
+        Client.PostJsonAsync<RoadmapDto>($"api/roadmap/checkpoints/{checkpointId}/{done.ToString().ToLowerInvariant()}", null, ct);
 
-    public Task<CourseDto?> GetCourseAsync(int id, CancellationToken ct = default) =>
-        Client.GetJsonOrNullAsync<CourseDto>($"api/roadmap/courses/{id}", ct);
+    public Task<RoadmapDto> AddSkillAsync(int skillId, CancellationToken ct = default) =>
+        Client.PostJsonAsync<RoadmapDto>($"api/roadmap/skills/{skillId}", null, ct);
+
+    public Task<RoadmapDto> ChooseCourseAsync(int courseId, IReadOnlyList<int> skillIds, CancellationToken ct = default) =>
+        Client.PostJsonAsync<RoadmapDto>($"api/roadmap/courses/{courseId}/choose", skillIds, ct);
 }
 
 public sealed class HttpOpportunityService(IHttpClientFactory factory) : IOpportunityService

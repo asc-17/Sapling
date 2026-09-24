@@ -17,6 +17,7 @@ public static class ApiEndpoints
         profile.MapPut("/skills", (List<string> names, IProfileService s, CancellationToken ct) => s.SetClaimedSkillsAsync(names, ct));
         profile.MapGet("/skill-suggestions", (IProfileService s, CancellationToken ct) => s.GetSkillSuggestionsAsync(ct));
         profile.MapGet("/skill-catalogue", (IProfileService s, CancellationToken ct) => s.GetSkillCatalogueAsync(ct));
+        profile.MapGet("/skill-picker", (IProfileService s, CancellationToken ct) => s.GetSkillPickerAsync(ct));
         profile.MapGet("/colleges", (string? q, string? state, ICollegeCatalogService catalog) =>
             catalog.Search(q ?? "", state, 20)).AllowAnonymous();
         profile.MapPost("/complete-onboarding", async (IProfileService s, CancellationToken ct) =>
@@ -27,25 +28,26 @@ public static class ApiEndpoints
         profile.MapPut("/avatar", (UpdateAvatarRequest r, IProfileService s, CancellationToken ct) =>
             s.SetAvatarAsync(r.AvatarDataUrl, ct));
 
-        var score = api.MapGroup("/score");
-        score.MapGet("/", (IScoreService s, CancellationToken ct) => s.GetAsync(ct));
-        score.MapGet("/home", (IScoreService s, CancellationToken ct) => s.GetHomeSummaryAsync(ct));
+        api.MapGet("/home", (IHomeService s, CancellationToken ct) => s.GetSummaryAsync(ct));
 
         var paths = api.MapGroup("/paths");
-        paths.MapGet("/", (ICareerService s, CancellationToken ct) => s.GetPathsAsync(ct));
+        paths.MapGet("/", (bool? all, ICareerService s, CancellationToken ct) => s.GetPathsAsync(all == true, ct));
         paths.MapGet("/{id:int}", async (int id, ICareerService s, CancellationToken ct) =>
             await s.GetPathAsync(id, ct) is { } dto ? Results.Ok(dto) : Results.NotFound());
+        paths.MapPost("/{id:int}/target", async (int id, ICareerService s, CancellationToken ct) =>
+            await s.SetTargetAsync(id, ct) is { } dto ? Results.Ok(dto) : Results.NotFound());
 
         var skills = api.MapGroup("/skills");
         skills.MapGet("/gaps", (ISkillGapService s, CancellationToken ct) => s.GetGapsAsync(ct));
-        skills.MapGet("/radar", (ISkillGapService s, CancellationToken ct) => s.GetRadarAsync(ct));
+        skills.MapGet("/coverage", (ISkillGapService s, CancellationToken ct) => s.GetCoverageAsync(ct));
 
         var roadmap = api.MapGroup("/roadmap");
         roadmap.MapGet("/", (IRoadmapService s, CancellationToken ct) => s.GetAsync(ct));
-        roadmap.MapPost("/items/{id:int}/{completed:bool}", (int id, bool completed, IRoadmapService s, CancellationToken ct) =>
-            s.SetItemCompletedAsync(id, completed, ct));
-        roadmap.MapGet("/courses/{id:int}", async (int id, IRoadmapService s, CancellationToken ct) =>
-            await s.GetCourseAsync(id, ct) is { } dto ? Results.Ok(dto) : Results.NotFound());
+        roadmap.MapPost("/checkpoints/{id:int}/{done:bool}", (int id, bool done, IRoadmapService s, CancellationToken ct) =>
+            s.SetCheckpointAsync(id, done, ct));
+        roadmap.MapPost("/skills/{id:int}", (int id, IRoadmapService s, CancellationToken ct) => s.AddSkillAsync(id, ct));
+        roadmap.MapPost("/courses/{id:int}/choose", (int id, int[] skillIds, IRoadmapService s, CancellationToken ct) =>
+            s.ChooseCourseAsync(id, skillIds, ct));
 
         var opportunities = api.MapGroup("/opportunities");
         opportunities.MapGet("/", (IOpportunityService s, CancellationToken ct) => s.GetAllAsync(ct));

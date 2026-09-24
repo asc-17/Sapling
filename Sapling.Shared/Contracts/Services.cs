@@ -14,6 +14,8 @@ public interface IProfileService
 
     Task<IReadOnlyList<SkillSuggestionDto>> GetSkillCatalogueAsync(CancellationToken ct = default);
 
+    Task<SkillPickerDto> GetSkillPickerAsync(CancellationToken ct = default);
+
     Task<IReadOnlyList<CollegeDto>> SearchCollegesAsync(string query, string? state = null, CancellationToken ct = default);
 
     Task CompleteOnboardingAsync(CancellationToken ct = default);
@@ -21,34 +23,41 @@ public interface IProfileService
     Task<StudentProfileDto> SetAvatarAsync(string? dataUrl, CancellationToken ct = default);
 }
 
-public interface IScoreService
+/// <summary>The home dashboard: greeting, target role, roadmap progress and what is new.</summary>
+public interface IHomeService
 {
-    Task<EmployabilityScoreDto> GetAsync(CancellationToken ct = default);
-
-    Task<HomeSummaryDto> GetHomeSummaryAsync(CancellationToken ct = default);
+    Task<HomeSummaryDto> GetSummaryAsync(CancellationToken ct = default);
 }
 
 public interface ICareerService
 {
-    Task<IReadOnlyList<CareerPathDto>> GetPathsAsync(CancellationToken ct = default);
+    /// <summary>Roles that the student's course leads to, or every role when <paramref name="all"/> is true.</summary>
+    Task<IReadOnlyList<CareerPathSummaryDto>> GetPathsAsync(bool all = false, CancellationToken ct = default);
 
     Task<CareerPathDto?> GetPathAsync(int id, CancellationToken ct = default);
+
+    Task<CareerPathDto?> SetTargetAsync(int id, CancellationToken ct = default);
 }
 
 public interface ISkillGapService
 {
     Task<IReadOnlyList<SkillGapDto>> GetGapsAsync(CancellationToken ct = default);
 
-    Task<SkillRadarDto> GetRadarAsync(CancellationToken ct = default);
+    Task<SkillCoverageDto> GetCoverageAsync(CancellationToken ct = default);
 }
 
 public interface IRoadmapService
 {
     Task<RoadmapDto> GetAsync(CancellationToken ct = default);
 
-    Task<RoadmapDto> SetItemCompletedAsync(int itemId, bool completed, CancellationToken ct = default);
+    /// <summary>Ticks or unticks a checkpoint. Finishing a direct course adds its skills to the profile.</summary>
+    Task<RoadmapDto> SetCheckpointAsync(int checkpointId, bool done, CancellationToken ct = default);
 
-    Task<CourseDto?> GetCourseAsync(int id, CancellationToken ct = default);
+    /// <summary>Follow this course for these skills instead of another provider's; only the followed course counts.</summary>
+    Task<RoadmapDto> ChooseCourseAsync(int courseId, IReadOnlyList<int> skillIds, CancellationToken ct = default);
+
+    /// <summary>The student says they can use a skill now, e.g. after a foundation course or learning it elsewhere.</summary>
+    Task<RoadmapDto> AddSkillAsync(int skillId, CancellationToken ct = default);
 }
 
 public interface IOpportunityService

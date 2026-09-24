@@ -1,7 +1,7 @@
 @page "/"
 @page "/home"
 @namespace Sapling.Shared.Pages
-@inject IScoreService Scores
+@inject IHomeService HomeData
 @inject ICommunityService Community
 @inject IRecentFeaturesService Recents
 @inject NavigationManager Nav
@@ -30,6 +30,19 @@
         </ItemTemplate>
     </SapCarousel>
 
+    @if (_summary is { TargetRoleId: { } targetId, TargetRole: { } targetRole, TargetFit: { } targetFit })
+    {
+        <a class="card row g-4" href="/career">
+            <ScoreRing Value="targetFit" Size="64" Thickness="7" Label="Fit" Animate="false" />
+            <div class="stack grow" style="gap:2px;min-width:0">
+                <span class="t-overline t-subtle">Your target role</span>
+                <h4>@targetRole</h4>
+                <span class="t-caption t-subtle">@targetFit% fit. See what's missing and how to close it.</span>
+            </div>
+            <SapIcon Name="chevron-right" Size="18" />
+        </a>
+    }
+
     @if (_recent.Count > 0)
     {
         <div class="stack g-3">
@@ -56,26 +69,25 @@
         </div>
     </div>
 
-    @if (_summary is { TotalItems: > 0 })
+    @if (_summary is { TotalCheckpoints: > 0 })
     {
-        <SapCard Title="@($"Week {_summary.CurrentWeek} of {_summary.TotalWeeks}")"
-                 Subtitle="Your roadmap to the target role">
+        <SapCard Title="Your roadmap" Subtitle="@($"NPTEL courses towards {_summary.TargetRole}")">
             <Header>
                 <a class="btn btn-secondary btn-sm" href="/roadmap">Open roadmap</a>
             </Header>
             <ChildContent>
                 <LinearBar Percent="Progress"
-                           Label="@($"{_summary.CompletedItems} of {_summary.TotalItems} tasks done")"
+                           Label="@($"{_summary.CompletedCheckpoints} of {_summary.TotalCheckpoints} checkpoints done")"
                            ValueText="@($"{Progress:0}%")" />
-                @if (_summary.NextTask is not null)
+                @if (_summary.NextCheckpoint is not null)
                 {
                     <div class="row-top g-3 card card-inset" style="padding:var(--sp-3)">
                         <span class="icon-tile" style="width:32px;height:32px"><SapIcon Name="list-checks" Size="16" /></span>
-                        <div class="stack grow" style="gap:0">
+                        <div class="stack grow" style="gap:0;min-width:0">
                             <span class="t-caption t-subtle">Next up</span>
-                            <span class="t-small" style="font-weight:600">@_summary.NextTask</span>
+                            <span class="t-small" style="font-weight:600">@_summary.NextCheckpoint</span>
                         </div>
-                        <a class="btn btn-accent btn-sm" href="/roadmap">Start</a>
+                        <a class="btn btn-accent btn-sm" href="/roadmap">Continue</a>
                     </div>
                 }
             </ChildContent>
@@ -123,8 +135,8 @@
     private List<Feature> _recent = [];
     private IReadOnlyList<CommunityPostDto> _latestPosts = [];
 
-    private double Progress => _summary is { TotalItems: > 0 }
-        ? 100.0 * _summary.CompletedItems / _summary.TotalItems
+    private double Progress => _summary is { TotalCheckpoints: > 0 }
+        ? 100.0 * _summary.CompletedCheckpoints / _summary.TotalCheckpoints
         : 0;
 
     private static string Greeting => DateTime.Now.Hour switch
@@ -137,14 +149,15 @@
     private string Subtitle => _summary switch
     {
         null => "Loading your plan.",
-        { OnboardingComplete: false } => "Finish setting up your profile to unlock your score.",
-        { NextTask: not null } => $"Week {_summary.CurrentWeek} of {_summary.TotalWeeks}. Next up: {_summary.NextTask}.",
-        _ => "Your roadmap is complete. Time to apply.",
+        { OnboardingComplete: false } => "Finish setting up your profile to see which roles fit you.",
+        { NextCheckpoint: not null } => $"Next up on your roadmap: {_summary.NextCheckpoint}.",
+        { TargetRole: not null } => $"Working towards {_summary.TargetRole}.",
+        _ => "Pick a target role to build your roadmap.",
     };
 
     protected override async Task OnInitializedAsync()
     {
-        _summary = await Scores.GetHomeSummaryAsync();
+        _summary = await HomeData.GetSummaryAsync();
         if (!_summary.OnboardingComplete)
         {
             Nav.NavigateTo("/onboarding/about");

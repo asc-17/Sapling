@@ -39,11 +39,10 @@ public class StudentProfile
 
     public int TargetRoleId { get; set; }
 
+    /// <summary>False while TargetRoleId is only the course's default; the career page asks the student to choose.</summary>
+    public bool TargetChosen { get; set; }
+
     public List<StudentSkill> Skills { get; set; } = [];
-
-    public List<ScoreSnapshot> Scores { get; set; } = [];
-
-    public List<RoadmapItem> RoadmapItems { get; set; } = [];
 
     public List<OpportunityApplication> Applications { get; set; } = [];
 
@@ -97,43 +96,60 @@ public class StudentSkill
     public int SkillId { get; set; }
 
     public Skill? Skill { get; set; }
-
-    public int Level { get; set; }
-
-    public bool Verified { get; set; }
-
-    public string Source { get; set; } = "Self-claimed";
 }
 
+/// <summary>An occupation imported from O*NET via Data/careers.json; see tools/careers for how it is built.</summary>
 public class CareerRole
 {
     public int Id { get; set; }
 
+    public string OnetCode { get; set; } = "";
+
     public string Title { get; set; } = "";
+
+    public string OnetTitle { get; set; } = "";
 
     public string Family { get; set; } = "";
 
-    public string Tier { get; set; } = "Safe";
+    public string Description { get; set; } = "";
 
-    public int FitScore { get; set; }
+    public string Tasks { get; set; } = "";
 
-    public string EntrySalaryMp { get; set; } = "";
+    public string AlsoCalled { get; set; } = "";
 
-    public string EntrySalaryMetro { get; set; } = "";
+    public string Technologies { get; set; } = "";
 
-    public string DemandTrend { get; set; } = "";
+    public int JobZone { get; set; }
 
-    public string FiveYearOutlook { get; set; } = "";
+    /// <summary>O*NET Bright Outlook categories, e.g. "Rapid Growth|Numerous Job Openings". Empty if not listed.</summary>
+    public string Outlook { get; set; } = "";
 
-    public string Employers { get; set; } = "";
+    public string Preparation { get; set; } = "";
 
-    public string Reasons { get; set; } = "";
+    public string Education { get; set; } = "";
 
-    public string CoreSkills { get; set; } = "";
+    /// <summary>O*NET interest ratings (1 to 7) as "Realistic:6.43|Investigative:5.15|...".</summary>
+    public string Interests { get; set; } = "";
 
-    public string? CounterCase { get; set; }
+    public string RelatedCodes { get; set; } = "";
 
     public List<RoleSkillRequirement> Requirements { get; set; } = [];
+
+    public List<CourseRoleLink> CourseLinks { get; set; } = [];
+}
+
+/// <summary>Which course and branch lead to a role. Branch "*" means any branch of the course.</summary>
+public class CourseRoleLink
+{
+    public int Id { get; set; }
+
+    public int CareerRoleId { get; set; }
+
+    public string Course { get; set; } = "";
+
+    public string Branch { get; set; } = "*";
+
+    public string Relevance { get; set; } = "Core";
 }
 
 public class RoleSkillRequirement
@@ -146,7 +162,8 @@ public class RoleSkillRequirement
 
     public Skill? Skill { get; set; }
 
-    public int RequiredLevel { get; set; }
+    /// <summary>Technology, Skill or Knowledge, following the O*NET domain the requirement came from.</summary>
+    public string Kind { get; set; } = "Technology";
 
     public int Impact { get; set; }
 
@@ -157,56 +174,79 @@ public class RoleSkillRequirement
     public string Rationale { get; set; } = "";
 }
 
-public class Course
+/// <summary>A free course from NPTEL or Microsoft Learn, imported through tools/careers; see careers.json.</summary>
+public class LearningCourse
 {
     public int Id { get; set; }
 
+    public string Provider { get; set; } = "NPTEL";
+
+    /// <summary>The provider's own id: an NPTEL course number or a Microsoft Learn path uid.</summary>
+    public string ExternalId { get; set; } = "";
+
     public string Title { get; set; } = "";
 
-    public string Provider { get; set; } = "";
-
-    public string Cost { get; set; } = "Free";
-
-    public bool IsFree { get; set; }
-
-    public bool IsGovernmentSubsidised { get; set; }
-
-    public int Hours { get; set; }
-
-    public string Level { get; set; } = "Beginner";
+    /// <summary>Who teaches it, e.g. "Prof. Partha Pratim Das, IIT Kharagpur" or "Microsoft".</summary>
+    public string Byline { get; set; } = "";
 
     public string Url { get; set; } = "";
 
-    public string TeachesSkills { get; set; } = "";
+    public int Lessons { get; set; }
 
-    public string Summary { get; set; } = "";
+    public int Minutes { get; set; }
+
+    public List<CourseCheckpoint> Checkpoints { get; set; } = [];
 }
 
-public class RoadmapItem
+/// <summary>A block of NPTEL lectures or one Microsoft Learn module, roughly a sitting or a week of study.</summary>
+public class CourseCheckpoint
+{
+    public int Id { get; set; }
+
+    public int LearningCourseId { get; set; }
+
+    public int Order { get; set; }
+
+    public string Title { get; set; } = "";
+
+    public int Lessons { get; set; }
+
+    public int Minutes { get; set; }
+}
+
+/// <summary>A course offered for a skill. Match is "direct" or "foundation".</summary>
+public class SkillCourse
+{
+    public int Id { get; set; }
+
+    public int SkillId { get; set; }
+
+    public int LearningCourseId { get; set; }
+
+    public string Match { get; set; } = "direct";
+}
+
+/// <summary>Which of a skill's courses the student chose to follow; only that one counts towards progress.</summary>
+public class StudentCourseChoice
 {
     public int Id { get; set; }
 
     public int StudentProfileId { get; set; }
 
-    public int WeekNumber { get; set; }
+    public int SkillId { get; set; }
 
-    public string WeekFocus { get; set; } = "";
+    public int LearningCourseId { get; set; }
+}
 
-    public string Title { get; set; } = "";
+public class CheckpointProgress
+{
+    public int Id { get; set; }
 
-    public string Kind { get; set; } = "Course";
+    public int StudentProfileId { get; set; }
 
-    public string? Detail { get; set; }
+    public int CourseCheckpointId { get; set; }
 
-    public int? CourseId { get; set; }
-
-    public Course? Course { get; set; }
-
-    public int EstimatedHours { get; set; }
-
-    public bool Completed { get; set; }
-
-    public int Order { get; set; }
+    public DateTime CompletedAtUtc { get; set; } = DateTime.UtcNow;
 }
 
 public class Opportunity
@@ -337,29 +377,6 @@ public class GovtExam
     public string SyllabusAreas { get; set; } = "";
 
     public string Summary { get; set; } = "";
-}
-
-public class ScoreSnapshot
-{
-    public int Id { get; set; }
-
-    public int StudentProfileId { get; set; }
-
-    public DateOnly AsOf { get; set; }
-
-    public int Total { get; set; }
-
-    public int Academic { get; set; }
-
-    public int TechnicalSkills { get; set; }
-
-    public int Projects { get; set; }
-
-    public int Communication { get; set; }
-
-    public int Certifications { get; set; }
-
-    public int Exposure { get; set; }
 }
 
 public class QuizQuestion

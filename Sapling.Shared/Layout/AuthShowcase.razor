@@ -38,15 +38,15 @@
     <div class="card">
         <div class="row-top g-6 wrap">
             <div class="stack center g-3" style="flex:none">
-                <ScoreRing Value="52" Size="150" Caption="Sample student, week 1" />
+                <ScoreRing Value="61" Size="150" Caption="Sample student, Software Developer" Label="Fit" />
             </div>
             <div class="grow stack g-4" style="min-width:280px">
                 <div class="stack g-2">
-                    <span class="t-overline t-subtle">Employability Score</span>
-                    <h2>One number, six honest parts.</h2>
+                    <span class="t-overline t-subtle">Role fit</span>
+                    <h2>How well you fit each role, and why.</h2>
                     <p class="t-small t-muted">
-                        No black box. Every point is traceable to something you did, and the breakdown is
-                        always visible so you know which lever moves fastest.
+                        No black box. Every role shows the skills it asks for against yours, drawn from the O*NET
+                        occupational database, so you know exactly what to learn next.
                     </p>
                 </div>
                 <div class="grid grid-2">
@@ -96,24 +96,21 @@
     private static readonly Step[] _steps =
     [
         new("Build your profile", "Academics, skills and interests in one place, with a fifteen-minute interest assessment."),
-        new("See your score", "A measured 0 to 100 employability score with the six components that produced it."),
+        new("See where you fit", "A fit score for every role your course leads to, with the reasoning shown."),
         new("Follow the roadmap", "A week-by-week plan that puts free and government-subsidised courses first."),
         new("Get placed", "Matched opportunities, a tailored resume, and interview practice that scores you."),
     ];
 
     private static readonly Part[] _scoreParts =
     [
-        new("Verified technical skills", 30, 44),
-        new("Communication & interview", 20, 55),
-        new("Academics", 15, 72),
-        new("Projects & portfolio", 15, 38),
-        new("Certifications", 10, 30),
-        new("Industry exposure", 10, 20),
+        new("Skills you already cover", 75, 44),
+        new("Route from your course", 15, 100),
+        new("Match with your interests", 10, 80),
     ];
 
     private static readonly Trust[] _trust =
     [
-        new("shield-check", "Verified, not claimed", "Only skills you can evidence count toward your score or a recruiter shortlist."),
+        new("shield-check", "Your word counts", "Tell us what you know and every role shows exactly what it still needs."),
         new("info", "Explainable by default", "Every recommendation carries a \"why this?\" you can open and argue with."),
         new("lock", "Your data stays yours", "Consent-first, minimal collection, and deletion on request under the DPDP Act."),
         new("book-open", "Hindi-ready", "Built on a dual-script type system so Hindi is a first-class language, not a bolt-on."),

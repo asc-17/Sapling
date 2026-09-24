@@ -919,4 +919,21 @@
     transform: scale(1.06);
 }
 
+/* Roadmap checkpoints: the whole row is the tap target. */
+.checkpoint {
+    padding: var(--sp-2) var(--sp-3);
+    border-radius: var(--r-md);
+    cursor: pointer;
+}
 
+.checkpoint:hover {
+    background: var(--surface2);
+}
+
+.checkpoint input {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    flex: none;
+    accent-color: var(--primary);
+}
