@@ -34,9 +34,9 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
 
     public DbSet<ResumeSuggestion> ResumeSuggestions => Set<ResumeSuggestion>();
 
-    public DbSet<InterviewSession> InterviewSessions => Set<InterviewSession>();
+    public DbSet<MockInterview> MockInterviews => Set<MockInterview>();
 
-    public DbSet<InterviewTurn> InterviewTurns => Set<InterviewTurn>();
+    public DbSet<MockInterviewTurn> MockInterviewTurns => Set<MockInterviewTurn>();
 
     public DbSet<GovtExam> GovtExams => Set<GovtExam>();
 
@@ -123,16 +123,18 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<StudentProfile>()
-            .HasMany(p => p.InterviewSessions)
+            .HasMany(p => p.MockInterviews)
             .WithOne()
-            .HasForeignKey(s => s.StudentProfileId)
+            .HasForeignKey(i => i.StudentProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Entity<InterviewSession>()
-            .HasMany(s => s.Turns)
+        builder.Entity<MockInterview>()
+            .HasMany(i => i.Turns)
             .WithOne()
-            .HasForeignKey(t => t.InterviewSessionId)
+            .HasForeignKey(t => t.MockInterviewId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<MockInterview>().HasIndex(i => new { i.StudentProfileId, i.CreatedAt });
 
         builder.Entity<CareerRole>()
             .HasMany(r => r.Requirements)

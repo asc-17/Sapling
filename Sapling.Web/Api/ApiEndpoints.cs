@@ -1,4 +1,5 @@
 using Sapling.Shared.Contracts;
+using Sapling.Web.Ai;
 using Sapling.Web.Services;
 
 namespace Sapling.Web.Api;
@@ -63,13 +64,50 @@ public static class ApiEndpoints
             s.TailorAsync(opportunityId, ct));
 
         var interview = api.MapGroup("/interview");
-        interview.MapGet("/", (IInterviewService s, CancellationToken ct) => s.GetSessionsAsync(ct));
-        interview.MapPost("/", (StartInterviewRequest r, IInterviewService s, CancellationToken ct) => s.StartAsync(r, ct));
+        interview.MapGet("/", (IInterviewService s, CancellationToken ct) => s.GetHistoryAsync(ct));
+        interview.MapPost("/", (CreateInterviewRequest r, IInterviewService s, CancellationToken ct) =>
+            Guard(() => s.CreateAsync(r, ct)));
         interview.MapGet("/{id:int}", async (int id, IInterviewService s, CancellationToken ct) =>
             await s.GetAsync(id, ct) is { } dto ? Results.Ok(dto) : Results.NotFound());
-        interview.MapPost("/{id:int}/answer", (int id, AnswerInterviewRequest r, IInterviewService s, CancellationToken ct) =>
-            s.AnswerAsync(id, r, ct));
-        interview.MapPost("/{id:int}/finish", (int id, IInterviewService s, CancellationToken ct) => s.FinishAsync(id, ct));
+        interview.MapPost("/{id:int}/resume", async (int id, IFormFile file, IInterviewService s, CancellationToken ct) =>
+        {
+            using var buffer = new MemoryStream();
+            await file.OpenReadStream().CopyToAsync(buffer, ct);
+            return await Guard(() => s.AttachResumeAsync(id, file.FileName, buffer.ToArray(), ct));
+        }).DisableAntiforgery();
+        interview.MapPost("/{id:int}/resume/skip", (int id, IInterviewService s, CancellationToken ct) =>
+            Guard(() => s.SkipResumeAsync(id, ct)));
+        interview.MapPost("/{id:int}/begin", (int id, IInterviewService s, CancellationToken ct) =>
+            Guard(() => s.BeginAsync(id, ct)));
+        interview.MapPost("/{id:int}/answer", (int id, SubmitAnswerRequest r, IInterviewService s, CancellationToken ct) =>
+            Guard(() => s.AnswerAsync(id, r, ct)));
+        interview.MapPost("/{id:int}/finish", (int id, IInterviewService s, CancellationToken ct) =>
+            Guard(() => s.FinishAsync(id, ct)));
+        // Natural-voice audio for one of this interview's questions (order 0 is a short preview line).
+        // Only the interview's own lines can be spoken, so this can't be used as a general text-to-speech proxy.
+        interview.MapGet("/{id:int}/voice/{order:int}", async (int id, int order, IInterviewService s, IInterviewVoice voice, CancellationToken ct) =>
+        {
+            if (!voice.Available || await s.GetAsync(id, ct) is not { } dto)
+            {
+                return Results.NotFound();
+            }
+
+            var text = order == 0
+                ? "Hi, I'm Priya. This is how I'll sound in your interview."
+                : dto.Turns.FirstOrDefault(t => t.Order == order && t.Speaker == "Interviewer")?.Text;
+            if (text is null)
+            {
+                return Results.NotFound();
+            }
+
+            var audio = await voice.SpeakAsync(text, ct);
+            return audio is null ? Results.StatusCode(502) : Results.File(audio, "audio/mpeg");
+        });
+        interview.MapDelete("/{id:int}", async (int id, IInterviewService s, CancellationToken ct) =>
+        {
+            await s.DeleteAsync(id, ct);
+            return Results.NoContent();
+        });
 
         var govt = api.MapGroup("/govt");
         govt.MapGet("/", (IGovtService s, CancellationToken ct) => s.GetExamsAsync(ct));
@@ -100,5 +138,18 @@ public static class ApiEndpoints
         });
         community.MapDelete("/{id:int}/comments/{commentId:int}", (int id, int commentId, ICommunityService s, CancellationToken ct) =>
             s.DeleteCommentAsync(id, commentId, ct));
+    }
+
+    /// <summary>Interview problems carry a message meant for the student; retryable ones (AI quota) map to 503.</summary>
+    private static async Task<IResult> Guard<T>(Func<Task<T>> action)
+    {
+        try
+        {
+            return Results.Ok(await action());
+        }
+        catch (InterviewProblemException e)
+        {
+            return Results.Problem(detail: e.Message, statusCode: e.Retryable ? 503 : 400);
+        }
     }
 }

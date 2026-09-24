@@ -198,37 +198,117 @@ public sealed record ResumeDto(
     IReadOnlyList<ResumeSuggestionDto> Suggestions,
     IReadOnlyList<string> Sections);
 
+public sealed record InterviewSummaryDto(
+    int Id,
+    string RoleTitle,
+    string Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? StartedAt,
+    DateTimeOffset? EndedAt,
+    int? OverallScore,
+    int QuestionsAsked,
+    bool HasResume,
+    int TargetMinutes,
+    int ActiveSeconds);
+
 public sealed record InterviewTurnDto(
     int Id,
-    string Role,
+    int Order,
+    string Speaker,
+    string Phase,
     string Text,
-    DateTimeOffset At);
+    DateTimeOffset At,
+    int ResponseDelayMs,
+    int SpeakingMs,
+    int LongPauses,
+    int LongestPauseMs,
+    int WordCount,
+    int FillerCount,
+    bool Typed,
+    int? AssessmentScore,
+    string? AssessmentNote);
 
-public sealed record InterviewRubricDto(
-    string Name,
-    int Score,
-    string Comment);
-
-public sealed record InterviewFeedbackDto(
-    int Overall,
-    IReadOnlyList<InterviewRubricDto> Rubrics,
-    IReadOnlyList<string> Strengths,
-    IReadOnlyList<string> Improvements);
-
-public sealed record InterviewSessionDto(
+/// <summary>ActiveSeconds counts time spent in the interview, leaving out long gaps such as leaving and coming back.</summary>
+public sealed record InterviewDto(
     int Id,
-    string TargetRole,
-    string Kind,
+    int? CareerRoleId,
+    string RoleTitle,
+    string Instructions,
     string Status,
+    string Phase,
+    int TargetMinutes,
+    int ActiveSeconds,
+    bool NaturalVoice,
     int QuestionsAsked,
-    int QuestionLimit,
-    DateTimeOffset StartedAt,
+    bool HasResume,
+    string? ResumeFileName,
+    int ResumeChars,
+    string? ResumeWarning,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? StartedAt,
+    DateTimeOffset? EndedAt,
     IReadOnlyList<InterviewTurnDto> Turns,
-    InterviewFeedbackDto? Feedback);
+    InterviewReportDto? Report);
 
-public sealed record StartInterviewRequest(string TargetRole, string Kind);
+/// <summary>TargetMinutes is 10 (short), 20 (medium) or 30 (long).</summary>
+public sealed record CreateInterviewRequest(int? CareerRoleId, string RoleTitle, string Instructions, int TargetMinutes = 20);
 
-public sealed record AnswerInterviewRequest(string Answer);
+/// <summary>Delivery measurements for one spoken answer, taken in the browser.</summary>
+public sealed record AnswerMetricsDto(
+    int ResponseDelayMs,
+    int SpeakingMs,
+    int LongPauses,
+    int LongestPauseMs,
+    int WordCount,
+    int FillerCount,
+    bool Typed);
+
+public sealed record SubmitAnswerRequest(string Text, AnswerMetricsDto Metrics);
+
+/// <summary>What the interviewer says next. Done means this line closes the interview.</summary>
+public sealed record InterviewerLineDto(
+    string Say,
+    string Phase,
+    bool Done,
+    int TurnOrder,
+    int QuestionsAsked,
+    int ActiveSeconds,
+    int TargetMinutes);
+
+public sealed record AreaScoreDto(string Area, int Score, string Comment);
+
+public sealed record QuestionFeedbackDto(
+    int TurnOrder,
+    string Question,
+    string AnswerSummary,
+    int Score,
+    string WhatWorked,
+    string WhatToFix,
+    bool GotStuck);
+
+public sealed record DeliveryStatsDto(
+    int Answers,
+    int AverageResponseDelayMs,
+    int TotalLongPauses,
+    int LongestPauseMs,
+    double WordsPerMinute,
+    int FillerCount,
+    double FillersPerMinute,
+    int TotalSpeakingSeconds,
+    int TypedAnswers,
+    int ConfidenceScore);
+
+public sealed record InterviewReportDto(
+    int Overall,
+    string Summary,
+    string ConfidenceLevel,
+    IReadOnlyList<AreaScoreDto> Areas,
+    IReadOnlyList<string> Strengths,
+    IReadOnlyList<string> StuckPoints,
+    IReadOnlyList<string> TopicsToImprove,
+    IReadOnlyList<QuestionFeedbackDto> Questions,
+    IReadOnlyList<string> NextSteps,
+    DeliveryStatsDto Delivery);
 
 public sealed record GovtExamDto(
     int Id,

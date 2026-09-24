@@ -184,20 +184,59 @@ public sealed class HttpInterviewService(IHttpClientFactory factory) : IIntervie
 {
     private HttpClient Client => factory.CreateClient(SaplingApi.Authenticated);
 
-    public async Task<IReadOnlyList<InterviewSessionDto>> GetSessionsAsync(CancellationToken ct = default) =>
-        await Client.GetJsonAsync<List<InterviewSessionDto>>("api/interview", ct);
+    public async Task<IReadOnlyList<InterviewSummaryDto>> GetHistoryAsync(CancellationToken ct = default) =>
+        await Client.GetJsonAsync<List<InterviewSummaryDto>>("api/interview", ct);
 
-    public Task<InterviewSessionDto> StartAsync(StartInterviewRequest request, CancellationToken ct = default) =>
-        Client.PostJsonAsync<InterviewSessionDto>("api/interview", request, ct);
+    public Task<InterviewDto?> GetAsync(int id, CancellationToken ct = default) =>
+        Client.GetJsonOrNullAsync<InterviewDto>($"api/interview/{id}", ct);
 
-    public Task<InterviewSessionDto?> GetAsync(int id, CancellationToken ct = default) =>
-        Client.GetJsonOrNullAsync<InterviewSessionDto>($"api/interview/{id}", ct);
+    public Task<InterviewDto> CreateAsync(CreateInterviewRequest request, CancellationToken ct = default) =>
+        SendAsync<InterviewDto>(HttpMethod.Post, "api/interview", JsonContent.Create(request), ct);
 
-    public Task<InterviewSessionDto> AnswerAsync(int id, AnswerInterviewRequest request, CancellationToken ct = default) =>
-        Client.PostJsonAsync<InterviewSessionDto>($"api/interview/{id}/answer", request, ct);
+    public Task<InterviewDto> AttachResumeAsync(int id, string fileName, byte[] pdfBytes, CancellationToken ct = default)
+    {
+        var file = new ByteArrayContent(pdfBytes);
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        var form = new MultipartFormDataContent { { file, "file", fileName } };
+        return SendAsync<InterviewDto>(HttpMethod.Post, $"api/interview/{id}/resume", form, ct);
+    }
 
-    public Task<InterviewSessionDto> FinishAsync(int id, CancellationToken ct = default) =>
-        Client.PostJsonAsync<InterviewSessionDto>($"api/interview/{id}/finish", null, ct);
+    public Task<InterviewDto> SkipResumeAsync(int id, CancellationToken ct = default) =>
+        SendAsync<InterviewDto>(HttpMethod.Post, $"api/interview/{id}/resume/skip", null, ct);
+
+    public Task<InterviewerLineDto> BeginAsync(int id, CancellationToken ct = default) =>
+        SendAsync<InterviewerLineDto>(HttpMethod.Post, $"api/interview/{id}/begin", null, ct);
+
+    public Task<InterviewerLineDto> AnswerAsync(int id, SubmitAnswerRequest request, CancellationToken ct = default) =>
+        SendAsync<InterviewerLineDto>(HttpMethod.Post, $"api/interview/{id}/answer", JsonContent.Create(request), ct);
+
+    public Task<InterviewDto> FinishAsync(int id, CancellationToken ct = default) =>
+        SendAsync<InterviewDto>(HttpMethod.Post, $"api/interview/{id}/finish", null, ct);
+
+    public async Task DeleteAsync(int id, CancellationToken ct = default) =>
+        (await Client.DeleteAsync($"api/interview/{id}", ct)).EnsureSuccessStatusCode();
+
+    /// <summary>Turns the server's problem details back into the same exception the web head throws.</summary>
+    private async Task<T> SendAsync<T>(HttpMethod method, string url, HttpContent? body, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(method, url) { Content = body };
+        var response = await Client.SendAsync(request, ct);
+        if (response.IsSuccessStatusCode)
+        {
+            return (await response.Content.ReadFromJsonAsync<T>(ct))!;
+        }
+
+        if ((int)response.StatusCode is 400 or 503)
+        {
+            var problem = await response.Content.ReadFromJsonAsync<ProblemBody>(ct);
+            throw new InterviewProblemException(problem?.Detail ?? "Something went wrong.", (int)response.StatusCode == 503);
+        }
+
+        response.EnsureSuccessStatusCode();
+        return default!;
+    }
+
+    private sealed record ProblemBody(string? Detail);
 }
 
 public sealed class HttpGovtService(IHttpClientFactory factory) : IGovtService

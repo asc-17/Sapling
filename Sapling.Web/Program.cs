@@ -1,5 +1,6 @@
-using Anthropic.SDK;
+using System.ClientModel;
 using Azure.Communication.Email;
+using OpenAI;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
@@ -69,16 +70,39 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 
-var anthropicKey = builder.Configuration["Ai:Anthropic:ApiKey"];
-if (!string.IsNullOrWhiteSpace(anthropicKey))
+// Hugging Face Inference Providers exposes an OpenAI-compatible router, so the OpenAI client is pointed at it.
+var hfKey = builder.Configuration["Ai:HuggingFace:ApiKey"];
+var hfModel = builder.Configuration["Ai:HuggingFace:Model"] ?? "openai/gpt-oss-120b";
+if (!string.IsNullOrWhiteSpace(hfKey))
 {
-    var model = builder.Configuration["Ai:Anthropic:Model"] ?? "claude-sonnet-4-5-20250929";
-    builder.Services.AddChatClient(new AnthropicClient(anthropicKey).Messages)
-        .ConfigureOptions(options => options.ModelId ??= model);
+    var endpoint = new Uri(builder.Configuration["Ai:HuggingFace:Endpoint"] ?? "https://router.huggingface.co/v1");
+    var openAi = new OpenAIClient(new ApiKeyCredential(hfKey), new OpenAIClientOptions { Endpoint = endpoint });
+    builder.Services.AddChatClient(openAi.GetChatClient(hfModel).AsIChatClient());
 }
 else
 {
     builder.Services.AddSingleton<IChatClient, ScriptedChatClient>();
+}
+
+builder.Services.AddSingleton<IPdfTextExtractor, PdfTextExtractor>();
+
+// Optional natural voice for the interviewer; without it the browser's own voices are used.
+var speechKey = builder.Configuration["Speech:Azure:Key"];
+var speechRegion = builder.Configuration["Speech:Azure:Region"];
+if (!string.IsNullOrWhiteSpace(speechKey) && !string.IsNullOrWhiteSpace(speechRegion))
+{
+    builder.Services.AddHttpClient("azure-speech", client => client.Timeout = TimeSpan.FromSeconds(15));
+    builder.Services.AddSingleton<IInterviewVoice>(sp => new AzureSpeechVoice(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        sp.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>(),
+        sp.GetRequiredService<ILogger<AzureSpeechVoice>>(),
+        speechKey,
+        speechRegion,
+        builder.Configuration["Speech:Azure:Voice"] ?? AzureSpeechVoice.DefaultVoice));
+}
+else
+{
+    builder.Services.AddSingleton<IInterviewVoice, BrowserOnlyVoice>();
 }
 
 builder.Services.AddSingleton(CareerCatalogueFile.Load());
@@ -125,6 +149,15 @@ if (string.IsNullOrWhiteSpace(googleClientId) != string.IsNullOrWhiteSpace(googl
     app.Logger.LogWarning(
         "Google sign-in is off: set both Authentication:Google:ClientId and Authentication:Google:ClientSecret ({Missing} is missing).",
         string.IsNullOrWhiteSpace(googleClientId) ? "ClientId" : "ClientSecret");
+}
+
+if (string.IsNullOrWhiteSpace(hfKey))
+{
+    app.Logger.LogInformation("AI: Ai:HuggingFace:ApiKey is not set, so the scripted offline interviewer is used.");
+}
+else
+{
+    app.Logger.LogInformation("AI: Hugging Face Inference Providers, model {Model}.", hfModel);
 }
 
 // Pre-initialize in-memory college catalog

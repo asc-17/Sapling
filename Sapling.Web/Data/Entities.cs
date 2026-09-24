@@ -48,7 +48,7 @@ public class StudentProfile
 
     public List<ResumeSuggestion> ResumeSuggestions { get; set; } = [];
 
-    public List<InterviewSession> InterviewSessions { get; set; } = [];
+    public List<MockInterview> MockInterviews { get; set; } = [];
 
     public int AtsScore { get; set; }
 
@@ -310,44 +310,84 @@ public class ResumeSuggestion
     public int Order { get; set; }
 }
 
-public class InterviewSession
+public class MockInterview
 {
     public int Id { get; set; }
 
     public int StudentProfileId { get; set; }
 
-    public string TargetRole { get; set; } = "";
+    public int? CareerRoleId { get; set; }
 
-    public string Kind { get; set; } = "Technical";
+    public string RoleTitle { get; set; } = "";
 
-    public string Status { get; set; } = "Active";
+    public string Instructions { get; set; } = "";
 
-    public int QuestionLimit { get; set; } = 5;
+    public string? ResumeText { get; set; }
 
-    public DateTimeOffset StartedAt { get; set; } = DateTimeOffset.UtcNow;
+    public string? ResumeFileName { get; set; }
 
-    public List<InterviewTurn> Turns { get; set; } = [];
+    /// <summary>Setup | Ready | Live | Analysing | Complete</summary>
+    public string Status { get; set; } = "Setup";
+
+    /// <summary>Intro | Background | Technical | Behavioural | Closing</summary>
+    public string Phase { get; set; } = "Intro";
+
+    /// <summary>Hard cap on interviewer turns, a safety net behind the time target.</summary>
+    public int QuestionLimit { get; set; } = 20;
+
+    /// <summary>Planned length (10, 20 or 30). The interviewer may run shorter or longer as the interview goes.</summary>
+    public int TargetMinutes { get; set; } = 20;
+
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public DateTimeOffset? StartedAt { get; set; }
+
+    public DateTimeOffset? EndedAt { get; set; }
+
+    /// <summary>The finished report, serialised InterviewReportDto. Written once, always read whole.</summary>
+    public string? ReportJson { get; set; }
 
     public int? OverallScore { get; set; }
 
-    public string? Rubrics { get; set; }
-
-    public string? Strengths { get; set; }
-
-    public string? Improvements { get; set; }
+    public List<MockInterviewTurn> Turns { get; set; } = [];
 }
 
-public class InterviewTurn
+public class MockInterviewTurn
 {
     public int Id { get; set; }
 
-    public int InterviewSessionId { get; set; }
+    public int MockInterviewId { get; set; }
 
-    public string Role { get; set; } = "Interviewer";
+    public int Order { get; set; }
+
+    /// <summary>Interviewer | Candidate</summary>
+    public string Speaker { get; set; } = "Interviewer";
+
+    public string Phase { get; set; } = "Intro";
 
     public string Text { get; set; } = "";
 
     public DateTimeOffset At { get; set; } = DateTimeOffset.UtcNow;
+
+    // Delivery measurements for candidate turns, taken in the browser.
+    public int ResponseDelayMs { get; set; }
+
+    public int SpeakingMs { get; set; }
+
+    public int LongPauses { get; set; }
+
+    public int LongestPauseMs { get; set; }
+
+    public int WordCount { get; set; }
+
+    public int FillerCount { get; set; }
+
+    public bool Typed { get; set; }
+
+    // The interviewer's private judgement of this answer, made when it chose the next question.
+    public int? AssessmentScore { get; set; }
+
+    public string? AssessmentNote { get; set; }
 }
 
 public class GovtExam

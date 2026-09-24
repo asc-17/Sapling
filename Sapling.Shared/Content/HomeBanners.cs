@@ -30,8 +30,8 @@ public static class HomeBanners
             Dir + "community.svg", "/community", "Open community"),
 
         new("Practise a mock interview",
-            "Adaptive follow-ups and a scored rubric, in under fifteen minutes.",
-            Dir + "interview.svg", "/interview", "Start a session"),
+            "Speak with an AI interviewer for fifteen minutes, then see where you got stuck.",
+            Dir + "interview.svg", "/interview", "Start an interview"),
 
         new("Tailor your resume to a role",
             "One click regenerates your resume for the job description you pick.",

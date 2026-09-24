@@ -80,15 +80,28 @@ public interface IResumeService
 
 public interface IInterviewService
 {
-    Task<IReadOnlyList<InterviewSessionDto>> GetSessionsAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<InterviewSummaryDto>> GetHistoryAsync(CancellationToken ct = default);
 
-    Task<InterviewSessionDto> StartAsync(StartInterviewRequest request, CancellationToken ct = default);
+    Task<InterviewDto?> GetAsync(int id, CancellationToken ct = default);
 
-    Task<InterviewSessionDto?> GetAsync(int id, CancellationToken ct = default);
+    Task<InterviewDto> CreateAsync(CreateInterviewRequest request, CancellationToken ct = default);
 
-    Task<InterviewSessionDto> AnswerAsync(int id, AnswerInterviewRequest request, CancellationToken ct = default);
+    Task<InterviewDto> AttachResumeAsync(int id, string fileName, byte[] pdfBytes, CancellationToken ct = default);
 
-    Task<InterviewSessionDto> FinishAsync(int id, CancellationToken ct = default);
+    /// <summary>Continues without a resume, removing one already uploaded.</summary>
+    Task<InterviewDto> SkipResumeAsync(int id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Starts the interview, or resumes one that is already live: returns the pending interviewer line,
+    /// or generates the next one when the last saved turn is an answer.
+    /// </summary>
+    Task<InterviewerLineDto> BeginAsync(int id, CancellationToken ct = default);
+
+    Task<InterviewerLineDto> AnswerAsync(int id, SubmitAnswerRequest request, CancellationToken ct = default);
+
+    Task<InterviewDto> FinishAsync(int id, CancellationToken ct = default);
+
+    Task DeleteAsync(int id, CancellationToken ct = default);
 }
 
 public interface IGovtService
@@ -119,4 +132,10 @@ public interface ICommunityService
     Task<IReadOnlyList<CommunityCommentDto>> AddCommentAsync(int postId, AddCommentRequest request, CancellationToken ct = default);
 
     Task<IReadOnlyList<CommunityCommentDto>> DeleteCommentAsync(int postId, int commentId, CancellationToken ct = default);
+}
+
+/// <summary>A problem the student should see as written, such as an unreadable upload or the AI being out of credit.</summary>
+public sealed class InterviewProblemException(string message, bool retryable = false) : Exception(message)
+{
+    public bool Retryable { get; } = retryable;
 }

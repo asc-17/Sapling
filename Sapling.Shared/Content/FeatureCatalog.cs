@@ -40,7 +40,7 @@ public static class FeatureCatalog
             "file-text", "/resume"),
 
         new(Interview, "Mock interview", "Practise before it counts.",
-            "Role-specific technical, HR and aptitude interviews that probe with follow-up questions and score you on content, structure and communication.",
+            "A spoken interview for your target role with an AI interviewer who asks about your resume and follows up, then a detailed report on your answers, pauses and confidence.",
             "mic", "/interview"),
 
         new(GovtTrack, "Government track", "Exams you are actually eligible for.",

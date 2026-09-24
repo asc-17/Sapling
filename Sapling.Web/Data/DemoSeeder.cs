@@ -43,6 +43,7 @@ public static class DemoSeeder
         await EnsureCollegesSeededAsync(db);
 
         await EnsureCommunitySchemaAsync(db);
+        await EnsureInterviewSchemaAsync(db);
 
         // The first placeholder set was a shared cross-college feed; communities are now private per college.
         if (await db.Institutions.AnyAsync(i => i.Name == "Narmada Skills Academy"))
@@ -220,6 +221,77 @@ public static class DemoSeeder
             await db.Database.ExecuteSqlRawAsync("""ALTER TABLE "CommunityPosts" ADD COLUMN "ImageUrl" TEXT NULL;""");
         }
     }
+
+    /// <summary>
+    /// The voice interview replaced the text chat, so its old tables are dropped and the new ones created for
+    /// databases that EnsureCreated has already built.
+    /// </summary>
+    private static async Task EnsureInterviewSchemaAsync(SaplingDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync(InterviewTablesSql);
+
+        // Added after the first voice-interview build, so tables created by it lack them.
+        if (!(await ColumnsAsync(db, "MockInterviews")).Contains("TargetMinutes"))
+        {
+            await db.Database.ExecuteSqlRawAsync("""ALTER TABLE "MockInterviews" ADD COLUMN "TargetMinutes" INTEGER NOT NULL DEFAULT 20;""");
+        }
+
+        var turnColumns = await ColumnsAsync(db, "MockInterviewTurns");
+        if (!turnColumns.Contains("AssessmentScore"))
+        {
+            await db.Database.ExecuteSqlRawAsync("""ALTER TABLE "MockInterviewTurns" ADD COLUMN "AssessmentScore" INTEGER NULL;""");
+        }
+
+        if (!turnColumns.Contains("AssessmentNote"))
+        {
+            await db.Database.ExecuteSqlRawAsync("""ALTER TABLE "MockInterviewTurns" ADD COLUMN "AssessmentNote" TEXT NULL;""");
+        }
+    }
+
+    private const string InterviewTablesSql = """
+            DROP TABLE IF EXISTS "InterviewTurns";
+            DROP TABLE IF EXISTS "InterviewSessions";
+            CREATE TABLE IF NOT EXISTS "MockInterviews" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_MockInterviews" PRIMARY KEY AUTOINCREMENT,
+                "StudentProfileId" INTEGER NOT NULL,
+                "CareerRoleId" INTEGER NULL,
+                "RoleTitle" TEXT NOT NULL,
+                "Instructions" TEXT NOT NULL,
+                "ResumeText" TEXT NULL,
+                "ResumeFileName" TEXT NULL,
+                "Status" TEXT NOT NULL,
+                "Phase" TEXT NOT NULL,
+                "QuestionLimit" INTEGER NOT NULL,
+                "TargetMinutes" INTEGER NOT NULL DEFAULT 20,
+                "CreatedAt" TEXT NOT NULL,
+                "StartedAt" TEXT NULL,
+                "EndedAt" TEXT NULL,
+                "ReportJson" TEXT NULL,
+                "OverallScore" INTEGER NULL,
+                CONSTRAINT "FK_MockInterviews_StudentProfiles_StudentProfileId" FOREIGN KEY ("StudentProfileId") REFERENCES "StudentProfiles" ("Id") ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS "IX_MockInterviews_StudentProfileId_CreatedAt" ON "MockInterviews" ("StudentProfileId", "CreatedAt");
+            CREATE TABLE IF NOT EXISTS "MockInterviewTurns" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_MockInterviewTurns" PRIMARY KEY AUTOINCREMENT,
+                "MockInterviewId" INTEGER NOT NULL,
+                "Order" INTEGER NOT NULL,
+                "Speaker" TEXT NOT NULL,
+                "Phase" TEXT NOT NULL,
+                "Text" TEXT NOT NULL,
+                "At" TEXT NOT NULL,
+                "ResponseDelayMs" INTEGER NOT NULL,
+                "SpeakingMs" INTEGER NOT NULL,
+                "LongPauses" INTEGER NOT NULL,
+                "LongestPauseMs" INTEGER NOT NULL,
+                "WordCount" INTEGER NOT NULL,
+                "FillerCount" INTEGER NOT NULL,
+                "Typed" INTEGER NOT NULL,
+                "AssessmentScore" INTEGER NULL,
+                "AssessmentNote" TEXT NULL,
+                CONSTRAINT "FK_MockInterviewTurns_MockInterviews_MockInterviewId" FOREIGN KEY ("MockInterviewId") REFERENCES "MockInterviews" ("Id") ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS "IX_MockInterviewTurns_MockInterviewId" ON "MockInterviewTurns" ("MockInterviewId");
+            """;
 
     private const string CommunityTablesSql = """
         CREATE TABLE IF NOT EXISTS "Institutions" (
