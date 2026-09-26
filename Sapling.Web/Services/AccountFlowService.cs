@@ -145,6 +145,12 @@ public sealed class AccountFlowService(
 
         cache.Remove(TicketKey(CodePurposes.ResetPassword, address));
 
+        // A deactivated account keeps its block: clearing the lockout below would otherwise undo an admin's decision.
+        if (AccountStatus.IsDeactivated(user))
+        {
+            return (null, AccountFlowResult.Fail("This account has been deactivated. Contact your administrator."));
+        }
+
         // Proving control of the inbox is enough to clear a lockout from earlier wrong passwords.
         await users.ResetAccessFailedCountAsync(user);
         await users.SetLockoutEndDateAsync(user, null);

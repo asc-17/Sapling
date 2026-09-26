@@ -28,16 +28,17 @@ public static class AccountEndpoints
                     new AccountError("This endpoint is retired. Use /api/account instead."), statusCode: StatusCodes.Status410Gone);
             }
 
-            // The institute head is web-only, so bearer sign-in (the MAUI transport) must not hand one a session.
+            // The institute and admin heads are web-only, so bearer sign-in (the MAUI transport) must not hand them a session.
             if (path.Equals("/api/identity/login", StringComparison.OrdinalIgnoreCase)
                 && context.Arguments.OfType<IdentityLoginRequest>().FirstOrDefault() is { Email: var email }
                 && !string.IsNullOrWhiteSpace(email))
             {
                 var users = context.HttpContext.RequestServices.GetRequiredService<UserManager<AppUser>>();
-                if (await users.FindByEmailAsync(AccountFlowService.Clean(email)) is { AccountType: AccountTypes.Institution })
+                if (await users.FindByEmailAsync(AccountFlowService.Clean(email)) is { } user
+                    && user.AccountType != AccountTypes.Student)
                 {
                     return Results.Json(
-                        new AccountError("Institute accounts sign in on the Sapling website."), statusCode: StatusCodes.Status403Forbidden);
+                        new AccountError("This account signs in on the Sapling website."), statusCode: StatusCodes.Status403Forbidden);
                 }
             }
 

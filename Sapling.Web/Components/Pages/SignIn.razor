@@ -7,6 +7,7 @@
 @using Microsoft.AspNetCore.Identity
 @using Sapling.Web.Data
 @inject SignInManager<AppUser> SignInManager
+@inject UserManager<AppUser> UserManager
 @inject NavigationManager Nav
 
 <PageTitle>Sign in · Sapling</PageTitle>
@@ -86,13 +87,25 @@
         var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: true, lockoutOnFailure: false);
         if (!result.Succeeded)
         {
-            _error = result.IsLockedOut
-                ? "Too many attempts. Try again in a few minutes."
-                : "That email and password combination did not match.";
+            var user = await UserManager.FindByEmailAsync(Input.Email);
+            _error = result.IsLockedOut && user is not null && AccountStatus.IsDeactivated(user)
+                ? "This account has been deactivated. Contact your administrator."
+                : result.IsLockedOut
+                    ? "Too many attempts. Try again in a few minutes."
+                    : "That email and password combination did not match.";
             return;
         }
 
-        Nav.NavigateTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "/home" : ReturnUrl);
+        // Institutes and admins have their own shells, and no student profile to land on.
+        var account = await UserManager.FindByEmailAsync(Input.Email);
+        var shell = account?.AccountType switch
+        {
+            AccountTypes.Institution => "/institute",
+            AccountTypes.Admin => "/admin",
+            _ => null,
+        };
+
+        Nav.NavigateTo(shell ?? (string.IsNullOrWhiteSpace(ReturnUrl) ? "/home" : ReturnUrl));
     }
 
     private sealed class SignInInput

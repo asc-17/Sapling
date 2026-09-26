@@ -77,9 +77,11 @@
         var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: true, lockoutOnFailure: false);
         if (!result.Succeeded)
         {
-            _error = result.IsLockedOut
-                ? "Too many attempts. Try again in a few minutes."
-                : "That email and password combination did not match.";
+            _error = result.IsLockedOut && user is not null && AccountStatus.IsDeactivated(user)
+                ? "This account has been deactivated. Contact your administrator."
+                : result.IsLockedOut
+                    ? "Too many attempts. Try again in a few minutes."
+                    : "That email and password combination did not match.";
             return;
         }
 

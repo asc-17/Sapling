@@ -28,11 +28,18 @@ else
             return;
         }
 
-        // An institute account has no student profile, so every page in this shell would fail for it.
+        // Neither an institute nor an admin has a student profile, so every page in this shell would fail for them.
         var state = await AuthState.GetAuthenticationStateAsync();
-        if (state.User.FindFirst("account_type")?.Value == "institution")
+        var shell = state.User.FindFirst("account_type")?.Value switch
         {
-            Nav.NavigateTo("/institute", replace: true);
+            "institution" => "/institute",
+            "admin" => "/admin",
+            _ => null,
+        };
+
+        if (shell is not null)
+        {
+            Nav.NavigateTo(shell, replace: true);
         }
     }
 }

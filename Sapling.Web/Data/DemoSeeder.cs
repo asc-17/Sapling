@@ -8,6 +8,7 @@ public static class DemoSeeder
 {
     public const string DemoEmail = "demo@sapling.app";
     public const string DemoInstituteEmail = "institute@sapling.app";
+    public const string DemoAdminEmail = "admin@sapling.app";
     public const string DemoPassword = "Sapling@2026";
 
     /// <summary>The demo institute owns this college, which is also the demo student's.</summary>
@@ -70,6 +71,27 @@ public static class DemoSeeder
         }
 
         await SeedDemoInstituteAsync(db, users);
+        await SeedFirstAdminAsync(users);
+    }
+
+    /// <summary>Without this there is no way into the admin head, since admins are never self-registered.</summary>
+    private static async Task SeedFirstAdminAsync(UserManager<AppUser> users)
+    {
+        if (await users.FindByEmailAsync(DemoAdminEmail) is not null)
+        {
+            return;
+        }
+
+        var admin = new AppUser
+        {
+            UserName = DemoAdminEmail,
+            Email = DemoAdminEmail,
+            EmailConfirmed = true,
+            FullName = "Sapling Admin",
+            AccountType = AccountTypes.Admin,
+        };
+
+        await users.CreateAsync(admin, DemoPassword);
     }
 
     /// <summary>Gives the seeded demo college a sign-in so the institute head can be tried out.</summary>
@@ -316,6 +338,11 @@ public static class DemoSeeder
         {
             await db.Database.ExecuteSqlRawAsync("""ALTER TABLE "AspNetUsers" ADD COLUMN "AccountType" TEXT NOT NULL DEFAULT 'student';""");
         }
+
+        if (!userColumns.Contains("CreatedAtUtc"))
+        {
+            await db.Database.ExecuteSqlRawAsync("""ALTER TABLE "AspNetUsers" ADD COLUMN "CreatedAtUtc" TEXT NOT NULL DEFAULT '0001-01-01 00:00:00';""");
+        }
     }
 
     /// <summary>EnsureCreated skips databases that already exist, so community tables are added here for older demo DBs.</summary>
@@ -348,7 +375,10 @@ public static class DemoSeeder
             var existing = table == "CommunityPosts" ? postColumns : institutionColumns;
             if (!existing.Contains(name))
             {
+                // Identifiers cannot be parameterised in DDL; every value here is a constant from the list above.
+#pragma warning disable EF1002
                 await db.Database.ExecuteSqlRawAsync($"""ALTER TABLE "{table}" ADD COLUMN "{name}" {sql};""");
+#pragma warning restore EF1002
             }
         }
 

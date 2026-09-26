@@ -93,12 +93,17 @@ public static class ExternalAuthEndpoints
             return Results.Redirect(FailureUrl(isMobile, error!));
         }
 
-        var isInstitute = user.AccountType == AccountTypes.Institution;
+        var shell = user.AccountType switch
+        {
+            AccountTypes.Institution => "/institute",
+            AccountTypes.Admin => "/admin",
+            _ => null,
+        };
 
         if (isMobile)
         {
-            // The institute head is web-only, so the app must never receive a token for one.
-            if (isInstitute)
+            // The institute and admin heads are web-only, so the app must never receive a token for one.
+            if (shell is not null)
             {
                 return Results.Redirect(FailureUrl(true, "institute"));
             }
@@ -109,9 +114,9 @@ public static class ExternalAuthEndpoints
         }
 
         await signIn.SignInAsync(user, isPersistent: true);
-        if (isInstitute)
+        if (shell is not null)
         {
-            return Results.LocalRedirect("/institute");
+            return Results.LocalRedirect(shell);
         }
 
         return Results.LocalRedirect(isNew ? "/onboarding/about" : LocalOnly(returnUrl));

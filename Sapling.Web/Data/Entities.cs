@@ -9,6 +9,8 @@ public class AppUser : IdentityUser
     /// <summary>One of <see cref="AccountTypes"/>. Decides which shell the sign-in lands in.</summary>
     public string AccountType { get; set; } = AccountTypes.Student;
 
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
     public StudentProfile? Profile { get; set; }
 }
 
@@ -17,6 +19,24 @@ public static class AccountTypes
     public const string Student = "student";
 
     public const string Institution = "institution";
+
+    public const string Admin = "admin";
+}
+
+/// <summary>
+/// Deactivation reuses Identity's lockout, so every password path already refuses the account without extra checks.
+/// A far-future end date is the sentinel that tells an admin block apart from a temporary failed-attempt lockout.
+/// </summary>
+public static class AccountStatus
+{
+    public static readonly DateTimeOffset DeactivatedUntil = new(9999, 12, 31, 0, 0, 0, TimeSpan.Zero);
+
+    // Compared against a threshold rather than the exact value, since SQLite stores the date as text.
+    private static readonly DateTimeOffset Threshold = new(9990, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+    public static bool IsDeactivated(DateTimeOffset? lockoutEnd) => lockoutEnd >= Threshold;
+
+    public static bool IsDeactivated(AppUser user) => IsDeactivated(user.LockoutEnd);
 }
 
 public class StudentProfile

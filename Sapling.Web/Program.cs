@@ -17,6 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 const string BrowserUserPolicy = "BrowserUser";
 const string InstitutePolicy = "InstituteOnly";
+const string AdminPolicy = "AdminOnly";
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
@@ -49,7 +50,11 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(InstitutePolicy, policy => policy
         .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme)
         .RequireAuthenticatedUser()
-        .RequireClaim(AppUserClaimsPrincipalFactory.AccountTypeClaim, AccountTypes.Institution));
+        .RequireClaim(AppUserClaimsPrincipalFactory.AccountTypeClaim, AccountTypes.Institution))
+    .AddPolicy(AdminPolicy, policy => policy
+        .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme)
+        .RequireAuthenticatedUser()
+        .RequireClaim(AppUserClaimsPrincipalFactory.AccountTypeClaim, AccountTypes.Admin));
 
 // Registered only when configured, so a checkout without credentials still starts; the button then says so.
 var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
@@ -128,6 +133,7 @@ builder.Services.AddScoped<IQuizService, QuizService>();
 builder.Services.AddScoped<ICommunityService, CommunityService>();
 builder.Services.AddScoped<InstituteContext>();
 builder.Services.AddScoped<InstituteService>();
+builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AccountFlowService>();
 
 var azureEmailConnection = builder.Configuration["Email:Azure:ConnectionString"];

@@ -167,6 +167,31 @@ public static class ApiEndpoints
             await s.GetPostAsync(id, ct) is null ? Results.NotFound() : Results.Ok(await s.SetSavedAsync(id, saved, ct)));
 
         MapInstituteApi(app);
+        MapAdminApi(app);
+    }
+
+    /// <summary>Platform administration, web-only like the institute head.</summary>
+    private static void MapAdminApi(IEndpointRouteBuilder app)
+    {
+        var admin = app.MapGroup("/api/admin").RequireAuthorization("AdminOnly");
+
+        admin.MapGet("/dashboard", (AdminService s, CancellationToken ct) => s.GetDashboardAsync(ct));
+        admin.MapGet("/accounts/{accountType}", (string accountType, string? q, AdminService s, CancellationToken ct) =>
+            Problems(() => s.GetAccountsAsync(accountType, q, ct)));
+        admin.MapPost("/accounts", (CreateAccountRequest r, AdminService s, CancellationToken ct) =>
+            Problems(() => s.CreateAsync(r, ct)));
+        admin.MapPost("/accounts/{id}/deactivated/{deactivated:bool}", async (string id, bool deactivated, AdminService s, CancellationToken ct) =>
+            await Problems<object?>(async () =>
+            {
+                await s.SetDeactivatedAsync(id, deactivated, ct);
+                return null;
+            }));
+        admin.MapDelete("/accounts/{id}", async (string id, AdminService s, CancellationToken ct) =>
+            await Problems<object?>(async () =>
+            {
+                await s.DeleteAsync(id, ct);
+                return null;
+            }));
     }
 
     /// <summary>The institute head is web-only, so these are called in-process by its pages.</summary>
