@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sapling-web",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "Sapling.Web", "--launch-profile", "http"],
+      "port": 5250,
+      "url": "http://localhost:5250"
+    }
+  ]
+}

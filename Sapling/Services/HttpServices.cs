@@ -170,14 +170,68 @@ public sealed class HttpResumeService(IHttpClientFactory factory) : IResumeServi
 {
     private HttpClient Client => factory.CreateClient(SaplingApi.Authenticated);
 
-    public async Task<ResumeDto> GetAsync(CancellationToken ct = default) =>
-        (await Client.GetFromJsonAsync<ResumeDto>("api/resume", ct))!;
+    public async Task<IReadOnlyList<ResumeSummaryDto>> GetAllAsync(CancellationToken ct = default) =>
+        await Client.GetJsonAsync<List<ResumeSummaryDto>>("api/resumes", ct);
 
-    public Task<ResumeDto> SetSuggestionAcceptedAsync(int suggestionId, bool accepted, CancellationToken ct = default) =>
-        Client.PostJsonAsync<ResumeDto>($"api/resume/suggestions/{suggestionId}/{accepted.ToString().ToLowerInvariant()}", null, ct);
+    public Task<ResumeDto?> GetAsync(int id, CancellationToken ct = default) =>
+        Client.GetJsonOrNullAsync<ResumeDto>($"api/resumes/{id}", ct);
 
-    public Task<ResumeDto> TailorAsync(int opportunityId, CancellationToken ct = default) =>
-        Client.PostJsonAsync<ResumeDto>($"api/resume/tailor/{opportunityId}", null, ct);
+    public Task<ResumeDto> ImportPdfAsync(string fileName, byte[] pdfBytes, string template, CancellationToken ct = default)
+    {
+        var file = new ByteArrayContent(pdfBytes);
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        var form = new MultipartFormDataContent { { file, "file", fileName } };
+        return SendAsync<ResumeDto>(HttpMethod.Post, $"api/resumes/import?template={Uri.EscapeDataString(template)}", form, ct);
+    }
+
+    public Task<ResumeDataDto> GetStarterDataAsync(CancellationToken ct = default) =>
+        SendAsync<ResumeDataDto>(HttpMethod.Get, "api/resumes/starter", null, ct);
+
+    public Task<ResumeDataDto> DraftFromDescriptionAsync(DescribeYourselfRequest request, CancellationToken ct = default) =>
+        SendAsync<ResumeDataDto>(HttpMethod.Post, "api/resumes/draft", JsonContent.Create(request), ct);
+
+    public Task<ResumeDto> CreateFromDataAsync(CreateResumeRequest request, CancellationToken ct = default) =>
+        SendAsync<ResumeDto>(HttpMethod.Post, "api/resumes", JsonContent.Create(request), ct);
+
+    public Task<ResumeDto> SaveAsync(int id, SaveResumeRequest request, CancellationToken ct = default) =>
+        SendAsync<ResumeDto>(HttpMethod.Put, $"api/resumes/{id}", JsonContent.Create(request), ct);
+
+    public Task<ResumeDto> AnalyseAsync(int id, SaveResumeRequest request, CancellationToken ct = default) =>
+        SendAsync<ResumeDto>(HttpMethod.Post, $"api/resumes/{id}/analyse", JsonContent.Create(request), ct);
+
+    public Task<ResumeEditResultDto> EditAsync(int id, ResumeInstructionRequest request, CancellationToken ct = default) =>
+        SendAsync<ResumeEditResultDto>(HttpMethod.Post, $"api/resumes/{id}/edit", JsonContent.Create(request), ct);
+
+    public Task<ResumeEditResultDto> ApplySuggestionAsync(int id, int suggestionId, SaveResumeRequest request, CancellationToken ct = default) =>
+        SendAsync<ResumeEditResultDto>(HttpMethod.Post, $"api/resumes/{id}/suggestions/{suggestionId}/apply", JsonContent.Create(request), ct);
+
+    public Task<ResumeCompileResultDto> CompileAsync(string latex, CancellationToken ct = default) =>
+        SendAsync<ResumeCompileResultDto>(HttpMethod.Post, "api/resumes/compile", JsonContent.Create(new SaveResumeRequest(latex)), ct);
+
+    public async Task DeleteAsync(int id, CancellationToken ct = default) =>
+        (await Client.DeleteAsync($"api/resumes/{id}", ct)).EnsureSuccessStatusCode();
+
+    /// <summary>Turns the server's problem details back into the same exception the web head throws.</summary>
+    private async Task<T> SendAsync<T>(HttpMethod method, string url, HttpContent? body, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(method, url) { Content = body };
+        var response = await Client.SendAsync(request, ct);
+        if (response.IsSuccessStatusCode)
+        {
+            return (await response.Content.ReadFromJsonAsync<T>(ct))!;
+        }
+
+        if ((int)response.StatusCode is 400 or 503)
+        {
+            var problem = await response.Content.ReadFromJsonAsync<ProblemBody>(ct);
+            throw new ResumeProblemException(problem?.Detail ?? "Something went wrong.", (int)response.StatusCode == 503);
+        }
+
+        response.EnsureSuccessStatusCode();
+        return default!;
+    }
+
+    private sealed record ProblemBody(string? Detail);
 }
 
 public sealed class HttpInterviewService(IHttpClientFactory factory) : IInterviewService

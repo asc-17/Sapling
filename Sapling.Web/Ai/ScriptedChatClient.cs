@@ -87,6 +87,35 @@ public sealed partial class ScriptedChatClient : IChatClient
             return Report;
         }
 
+        if (prompt.Contains(Prompts.ResumeExtractTag, StringComparison.Ordinal)
+            || prompt.Contains(Prompts.ResumeDraftTag, StringComparison.Ordinal))
+        {
+            return ResumeData;
+        }
+
+        if (prompt.Contains(Prompts.ResumeAnalyseTag, StringComparison.Ordinal))
+        {
+            return ResumeAnalysis;
+        }
+
+        if (prompt.Contains(Prompts.ResumeEditTag, StringComparison.Ordinal))
+        {
+            var match = LatexBlock().Match(prompt);
+            var latex = match.Success ? match.Groups[1].Value : "";
+            const string marker = "\\begin{document}";
+            var at = latex.IndexOf(marker, StringComparison.Ordinal);
+            if (at >= 0 && !latex.Contains("% Scripted edit", StringComparison.Ordinal))
+            {
+                latex = latex.Insert(at + marker.Length, "\n% Scripted edit: no AI key is set, so nothing was changed.");
+            }
+
+            return JsonOutput.Serialize(new
+            {
+                latex,
+                note = "The offline scripted editor can't change your resume. Set Ai:HuggingFace:ApiKey to use AI edits.",
+            });
+        }
+
         if (prompt.Contains(Prompts.ExplainTag, StringComparison.Ordinal))
         {
             return "This came out ahead because your verified skills already cover most of what the role asks for, "
@@ -99,4 +128,48 @@ public sealed partial class ScriptedChatClient : IChatClient
 
     [GeneratedRegex(@"turns so far: (\d+)")]
     private static partial Regex TurnsSoFar();
+
+    [GeneratedRegex(@"<latex>\s*(.*?)\s*</latex>", RegexOptions.Singleline)]
+    private static partial Regex LatexBlock();
+
+    // Contact fields are left empty: the resume service fills name and email from the student's profile.
+    private const string ResumeData = """
+        {
+          "contact": {"fullName": "", "email": "", "phone": "", "location": "", "linkedIn": "", "gitHub": "", "website": ""},
+          "summary": "Sample content from the offline scripted assistant, because no AI key is set. Replace every line with your own details.",
+          "education": [{"institution": "Your college", "degree": "B.Tech", "field": "Computer Science & Engineering", "start": "2022", "end": "2026", "grade": "CGPA 7.5/10", "highlights": []}],
+          "experience": [{"organisation": "Example Company", "role": "Software Intern", "location": "Indore", "start": "May 2025", "end": "Jul 2025", "bullets": ["Built an internal dashboard page in React used by the support team.", "Wrote SQL queries for weekly reports."]}],
+          "projects": [
+            {"name": "Attendance tracker", "link": "", "technologies": "Flutter, Firebase", "start": "", "end": "", "bullets": ["Built a mobile app that records class attendance with QR codes."]},
+            {"name": "Library management system", "link": "", "technologies": "Java, MySQL", "start": "", "end": "", "bullets": ["Built issue and return flows with fine calculation."]}
+          ],
+          "skills": [
+            {"category": "Languages", "items": ["Java", "Python", "SQL"]},
+            {"category": "Frameworks", "items": ["React", "Flutter"]},
+            {"category": "Tools", "items": ["Git", "Linux"]}
+          ],
+          "achievements": [{"title": "Example certification", "issuer": "NPTEL", "date": "2024", "detail": ""}]
+        }
+        """;
+
+    private const string ResumeAnalysis = """
+        {
+          "overall": 64,
+          "summary": "This review comes from the offline scripted reviewer because no AI key is set, so it is generic. Set Ai:HuggingFace:ApiKey for a review of what your resume actually says.",
+          "scores": [
+            {"area": "ATS parseability", "score": 78, "comment": "Standard headings and a single text layer parse well."},
+            {"area": "Impact and metrics", "score": 48, "comment": "Most bullets describe tasks, not results."},
+            {"area": "Role keywords", "score": 62, "comment": "Core languages are present; tools the role asks for are thin."},
+            {"area": "Structure", "score": 70, "comment": "Sections are in a sensible order."},
+            {"area": "Clarity", "score": 66, "comment": "Some bullets are long and start with weak verbs."}
+          ],
+          "suggestions": [
+            {"section": "Experience", "issue": "Bullets say what you worked on but not what changed because of it.", "fix": "End each bullet with the result, for example how many people used it or how much time it saved. Add the real number.", "severity": "High"},
+            {"section": "Projects", "issue": "Projects have no link to code or a demo.", "fix": "Add a GitHub link to each project you can share.", "severity": "Medium"},
+            {"section": "Summary", "issue": "The summary is generic.", "fix": "Name the role you want, your strongest two skills and your best project in two sentences.", "severity": "Medium"},
+            {"section": "Skills", "issue": "Skills are listed without grouping.", "fix": "Group them into Languages, Frameworks and Tools.", "severity": "Low"},
+            {"section": "Contact", "issue": "No LinkedIn or GitHub profile.", "fix": "Add your LinkedIn and GitHub URLs to the contact line.", "severity": "Low"}
+          ]
+        }
+        """;
 }

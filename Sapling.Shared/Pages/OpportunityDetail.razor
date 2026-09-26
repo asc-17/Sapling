@@ -1,8 +1,6 @@
 @page "/opportunities/{Id:int}"
 @namespace Sapling.Shared.Pages
 @inject IOpportunityService Opportunities
-@inject IResumeService Resumes
-@inject NavigationManager Nav
 
 <PageTitle>@(_item?.Title ?? "Opportunity") · Sapling</PageTitle>
 <RecordVisit Feature="@FeatureCatalog.Opportunities" />
@@ -86,12 +84,10 @@ else
             <div class="row between g-3 wrap">
                 <div class="stack" style="gap:2px">
                     <span style="font-weight:600">@(_item.ApplicationStatus is null ? "Ready to apply?" : $"Status: {_item.ApplicationStatus}")</span>
-                    <span class="t-caption t-subtle">Tailoring your resume to this role usually lifts the ATS score by 20 or more.</span>
+                    <span class="t-caption t-subtle">Check your resume's score first, and ask the AI to fit it to this role.</span>
                 </div>
                 <div class="row g-2 wrap">
-                    <button type="button" class="btn btn-secondary" @onclick="TailorAsync" disabled="@_busy">
-                        Tailor my resume
-                    </button>
+                    <a class="btn btn-secondary" href="/resume">Open my resumes</a>
                     <button type="button" class="btn btn-primary" @onclick="ApplyAsync"
                             disabled="@(_busy || _item.ApplicationStatus is not null)">
                         @(_item.ApplicationStatus is null ? "Apply now" : "Applied")
@@ -115,12 +111,5 @@ else
         _busy = true;
         _item = await Opportunities.ApplyAsync(Id);
         _busy = false;
-    }
-
-    private async Task TailorAsync()
-    {
-        _busy = true;
-        await Resumes.TailorAsync(Id);
-        Nav.NavigateTo("/resume");
     }
 }

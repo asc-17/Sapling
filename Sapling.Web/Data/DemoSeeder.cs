@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Sapling.Web.Data;
 
-/// <summary>Seeds the shared catalogue plus the PRD demo student (score 52, ATS 61).</summary>
+/// <summary>Seeds the shared catalogue plus the PRD demo student and one starter resume.</summary>
 public static class DemoSeeder
 {
     public const string DemoEmail = "demo@sapling.app";
@@ -18,6 +18,9 @@ public static class DemoSeeder
         // Ensure State column exists in StudentProfiles table on SQLite
         await EnsureSchemaColumnsAsync(db);
         await EnsureCareerSchemaAsync(db);
+
+        // Must run before any profile insert: older DBs have NOT NULL ATS columns the model no longer sets.
+        await EnsureResumeSchemaAsync(db);
 
         if (!await db.Skills.AnyAsync())
         {
@@ -201,6 +204,44 @@ public static class DemoSeeder
             CREATE INDEX IF NOT EXISTS "IX_CareerRoles_OnetCode" ON "CareerRoles" ("OnetCode");
             """);
     }
+
+    /// <summary>
+    /// The suggestion-list resume page was replaced by saved LaTeX resumes. Older databases get the new table and
+    /// lose the old suggestions table and ATS columns.
+    /// </summary>
+    private static async Task EnsureResumeSchemaAsync(SaplingDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync(ResumeTablesSql);
+
+        var profileColumns = await ColumnsAsync(db, "StudentProfiles");
+        foreach (var column in new[] { "AtsScore", "PreviousAtsScore", "ResumeTailoredForRole" }.Where(profileColumns.Contains))
+        {
+            var drop = $"ALTER TABLE StudentProfiles DROP COLUMN {column};";
+            await db.Database.ExecuteSqlRawAsync(drop);
+        }
+    }
+
+    private const string ResumeTablesSql = """
+        DROP TABLE IF EXISTS "ResumeSuggestions";
+        CREATE TABLE IF NOT EXISTS "StudentResumes" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_StudentResumes" PRIMARY KEY AUTOINCREMENT,
+            "StudentProfileId" INTEGER NOT NULL,
+            "Title" TEXT NOT NULL,
+            "Template" TEXT NOT NULL,
+            "Source" TEXT NOT NULL,
+            "SourceFileName" TEXT NULL,
+            "SourceText" TEXT NULL,
+            "Latex" TEXT NOT NULL,
+            "DataJson" TEXT NULL,
+            "Score" INTEGER NULL,
+            "AnalysisJson" TEXT NULL,
+            "AnalysedAtUtc" TEXT NULL,
+            "CreatedAtUtc" TEXT NOT NULL,
+            "UpdatedAtUtc" TEXT NOT NULL,
+            CONSTRAINT "FK_StudentResumes_StudentProfiles_StudentProfileId" FOREIGN KEY ("StudentProfileId") REFERENCES "StudentProfiles" ("Id") ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS "IX_StudentResumes_StudentProfileId_UpdatedAtUtc" ON "StudentResumes" ("StudentProfileId", "UpdatedAtUtc");
+        """;
 
     private static async Task<HashSet<string>> ColumnsAsync(SaplingDbContext db, string table) =>
         (await db.Database.SqlQuery<string>($"SELECT name AS Value FROM pragma_table_info({table})").ToListAsync())
@@ -801,8 +842,6 @@ public static class DemoSeeder
             RiasecCode = "IRC",
             TargetRoleId = softwareDeveloper.Id,
             TargetChosen = true,
-            AtsScore = 61,
-            PreviousAtsScore = 61,
         };
 
         string[] studentSkills =
@@ -815,36 +854,30 @@ public static class DemoSeeder
             .Select(name => new StudentSkill { SkillId = skillIds[name] })
             .ToList();
 
-        (string Section, string Original, string Suggested, string Why)[] suggestions =
-        [
-            ("Experience", "Worked on a college project using Java.",
-                "Built a Java and PostgreSQL library management system used by 3 departments, cutting issue-desk time from 6 minutes to under 2.",
-                "Weak verb with no scope or outcome. The rewrite uses only facts already in your profile."),
-            ("Experience", "Helped the team with database work.",
-                "Designed the schema and wrote 14 indexed queries, reducing report generation from 40 seconds to 3.",
-                "\"Helped\" hides your actual contribution; name what you personally built."),
-            ("Skills", "Languages: Java, Python, HTML, CSS, JavaScript, C, C++, SQL",
-                "Core: Java, SQL, Data structures (verified). Working: Python, HTML/CSS. Learning: Cloud fundamentals.",
-                "Undifferentiated skill lists score poorly with ATS keyword matching and invite questions you cannot answer."),
-            ("Summary", "Hardworking B.Tech student seeking a challenging role in a reputed organisation.",
-                "Final-year CSE student at SGSITS Indore, building backend services in Java and SQL, targeting a backend engineering role in Indore or Bhopal.",
-                "The original says nothing a recruiter can act on and appears on thousands of resumes verbatim."),
-            ("Education", $"B.Tech CSE, {DateTime.Today.Year}, 7.2 CGPA",
-                $"B.Tech Computer Science & Engineering, SGSITS Indore, {DateTime.Today.Year} — CGPA 7.2/10, no backlogs.",
-                "Spell out the institution and the scale; some ATS parsers drop the score when the scale is missing."),
-            ("Formatting", "Two-column layout with a skills sidebar and icons.",
-                "Single-column layout, standard section headings, no text inside graphics.",
-                "Your current layout is the reason four fields failed to parse in the ATS check."),
-        ];
+        var year = DateTime.Today.Year.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var resumeData = new Sapling.Shared.Contracts.ResumeDataDto(
+            new(user.FullName, DemoEmail, "", "Indore, Madhya Pradesh", "", "", ""),
+            "Final-year Computer Science student at SGSITS Indore building backend services in Java and SQL.",
+            [new("Shri Govindram Seksaria Institute of Technology and Science", "B.Tech", "Computer Science & Engineering", "", year, "CGPA 7.2/10", [])],
+            [],
+            [new("Library management system", "", "Java, SQL", "", "", ["Built a Java and SQL application to issue and return library books."])],
+            [
+                new("Languages", ["Java", "Python", "SQL", "JavaScript", "HTML & CSS"]),
+                new("Tools", ["Git", "Linux", "REST APIs"]),
+            ],
+            []);
 
-        profile.ResumeSuggestions = suggestions.Select((s, i) => new ResumeSuggestion
-        {
-            Section = s.Section,
-            Original = s.Original,
-            Suggested = s.Suggested,
-            Rationale = s.Why,
-            Order = i,
-        }).ToList();
+        profile.Resumes =
+        [
+            new StudentResume
+            {
+                Title = "My resume",
+                Template = Sapling.Shared.Contracts.ResumeTemplates.SingleColumn,
+                Source = "wizard",
+                Latex = Services.LatexTemplates.Render(Sapling.Shared.Contracts.ResumeTemplates.SingleColumn, resumeData),
+                DataJson = Ai.JsonOutput.Serialize(resumeData),
+            },
+        ];
 
         db.StudentProfiles.Add(profile);
         await db.SaveChangesAsync();

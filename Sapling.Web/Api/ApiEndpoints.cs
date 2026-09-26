@@ -56,12 +56,36 @@ public static class ApiEndpoints
             await s.GetAsync(id, ct) is { } dto ? Results.Ok(dto) : Results.NotFound());
         opportunities.MapPost("/{id:int}/apply", (int id, IOpportunityService s, CancellationToken ct) => s.ApplyAsync(id, ct));
 
-        var resume = api.MapGroup("/resume");
-        resume.MapGet("/", (IResumeService s, CancellationToken ct) => s.GetAsync(ct));
-        resume.MapPost("/suggestions/{id:int}/{accepted:bool}", (int id, bool accepted, IResumeService s, CancellationToken ct) =>
-            s.SetSuggestionAcceptedAsync(id, accepted, ct));
-        resume.MapPost("/tailor/{opportunityId:int}", (int opportunityId, IResumeService s, CancellationToken ct) =>
-            s.TailorAsync(opportunityId, ct));
+        var resumes = api.MapGroup("/resumes");
+        resumes.MapGet("/", (IResumeService s, CancellationToken ct) => s.GetAllAsync(ct));
+        resumes.MapGet("/starter", (IResumeService s, CancellationToken ct) => s.GetStarterDataAsync(ct));
+        resumes.MapGet("/{id:int}", async (int id, IResumeService s, CancellationToken ct) =>
+            await s.GetAsync(id, ct) is { } dto ? Results.Ok(dto) : Results.NotFound());
+        resumes.MapPost("/import", async (IFormFile file, string? template, IResumeService s, CancellationToken ct) =>
+        {
+            using var buffer = new MemoryStream();
+            await file.OpenReadStream().CopyToAsync(buffer, ct);
+            return await Guard(() => s.ImportPdfAsync(file.FileName, buffer.ToArray(), template ?? ResumeTemplates.SingleColumn, ct));
+        }).DisableAntiforgery();
+        resumes.MapPost("/draft", (DescribeYourselfRequest r, IResumeService s, CancellationToken ct) =>
+            Guard(() => s.DraftFromDescriptionAsync(r, ct)));
+        resumes.MapPost("/", (CreateResumeRequest r, IResumeService s, CancellationToken ct) =>
+            Guard(() => s.CreateFromDataAsync(r, ct)));
+        resumes.MapPut("/{id:int}", (int id, SaveResumeRequest r, IResumeService s, CancellationToken ct) =>
+            Guard(() => s.SaveAsync(id, r, ct)));
+        resumes.MapPost("/{id:int}/analyse", (int id, SaveResumeRequest r, IResumeService s, CancellationToken ct) =>
+            Guard(() => s.AnalyseAsync(id, r, ct)));
+        resumes.MapPost("/{id:int}/edit", (int id, ResumeInstructionRequest r, IResumeService s, CancellationToken ct) =>
+            Guard(() => s.EditAsync(id, r, ct)));
+        resumes.MapPost("/{id:int}/suggestions/{suggestionId:int}/apply", (int id, int suggestionId, SaveResumeRequest r, IResumeService s, CancellationToken ct) =>
+            Guard(() => s.ApplySuggestionAsync(id, suggestionId, r, ct)));
+        resumes.MapPost("/compile", (SaveResumeRequest r, IResumeService s, CancellationToken ct) =>
+            Guard(() => s.CompileAsync(r.Latex, ct)));
+        resumes.MapDelete("/{id:int}", async (int id, IResumeService s, CancellationToken ct) =>
+        {
+            await s.DeleteAsync(id, ct);
+            return Results.NoContent();
+        });
 
         var interview = api.MapGroup("/interview");
         interview.MapGet("/", (IInterviewService s, CancellationToken ct) => s.GetHistoryAsync(ct));
@@ -140,7 +164,7 @@ public static class ApiEndpoints
             s.DeleteCommentAsync(id, commentId, ct));
     }
 
-    /// <summary>Interview problems carry a message meant for the student; retryable ones (AI quota) map to 503.</summary>
+    /// <summary>Interview and resume problems carry a message meant for the student; retryable ones (AI quota) map to 503.</summary>
     private static async Task<IResult> Guard<T>(Func<Task<T>> action)
     {
         try
@@ -148,6 +172,10 @@ public static class ApiEndpoints
             return Results.Ok(await action());
         }
         catch (InterviewProblemException e)
+        {
+            return Results.Problem(detail: e.Message, statusCode: e.Retryable ? 503 : 400);
+        }
+        catch (ResumeProblemException e)
         {
             return Results.Problem(detail: e.Message, statusCode: e.Retryable ? 503 : 400);
         }

@@ -35,8 +35,8 @@ public static class FeatureCatalog
             "Campus drives, internships and jobs ranked by two-way fit. Nothing is hidden from you: roles you are not ready for show exactly what is missing.",
             "briefcase", "/opportunities"),
 
-        new(Resume, "Resume", "Beat the ATS, then beat the reader.",
-            "An ATS compatibility score with parse diagnostics, line-level rewrite suggestions you accept or reject, and a variant tailored to any job description.",
+        new(Resume, "Resume", "Score it, fix it, or build it from scratch.",
+            "Upload your PDF for an honest AI score and concrete fixes, or build one in an ATS-safe template. Edit the LaTeX beside a live PDF, let the AI apply each fix, and export PDF or LaTeX.",
             "file-text", "/resume"),
 
         new(Interview, "Mock interview", "Practise before it counts.",

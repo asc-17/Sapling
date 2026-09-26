@@ -32,7 +32,7 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
 
     public DbSet<OpportunityApplication> OpportunityApplications => Set<OpportunityApplication>();
 
-    public DbSet<ResumeSuggestion> ResumeSuggestions => Set<ResumeSuggestion>();
+    public DbSet<StudentResume> StudentResumes => Set<StudentResume>();
 
     public DbSet<MockInterview> MockInterviews => Set<MockInterview>();
 
@@ -117,10 +117,12 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<StudentProfile>()
-            .HasMany(p => p.ResumeSuggestions)
+            .HasMany(p => p.Resumes)
             .WithOne()
-            .HasForeignKey(s => s.StudentProfileId)
+            .HasForeignKey(r => r.StudentProfileId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<StudentResume>().HasIndex(r => new { r.StudentProfileId, r.UpdatedAtUtc });
 
         builder.Entity<StudentProfile>()
             .HasMany(p => p.MockInterviews)

@@ -86,6 +86,9 @@ public static class Icons
         ["zoom-in"] = "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM21 21l-4.3-4.3M11 8v6M8 11h6",
         ["zoom-out"] = "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM21 21l-4.3-4.3M8 11h6",
         ["edit-2"] = "M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z",
+        ["code"] = "m16 18 6-6-6-6M8 6l-6 6 6 6",
+        ["save"] = "M5 3h11l5 5v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM7 3v5h8V3M7 21v-7h10v7",
+        ["undo"] = "M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11",
     };
 
     public static string Get(string name) =>

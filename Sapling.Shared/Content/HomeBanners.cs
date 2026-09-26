@@ -33,8 +33,8 @@ public static class HomeBanners
             "Speak with an AI interviewer for fifteen minutes, then see where you got stuck.",
             Dir + "interview.svg", "/interview", "Start an interview"),
 
-        new("Tailor your resume to a role",
-            "One click regenerates your resume for the job description you pick.",
-            Dir + "resume.svg", "/resume", "Tailor now"),
+        new("Build an ATS-ready resume",
+            "Upload yours for a score and fixes, or build one from scratch and edit it live.",
+            Dir + "resume.svg", "/resume", "Open resume builder"),
     ];
 }

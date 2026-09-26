@@ -46,15 +46,9 @@ public class StudentProfile
 
     public List<OpportunityApplication> Applications { get; set; } = [];
 
-    public List<ResumeSuggestion> ResumeSuggestions { get; set; } = [];
+    public List<StudentResume> Resumes { get; set; } = [];
 
     public List<MockInterview> MockInterviews { get; set; } = [];
-
-    public int AtsScore { get; set; }
-
-    public int PreviousAtsScore { get; set; }
-
-    public string? ResumeTailoredForRole { get; set; }
 
     /// <summary>Cropped profile photo stored as a Base64 PNG data-URL. Null means "use initials".</summary>
     public string? AvatarDataUrl { get; set; }
@@ -291,23 +285,45 @@ public class OpportunityApplication
     public DateTimeOffset AppliedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
-public class ResumeSuggestion
+/// <summary>
+/// One saved resume. Once the student starts editing, Latex is the source of truth; DataJson is the
+/// structured content it was first rendered from (null only if the student never had one).
+/// </summary>
+public class StudentResume
 {
     public int Id { get; set; }
 
     public int StudentProfileId { get; set; }
 
-    public string Section { get; set; } = "";
+    public string Title { get; set; } = "";
 
-    public string Original { get; set; } = "";
+    /// <summary>single-column | two-column (ResumeTemplates.*)</summary>
+    public string Template { get; set; } = "single-column";
 
-    public string Suggested { get; set; } = "";
+    /// <summary>upload | wizard | prompt</summary>
+    public string Source { get; set; } = "wizard";
 
-    public string Rationale { get; set; } = "";
+    public string? SourceFileName { get; set; }
 
-    public bool Accepted { get; set; }
+    /// <summary>Text extracted from the uploaded PDF, capped at 12k characters. Null for built resumes.</summary>
+    public string? SourceText { get; set; }
 
-    public int Order { get; set; }
+    public string Latex { get; set; } = "";
+
+    /// <summary>Serialised ResumeDataDto.</summary>
+    public string? DataJson { get; set; }
+
+    public int? Score { get; set; }
+
+    /// <summary>Serialised ResumeAnalysisDto: sub-scores and suggestions with their Applied flags.</summary>
+    public string? AnalysisJson { get; set; }
+
+    public DateTime? AnalysedAtUtc { get; set; }
+
+    // DateTime rather than DateTimeOffset: SQLite cannot ORDER BY a DateTimeOffset column.
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 }
 
 public class MockInterview

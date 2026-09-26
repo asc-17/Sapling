@@ -86,6 +86,9 @@ else
 
 builder.Services.AddSingleton<IPdfTextExtractor, PdfTextExtractor>();
 
+// Resume PDFs are compiled with Tectonic. Without it the editor still works; only the preview and PDF download are off.
+builder.Services.AddSingleton<ILatexCompiler, TectonicCompiler>();
+
 // Optional natural voice for the interviewer; without it the browser's own voices are used.
 var speechKey = builder.Configuration["Speech:Azure:Key"];
 var speechRegion = builder.Configuration["Speech:Azure:Region"];
@@ -158,6 +161,12 @@ if (string.IsNullOrWhiteSpace(hfKey))
 else
 {
     app.Logger.LogInformation("AI: Hugging Face Inference Providers, model {Model}.", hfModel);
+}
+
+// Find Tectonic and fill its package cache in the background, so no student waits for the one-time downloads.
+if (app.Services.GetRequiredService<ILatexCompiler>() is TectonicCompiler tectonic)
+{
+    _ = tectonic.WarmUpTask;
 }
 
 // Pre-initialize in-memory college catalog

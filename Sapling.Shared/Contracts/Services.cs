@@ -71,11 +71,43 @@ public interface IOpportunityService
 
 public interface IResumeService
 {
-    Task<ResumeDto> GetAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<ResumeSummaryDto>> GetAllAsync(CancellationToken ct = default);
 
-    Task<ResumeDto> SetSuggestionAcceptedAsync(int suggestionId, bool accepted, CancellationToken ct = default);
+    Task<ResumeDto?> GetAsync(int id, CancellationToken ct = default);
 
-    Task<ResumeDto> TailorAsync(int opportunityId, CancellationToken ct = default);
+    /// <summary>PDF → text → the AI copies it into structured data and judges it → rendered in the template and saved.</summary>
+    Task<ResumeDto> ImportPdfAsync(string fileName, byte[] pdfBytes, string template, CancellationToken ct = default);
+
+    /// <summary>Wizard prefill from the student's profile: name, email, college, branch, year, CGPA and skills.</summary>
+    Task<ResumeDataDto> GetStarterDataAsync(CancellationToken ct = default);
+
+    /// <summary>"Describe yourself" → structured data for the wizard to review. Nothing is saved.</summary>
+    Task<ResumeDataDto> DraftFromDescriptionAsync(DescribeYourselfRequest request, CancellationToken ct = default);
+
+    /// <summary>Renders structured data in a template (no AI) and saves it.</summary>
+    Task<ResumeDto> CreateFromDataAsync(CreateResumeRequest request, CancellationToken ct = default);
+
+    Task<ResumeDto> SaveAsync(int id, SaveResumeRequest request, CancellationToken ct = default);
+
+    /// <summary>Saves the LaTeX, then has the AI score it again.</summary>
+    Task<ResumeDto> AnalyseAsync(int id, SaveResumeRequest request, CancellationToken ct = default);
+
+    /// <summary>Saves the LaTeX, then asks the AI to carry out a free-text instruction on it.</summary>
+    Task<ResumeEditResultDto> EditAsync(int id, ResumeInstructionRequest request, CancellationToken ct = default);
+
+    /// <summary>Saves the LaTeX, applies one suggestion with the AI, and marks it applied.</summary>
+    Task<ResumeEditResultDto> ApplySuggestionAsync(int id, int suggestionId, SaveResumeRequest request, CancellationToken ct = default);
+
+    Task DeleteAsync(int id, CancellationToken ct = default);
+
+    /// <summary>Builds the PDF for the editor's preview and download. Nothing is saved.</summary>
+    Task<ResumeCompileResultDto> CompileAsync(string latex, CancellationToken ct = default);
+}
+
+/// <summary>A resume problem the student should see as written: an unreadable PDF, the AI out of credit, a bad edit.</summary>
+public sealed class ResumeProblemException(string message, bool retryable = false) : Exception(message)
+{
+    public bool Retryable { get; } = retryable;
 }
 
 public interface IInterviewService

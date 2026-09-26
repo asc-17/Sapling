@@ -182,21 +182,92 @@ public sealed record OpportunityDto(
     string Description,
     string? ApplicationStatus);
 
-public sealed record ResumeSuggestionDto(
+public static class ResumeTemplates
+{
+    public const string SingleColumn = "single-column";
+
+    public const string TwoColumn = "two-column";
+
+    public static readonly IReadOnlyList<(string Key, string Name, string Blurb)> All =
+    [
+        (SingleColumn, "Classic single column", "Standard headings top to bottom. Parses cleanly in every ATS."),
+        (TwoColumn, "Compact two column", "Contact, skills and education in a narrow side column; experience and projects in the main one."),
+    ];
+
+    public static string NameOf(string key) => All.FirstOrDefault(t => t.Key == key).Name ?? key;
+}
+
+public sealed record ResumeSummaryDto(
     int Id,
-    string Section,
-    string Original,
-    string Suggested,
-    string Rationale,
-    bool Accepted);
+    string Title,
+    string Template,
+    string Source,
+    int? Score,
+    bool AnalysisStale,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
 
 public sealed record ResumeDto(
-    int AtsScore,
-    int PreviousAtsScore,
-    string? TailoredForRole,
-    IReadOnlyList<string> ParseWarnings,
-    IReadOnlyList<ResumeSuggestionDto> Suggestions,
-    IReadOnlyList<string> Sections);
+    int Id,
+    string Title,
+    string Template,
+    string Source,
+    string? SourceFileName,
+    string Latex,
+    ResumeDataDto? Data,
+    ResumeAnalysisDto? Analysis,
+    bool AnalysisStale,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record ResumeAnalysisDto(
+    int Overall,
+    string Summary,
+    IReadOnlyList<ResumeScoreDto> Scores,
+    IReadOnlyList<ResumeSuggestionDto> Suggestions);
+
+public sealed record ResumeScoreDto(string Area, int Score, string Comment);
+
+/// <summary>Severity is High, Medium or Low. Applied is set once "Apply with AI" has run for it.</summary>
+public sealed record ResumeSuggestionDto(int Id, string Section, string Issue, string Fix, string Severity, bool Applied);
+
+public sealed record ResumeEditResultDto(ResumeDto Resume, string Note);
+
+/// <summary>CompilerAvailable is false when the server has no LaTeX compiler; Log then explains how to install one.</summary>
+public sealed record ResumeCompileResultDto(bool Ok, byte[]? Pdf, string Log, bool CompilerAvailable);
+
+/// <summary>Structured resume content, shared by the wizard, the AI extractor and the LaTeX templates. Empty means omit.</summary>
+public sealed record ResumeDataDto(
+    ResumeContactDto Contact,
+    string Summary,
+    IReadOnlyList<ResumeEducationDto> Education,
+    IReadOnlyList<ResumeExperienceDto> Experience,
+    IReadOnlyList<ResumeProjectDto> Projects,
+    IReadOnlyList<ResumeSkillGroupDto> Skills,
+    IReadOnlyList<ResumeAchievementDto> Achievements);
+
+public sealed record ResumeContactDto(string FullName, string Email, string Phone, string Location, string LinkedIn, string GitHub, string Website);
+
+/// <summary>Dates are free text as the student writes them, e.g. "Aug 2023".</summary>
+public sealed record ResumeEducationDto(string Institution, string Degree, string Field, string Start, string End, string Grade, IReadOnlyList<string> Highlights);
+
+public sealed record ResumeExperienceDto(string Organisation, string Role, string Location, string Start, string End, IReadOnlyList<string> Bullets);
+
+public sealed record ResumeProjectDto(string Name, string Link, string Technologies, string Start, string End, IReadOnlyList<string> Bullets);
+
+public sealed record ResumeSkillGroupDto(string Category, IReadOnlyList<string> Items);
+
+/// <summary>Certifications, awards and positions of responsibility.</summary>
+public sealed record ResumeAchievementDto(string Title, string Issuer, string Date, string Detail);
+
+/// <summary>Source is "wizard" or "prompt".</summary>
+public sealed record CreateResumeRequest(string Title, string Template, string Source, ResumeDataDto Data);
+
+public sealed record SaveResumeRequest(string Latex, string? Title = null);
+
+public sealed record ResumeInstructionRequest(string Latex, string Instruction);
+
+public sealed record DescribeYourselfRequest(string Description);
 
 public sealed record InterviewSummaryDto(
     int Id,
