@@ -440,7 +440,8 @@ public sealed record InstitutionDto(
     string Name,
     string ShortName,
     string City,
-    bool Verified);
+    bool Verified,
+    string? LogoDataUrl = null);
 
 public sealed record CommunityPostDto(
     int Id,
@@ -457,7 +458,9 @@ public sealed record CommunityPostDto(
     int Upvotes,
     bool HasUpvoted,
     int CommentCount,
-    string? ImageUrl = null);
+    string? ImageUrl = null,
+    bool IsPinned = false,
+    bool IsSaved = false);
 
 public sealed record CommunityCommentDto(
     int Id,

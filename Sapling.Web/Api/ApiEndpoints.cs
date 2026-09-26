@@ -162,6 +162,70 @@ public static class ApiEndpoints
         });
         community.MapDelete("/{id:int}/comments/{commentId:int}", (int id, int commentId, ICommunityService s, CancellationToken ct) =>
             s.DeleteCommentAsync(id, commentId, ct));
+        community.MapGet("/saved", (ICommunityService s, CancellationToken ct) => s.GetSavedAsync(ct));
+        community.MapPost("/{id:int}/save/{saved:bool}", async (int id, bool saved, ICommunityService s, CancellationToken ct) =>
+            await s.GetPostAsync(id, ct) is null ? Results.NotFound() : Results.Ok(await s.SetSavedAsync(id, saved, ct)));
+
+        MapInstituteApi(app);
+    }
+
+    /// <summary>The institute head is web-only, so these are called in-process by its pages.</summary>
+    private static void MapInstituteApi(IEndpointRouteBuilder app)
+    {
+        var institute = app.MapGroup("/api/institute").RequireAuthorization("InstituteOnly");
+
+        institute.MapGet("/", async (InstituteService s, CancellationToken ct) =>
+            await s.FindProfileAsync(ct) is { } dto ? Results.Ok(dto) : Results.NoContent());
+        institute.MapPost("/setup", (InstituteSetupRequest r, InstituteService s, CancellationToken ct) =>
+            Problems(() => s.CompleteSetupAsync(r, ct)));
+        institute.MapPut("/", (UpdateInstituteRequest r, InstituteService s, CancellationToken ct) =>
+            Problems(() => s.UpdateProfileAsync(r, ct)));
+        institute.MapPut("/logo", (UpdateAvatarRequest r, InstituteService s, CancellationToken ct) =>
+            Problems(() => s.SetLogoAsync(r.AvatarDataUrl, ct)));
+
+        institute.MapGet("/dashboard", (InstituteService s, CancellationToken ct) => s.GetDashboardAsync(ct));
+        institute.MapGet("/students", (string? q, string? branch, int? year, InstituteService s, CancellationToken ct) =>
+            s.GetStudentsAsync(q, branch, year, ct));
+        institute.MapGet("/students.csv", async (InstituteService s, CancellationToken ct) =>
+            Results.File(await s.ExportStudentsCsvAsync(ct), "text/csv", "students.csv"));
+
+        institute.MapGet("/posts", (bool? archived, InstituteService s, CancellationToken ct) =>
+            s.GetPostsAsync(archived == true, ct));
+        institute.MapPost("/posts", (SavePostRequest r, InstituteService s, CancellationToken ct) =>
+            Problems(() => s.CreatePostAsync(r, ct)));
+        institute.MapPut("/posts/{id:int}", (int id, SavePostRequest r, InstituteService s, CancellationToken ct) =>
+            Problems(() => s.UpdatePostAsync(id, r, ct)));
+        institute.MapDelete("/posts/{id:int}", async (int id, InstituteService s, CancellationToken ct) =>
+        {
+            await s.DeletePostAsync(id, ct);
+            return Results.NoContent();
+        });
+        institute.MapPost("/posts/{id:int}/pin/{pinned:bool}", (int id, bool pinned, InstituteService s, CancellationToken ct) =>
+            Problems(() => s.SetPinnedAsync(id, pinned, ct)));
+        institute.MapPost("/posts/{id:int}/archive/{archived:bool}", (int id, bool archived, InstituteService s, CancellationToken ct) =>
+            Problems(() => s.SetArchivedAsync(id, archived, ct)));
+
+        institute.MapGet("/posts/{id:int}/comments", (int id, InstituteService s, CancellationToken ct) => s.GetCommentsAsync(id, ct));
+        institute.MapPost("/posts/{id:int}/comments", (int id, AddCommentRequest r, InstituteService s, CancellationToken ct) =>
+            Problems(() => s.ReplyAsync(id, r, ct)));
+        institute.MapDelete("/posts/{id:int}/comments/{commentId:int}", async (int id, int commentId, InstituteService s, CancellationToken ct) =>
+        {
+            await s.DeleteCommentAsync(id, commentId, ct);
+            return Results.NoContent();
+        });
+    }
+
+    /// <summary>Validation and rule failures carry a message meant for the institute staffer.</summary>
+    private static async Task<IResult> Problems<T>(Func<Task<T>> action)
+    {
+        try
+        {
+            return Results.Ok(await action());
+        }
+        catch (Exception e) when (e is ArgumentException or InvalidOperationException)
+        {
+            return Results.BadRequest(e.Message);
+        }
     }
 
     /// <summary>Interview and resume problems carry a message meant for the student; retryable ones (AI quota) map to 503.</summary>

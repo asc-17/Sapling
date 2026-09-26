@@ -52,6 +52,8 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
 
     public DbSet<PostComment> PostComments => Set<PostComment>();
 
+    public DbSet<SavedPost> SavedPosts => Set<SavedPost>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -175,6 +177,24 @@ public class SaplingDbContext(DbContextOptions<SaplingDbContext> options) : Iden
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<CommunityPost>().HasIndex(p => p.PostedAtUtc);
+
+        builder.Entity<Institution>().HasIndex(i => i.UserId).IsUnique();
+
+        builder.Entity<SavedPost>()
+            .HasOne<CommunityPost>()
+            .WithMany()
+            .HasForeignKey(s => s.CommunityPostId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<SavedPost>()
+            .HasOne<StudentProfile>()
+            .WithMany()
+            .HasForeignKey(s => s.StudentProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<SavedPost>().HasIndex(s => new { s.CommunityPostId, s.StudentProfileId }).IsUnique();
+
+        builder.Entity<SavedPost>().HasIndex(s => s.StudentProfileId);
 
         builder.Entity<PostUpvote>().HasIndex(u => new { u.CommunityPostId, u.StudentProfileId }).IsUnique();
 

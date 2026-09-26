@@ -159,6 +159,11 @@ public interface ICommunityService
 
     Task<CommunityPostDto> SetUpvoteAsync(int id, bool upvoted, CancellationToken ct = default);
 
+    Task<CommunityPostDto> SetSavedAsync(int id, bool saved, CancellationToken ct = default);
+
+    /// <summary>The student's bookmarked posts, most recently saved first.</summary>
+    Task<IReadOnlyList<CommunityPostDto>> GetSavedAsync(CancellationToken ct = default);
+
     Task<IReadOnlyList<CommunityCommentDto>> GetCommentsAsync(int postId, CancellationToken ct = default);
 
     Task<IReadOnlyList<CommunityCommentDto>> AddCommentAsync(int postId, AddCommentRequest request, CancellationToken ct = default);

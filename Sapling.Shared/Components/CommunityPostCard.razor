@@ -3,7 +3,14 @@
 
 <article class="card post-card stack g-4">
     <header class="row-top g-3 wrap post-head">
-        <InstitutionTile InstitutionId="Post.Author.Id" />
+        @if (!string.IsNullOrEmpty(Post.Author.LogoDataUrl))
+        {
+            <img class="inst-tile" src="@Post.Author.LogoDataUrl" alt="" style="object-fit:cover" />
+        }
+        else
+        {
+            <InstitutionTile InstitutionId="Post.Author.Id" />
+        }
         <div class="stack grow post-head-text" style="gap:0">
             <span class="post-author">
                 <span>@Post.Author.Name</span>
@@ -14,6 +21,10 @@
             </span>
             <span class="t-caption t-subtle">@Post.Author.City &middot; @CommunityDisplay.Ago(Post.PostedAt)</span>
         </div>
+        @if (Post.IsPinned)
+        {
+            <SapBadge Tone="primary" Icon="pin">Pinned</SapBadge>
+        }
         <SapBadge Tone="@CommunityDisplay.Tone(Post.Kind)" Icon="@CommunityDisplay.Icon(Post.Kind)">@Post.Kind</SapBadge>
     </header>
 
@@ -83,6 +94,16 @@
             </a>
         }
         <span class="grow"></span>
+        <button type="button" class="btn btn-ghost btn-sm" aria-pressed="@(Post.IsSaved ? "true" : "false")"
+                title="@(Post.IsSaved ? "Remove from saved" : "Save for later")"
+                aria-label="@(Post.IsSaved ? "Remove from saved" : "Save for later")"
+                @onclick="ToggleSavedAsync" disabled="@_busy">
+            <SapIcon Name="bookmark" Size="16" Stroke="@(Post.IsSaved ? 2.6 : 1.8)" />
+            @if (Full)
+            {
+                <span>@(Post.IsSaved ? "Saved" : "Save")</span>
+            }
+        </button>
         @if (!string.IsNullOrEmpty(Post.CtaUrl))
         {
             <a class="btn btn-secondary btn-sm" href="@Post.CtaUrl" target="_blank" rel="noopener noreferrer">
@@ -125,6 +146,30 @@
         try
         {
             Post = await Community.SetUpvoteAsync(original.Id, want);
+        }
+        catch (Exception)
+        {
+            Post = original;
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await PostChanged.InvokeAsync(Post);
+    }
+
+    private async Task ToggleSavedAsync()
+    {
+        var original = Post;
+        var want = !original.IsSaved;
+
+        _busy = true;
+        await PostChanged.InvokeAsync(Post = original with { IsSaved = want });
+
+        try
+        {
+            Post = await Community.SetSavedAsync(original.Id, want);
         }
         catch (Exception)
         {

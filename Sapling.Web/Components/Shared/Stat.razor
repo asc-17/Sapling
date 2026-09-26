@@ -1,0 +1,20 @@
+@namespace Sapling.Web.Components.Shared
+
+<div class="card stack g-2">
+    <div class="row between g-2">
+        <span class="t-caption t-subtle">@Label</span>
+        <span class="t-primary"><SapIcon Name="@Icon" Size="16" /></span>
+    </div>
+    <span class="t-num" style="font-size:26px;line-height:30px">@Value</span>
+    @if (!string.IsNullOrWhiteSpace(Hint))
+    {
+        <span class="t-caption t-subtle">@Hint</span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter, EditorRequired] public int Value { get; set; }
+    [Parameter] public string Icon { get; set; } = "info";
+    [Parameter] public string? Hint { get; set; }
+}

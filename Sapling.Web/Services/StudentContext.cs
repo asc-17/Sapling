@@ -14,12 +14,13 @@ public sealed class StudentContext(
 {
     private StudentProfile? _cached;
 
-    public async Task<string?> GetUserIdAsync()
+    /// <summary>The signed-in principal, whichever head asked: an HTTP request or a Blazor circuit.</summary>
+    public async Task<ClaimsPrincipal?> GetPrincipalAsync()
     {
         var principal = http.HttpContext?.User;
         if (principal?.Identity?.IsAuthenticated == true)
         {
-            return principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            return principal;
         }
 
         if (services.GetService<AuthenticationStateProvider>() is { } provider)
@@ -27,12 +28,15 @@ public sealed class StudentContext(
             var state = await provider.GetAuthenticationStateAsync();
             if (state.User.Identity?.IsAuthenticated == true)
             {
-                return state.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                return state.User;
             }
         }
 
         return null;
     }
+
+    public async Task<string?> GetUserIdAsync() =>
+        (await GetPrincipalAsync())?.FindFirstValue(ClaimTypes.NameIdentifier);
 
     public async Task<StudentProfile> GetProfileAsync(CancellationToken ct = default)
     {
@@ -41,7 +45,16 @@ public sealed class StudentContext(
             return _cached;
         }
 
-        var userId = await GetUserIdAsync()
+        var principal = await GetPrincipalAsync()
+            ?? throw new UnauthorizedAccessException("No signed-in student.");
+
+        // Without this an institute account would silently get a blank student profile on any student page.
+        if (principal.FindFirstValue(AppUserClaimsPrincipalFactory.AccountTypeClaim) == AccountTypes.Institution)
+        {
+            throw new UnauthorizedAccessException("This is an institute account.");
+        }
+
+        var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new UnauthorizedAccessException("No signed-in student.");
 
         _cached = await db.StudentProfiles

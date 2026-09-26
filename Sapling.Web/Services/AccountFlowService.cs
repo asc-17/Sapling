@@ -99,7 +99,7 @@ public sealed class AccountFlowService(
     }
 
     public async Task<(AppUser? User, AccountFlowResult Result)> CompleteRegistrationAsync(
-        string rawEmail, string? ticket, string password, string? fullName)
+        string rawEmail, string? ticket, string password, string? fullName, string accountType = AccountTypes.Student)
     {
         var address = Clean(rawEmail);
         if (!HasTicket(CodePurposes.Register, address, ticket))
@@ -113,6 +113,7 @@ public sealed class AccountFlowService(
             Email = address,
             EmailConfirmed = true,
             FullName = (fullName ?? "").Trim(),
+            AccountType = accountType,
         };
 
         // A weak password leaves the ticket in place so the student can simply try another one.

@@ -16,6 +16,7 @@ using Sapling.Web.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 const string BrowserUserPolicy = "BrowserUser";
+const string InstitutePolicy = "InstituteOnly";
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
@@ -44,7 +45,11 @@ builder.Services.AddIdentityApiEndpoints<AppUser>(options =>
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(BrowserUserPolicy, policy => policy
         .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme)
-        .RequireAuthenticatedUser());
+        .RequireAuthenticatedUser())
+    .AddPolicy(InstitutePolicy, policy => policy
+        .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme)
+        .RequireAuthenticatedUser()
+        .RequireClaim(AppUserClaimsPrincipalFactory.AccountTypeClaim, AccountTypes.Institution));
 
 // Registered only when configured, so a checkout without credentials still starts; the button then says so.
 var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
@@ -121,6 +126,8 @@ builder.Services.AddScoped<IInterviewService, InterviewService>();
 builder.Services.AddScoped<IGovtService, GovtService>();
 builder.Services.AddScoped<IQuizService, QuizService>();
 builder.Services.AddScoped<ICommunityService, CommunityService>();
+builder.Services.AddScoped<InstituteContext>();
+builder.Services.AddScoped<InstituteService>();
 builder.Services.AddScoped<AccountFlowService>();
 
 var azureEmailConnection = builder.Configuration["Email:Azure:ConnectionString"];
@@ -141,6 +148,8 @@ else
 }
 
 builder.Services.AddSingleton<IFormFactor, DesktopFormFactor>();
+// The institute pages live in this assembly, so the router has to scan it as well as Sapling.Shared.
+builder.Services.AddSingleton(new RouteAssemblies(typeof(Sapling.Web.Components.App).Assembly));
 builder.Services.AddScoped<IThemeService, BrowserThemeService>();
 builder.Services.AddScoped<IRecentFeaturesService, BrowserRecentFeaturesService>();
 builder.Services.AddSingleton<ICollegeCatalogService, CollegeCatalogService>();

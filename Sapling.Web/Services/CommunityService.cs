@@ -10,12 +10,12 @@ public sealed class CommunityService(SaplingDbContext db, StudentContext ctx) : 
 
     /// <summary>
     /// Each college has a private community: a student sees only posts from the institution whose name matches
-    /// the college on their profile (the AICTE catalogue name picked during onboarding).
+    /// the college on their profile (the AICTE catalogue name picked during onboarding). Archived posts are hidden.
     /// </summary>
     public static IQueryable<CommunityPost> VisibleTo(SaplingDbContext db, StudentProfile profile)
     {
         var college = profile.College.Trim().ToLower();
-        return db.CommunityPosts.Where(p => college != "" && p.Institution!.Name.ToLower() == college);
+        return db.CommunityPosts.Where(p => college != "" && !p.IsArchived && p.Institution!.Name.ToLower() == college);
     }
 
     public async Task<IReadOnlyList<CommunityPostDto>> GetFeedAsync(string? kind = null, CancellationToken ct = default)
@@ -27,14 +27,15 @@ public sealed class CommunityService(SaplingDbContext db, StudentContext ctx) : 
             query = query.Where(p => p.Kind == kind);
         }
 
-        var rows = await Project(query.OrderByDescending(p => p.PostedAtUtc), profile.Id).ToListAsync(ct);
+        var ordered = query.OrderByDescending(p => p.IsPinned).ThenByDescending(p => p.PostedAtUtc);
+        var rows = await Project(db, ordered, profile.Id).ToListAsync(ct);
         return rows.Select(Map).ToList();
     }
 
     public async Task<CommunityPostDto?> GetPostAsync(int id, CancellationToken ct = default)
     {
         var profile = await ctx.GetProfileAsync(ct);
-        var row = await Project(VisibleTo(db, profile).Where(p => p.Id == id), profile.Id).FirstOrDefaultAsync(ct);
+        var row = await Project(db, VisibleTo(db, profile).Where(p => p.Id == id), profile.Id).FirstOrDefaultAsync(ct);
         return row is null ? null : Map(row);
     }
 
@@ -61,6 +62,50 @@ public sealed class CommunityService(SaplingDbContext db, StudentContext ctx) : 
         }
 
         return (await GetPostAsync(id, ct))!;
+    }
+
+    public async Task<CommunityPostDto> SetSavedAsync(int id, bool saved, CancellationToken ct = default)
+    {
+        var profile = await ctx.GetProfileAsync(ct);
+        if (!await VisibleTo(db, profile).AnyAsync(p => p.Id == id, ct))
+        {
+            throw new InvalidOperationException("Post not found.");
+        }
+
+        var existing = await db.SavedPosts
+            .FirstOrDefaultAsync(s => s.CommunityPostId == id && s.StudentProfileId == profile.Id, ct);
+
+        if (saved && existing is null)
+        {
+            db.SavedPosts.Add(new SavedPost { CommunityPostId = id, StudentProfileId = profile.Id });
+            await db.SaveChangesAsync(ct);
+        }
+        else if (!saved && existing is not null)
+        {
+            db.SavedPosts.Remove(existing);
+            await db.SaveChangesAsync(ct);
+        }
+
+        return (await GetPostAsync(id, ct))!;
+    }
+
+    public async Task<IReadOnlyList<CommunityPostDto>> GetSavedAsync(CancellationToken ct = default)
+    {
+        var profile = await ctx.GetProfileAsync(ct);
+        var savedIds = await db.SavedPosts
+            .Where(s => s.StudentProfileId == profile.Id)
+            .OrderByDescending(s => s.SavedAtUtc)
+            .Select(s => s.CommunityPostId)
+            .ToListAsync(ct);
+
+        if (savedIds.Count == 0)
+        {
+            return [];
+        }
+
+        var rows = await Project(db, VisibleTo(db, profile).Where(p => savedIds.Contains(p.Id)), profile.Id).ToListAsync(ct);
+        // Reorder in memory: the saved-at order is lost once the ids go through the post query.
+        return rows.Select(Map).OrderBy(p => savedIds.IndexOf(p.Id)).ToList();
     }
 
     public async Task<IReadOnlyList<CommunityCommentDto>> GetCommentsAsync(int postId, CancellationToken ct = default)
@@ -174,20 +219,21 @@ public sealed class CommunityService(SaplingDbContext db, StudentContext ctx) : 
 
     private static DateTimeOffset AsUtc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
-    private static IQueryable<PostRow> Project(IQueryable<CommunityPost> query, int profileId) =>
+    private static IQueryable<PostRow> Project(SaplingDbContext db, IQueryable<CommunityPost> query, int profileId) =>
         query.Select(p => new PostRow(
             p,
             p.Institution!,
             p.BaseUpvotes + p.Upvotes.Count,
             p.Upvotes.Any(u => u.StudentProfileId == profileId),
-            p.Comments.Count));
+            p.Comments.Count,
+            db.SavedPosts.Any(s => s.CommunityPostId == p.Id && s.StudentProfileId == profileId)));
 
     private static CommunityPostDto Map(PostRow row)
     {
-        var (p, i, upvotes, hasUpvoted, comments) = row;
+        var (p, i, upvotes, hasUpvoted, comments, isSaved) = row;
         return new CommunityPostDto(
             p.Id,
-            new InstitutionDto(i.Id, i.Name, i.ShortName, i.City, i.Verified),
+            new InstitutionDto(i.Id, i.Name, i.ShortName, i.City, i.Verified, i.LogoDataUrl),
             p.Kind,
             p.Title,
             p.Body,
@@ -200,8 +246,10 @@ public sealed class CommunityService(SaplingDbContext db, StudentContext ctx) : 
             upvotes,
             hasUpvoted,
             comments,
-            p.ImageUrl);
+            p.ImageUrl,
+            p.IsPinned,
+            isSaved);
     }
 
-    private sealed record PostRow(CommunityPost Post, Institution Institution, int Upvotes, bool HasUpvoted, int Comments);
+    private sealed record PostRow(CommunityPost Post, Institution Institution, int Upvotes, bool HasUpvoted, int Comments, bool IsSaved);
 }

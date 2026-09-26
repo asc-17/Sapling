@@ -1,0 +1,82 @@
+@namespace Sapling.Web.Components.Layout
+@inherits LayoutComponentBase
+
+@* Institute sign-in is web-only, so this layout never needs the mobile branch AuthLayout carries. *@
+<div class="container">
+    <div class="auth-hero">
+        <div class="auth-hero-copy stack g-4">
+            <div class="row between g-3 wrap">
+                <SapLogo Size="34" WordSize="22" />
+                <a class="btn btn-ghost btn-sm" href="/signin">
+                    <SapIcon Name="graduation-cap" Size="15" />
+                    Student login
+                </a>
+            </div>
+            <span class="badge badge-primary" style="align-self:flex-start">For colleges and placement cells</span>
+            <h1>Your college's own community, and the students in it.</h1>
+            <p class="t-muted">
+                Post workshops, drives and announcements straight to the students who named your college, answer
+                their questions in the thread, and see who has registered and what they are aiming at.
+            </p>
+            <ul class="stack g-2" style="list-style:none;margin:0;padding:0">
+                @foreach (var point in _points)
+                {
+                    <li class="row-top g-2">
+                        <span class="t-primary" style="margin-top:3px"><SapIcon Name="check-circle" Size="18" /></span>
+                        <span class="t-small">@point</span>
+                    </li>
+                }
+            </ul>
+            <span class="auth-scrollcue">
+                Scroll to see what you get
+                <SapIcon Name="arrow-down" Size="16" />
+            </span>
+        </div>
+
+        <div class="auth-card card">
+            @Body
+        </div>
+    </div>
+</div>
+
+<section class="container section">
+    <div class="stack g-2" style="margin-bottom:var(--sp-5)">
+        <span class="t-overline t-subtle">What you get</span>
+        <h2>A private feed, and the numbers behind it.</h2>
+    </div>
+    <div class="grid grid-4">
+        @foreach (var card in _cards)
+        {
+            <div class="card feature-card">
+                <span class="icon-tile"><SapIcon Name="@card.Icon" Size="20" /></span>
+                <h4>@card.Title</h4>
+                <span class="t-small t-muted">@card.Detail</span>
+            </div>
+        }
+    </div>
+</section>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Something went wrong.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">&times;</span>
+</div>
+
+@code {
+    private static readonly string[] _points =
+    [
+        "Only your college can post to its feed, and only your students can read it.",
+        "Pin what matters, archive what is over, reply as the college.",
+        "See who has registered, what they study and where they are headed.",
+    ];
+
+    private sealed record Card(string Icon, string Title, string Detail);
+
+    private static readonly Card[] _cards =
+    [
+        new("megaphone", "Post to your students", "Workshops, drives, events and announcements, with a date, a venue and a link."),
+        new("message", "Answer in the thread", "Students comment under a post; you reply as the college, with a verified tick."),
+        new("users", "See your cohort", "Every registered student with their branch, batch, target role and claimed skills."),
+        new("radar", "Know the shape of it", "Counts by branch and graduating batch, plus how your posts are landing."),
+    ];
+}

@@ -1,9 +1,10 @@
 @namespace Sapling.Shared
 @using Microsoft.AspNetCore.Components.Authorization
+@inject Services.RouteAssemblies RouteAssemblies
 
 <CascadingAuthenticationState>
     <Router AppAssembly="typeof(Layout.AppLayout).Assembly"
-            AdditionalAssemblies="AdditionalAssemblies"
+            AdditionalAssemblies="RouteAssemblies.All"
             NotFoundPage="typeof(Pages.NotFound)">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.AppLayout)">
@@ -20,7 +21,3 @@
         </Found>
     </Router>
 </CascadingAuthenticationState>
-
-@code {
-    [Parameter] public IEnumerable<System.Reflection.Assembly>? AdditionalAssemblies { get; set; }
-}

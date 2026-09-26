@@ -93,14 +93,27 @@ public static class ExternalAuthEndpoints
             return Results.Redirect(FailureUrl(isMobile, error!));
         }
 
+        var isInstitute = user.AccountType == AccountTypes.Institution;
+
         if (isMobile)
         {
+            // The institute head is web-only, so the app must never receive a token for one.
+            if (isInstitute)
+            {
+                return Results.Redirect(FailureUrl(true, "institute"));
+            }
+
             var code = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
             cache.Set(CodeKey(code), user.Id, CodeLifetime);
             return Results.Redirect($"{AppCallback}?code={code}{(isNew ? "&new=true" : "")}");
         }
 
         await signIn.SignInAsync(user, isPersistent: true);
+        if (isInstitute)
+        {
+            return Results.LocalRedirect("/institute");
+        }
+
         return Results.LocalRedirect(isNew ? "/onboarding/about" : LocalOnly(returnUrl));
     }
 

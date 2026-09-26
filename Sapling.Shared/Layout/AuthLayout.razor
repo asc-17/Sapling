@@ -33,7 +33,14 @@ else
     <div class="container">
         <div class="auth-hero">
             <div class="auth-hero-copy stack g-4">
-                <SapLogo Size="34" WordSize="22" />
+                <div class="row between g-3 wrap">
+                    <SapLogo Size="34" WordSize="22" />
+                    @* Institute accounts are web-only, so this sits in the desktop branch. *@
+                    <a class="btn btn-ghost btn-sm" href="/institute/signin" data-enhance-nav="false">
+                        <SapIcon Name="building" Size="15" />
+                        Institute login
+                    </a>
+                </div>
                 <h1>Find the roles you fit, and close the gap.</h1>
                 <p class="t-muted">
                     Sapling matches your course and skills against 104 real career paths, shows how well you fit

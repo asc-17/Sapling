@@ -318,6 +318,12 @@ public sealed class HttpCommunityService(IHttpClientFactory factory) : ICommunit
     public Task<CommunityPostDto> SetUpvoteAsync(int id, bool upvoted, CancellationToken ct = default) =>
         Client.PostJsonAsync<CommunityPostDto>($"api/community/{id}/upvote/{upvoted.ToString().ToLowerInvariant()}", null, ct);
 
+    public Task<CommunityPostDto> SetSavedAsync(int id, bool saved, CancellationToken ct = default) =>
+        Client.PostJsonAsync<CommunityPostDto>($"api/community/{id}/save/{saved.ToString().ToLowerInvariant()}", null, ct);
+
+    public async Task<IReadOnlyList<CommunityPostDto>> GetSavedAsync(CancellationToken ct = default) =>
+        await Client.GetJsonAsync<List<CommunityPostDto>>("api/community/saved", ct);
+
     public async Task<IReadOnlyList<CommunityCommentDto>> GetCommentsAsync(int postId, CancellationToken ct = default) =>
         await Client.GetJsonAsync<List<CommunityCommentDto>>($"api/community/{postId}/comments", ct);
 

@@ -10,6 +10,8 @@ public sealed class AppUserClaimsPrincipalFactory(
     UserManager<AppUser> userManager,
     IOptions<IdentityOptions> options) : UserClaimsPrincipalFactory<AppUser>(userManager, options)
 {
+    public const string AccountTypeClaim = "account_type";
+
     protected override async Task<ClaimsIdentity> GenerateClaimsAsync(AppUser user)
     {
         var identity = await base.GenerateClaimsAsync(user);
@@ -17,6 +19,8 @@ public sealed class AppUserClaimsPrincipalFactory(
         {
             identity.AddClaim(new Claim("full_name", user.FullName));
         }
+
+        identity.AddClaim(new Claim(AccountTypeClaim, string.IsNullOrWhiteSpace(user.AccountType) ? AccountTypes.Student : user.AccountType));
 
         return identity;
     }

@@ -6,13 +6,18 @@
     protected override void OnInitialized()
     {
         var target = Nav.ToBaseRelativePath(Nav.Uri);
-        var returnUrl = string.IsNullOrEmpty(target) || target.StartsWith("signin", StringComparison.OrdinalIgnoreCase)
+
+        // Institute pages have their own sign-in, so send a signed-out visitor back to the door they came to.
+        var institute = target.StartsWith("institute", StringComparison.OrdinalIgnoreCase);
+        var page = institute ? "/institute/signin" : "/signin";
+
+        var returnUrl = string.IsNullOrEmpty(target) || target.Contains("signin", StringComparison.OrdinalIgnoreCase)
             ? null
             : $"?returnUrl=/{target}";
 
         // The web sign-in page is static SSR, so it needs a real request; the MAUI WebView has no server to reload from.
         Nav.NavigateTo(
-            $"/signin{returnUrl}",
+            $"{page}{returnUrl}",
             forceLoad: FormFactor.Kind == FormFactorKind.Desktop,
             replace: true);
     }

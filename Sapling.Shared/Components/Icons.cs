@@ -89,6 +89,9 @@ public static class Icons
         ["code"] = "m16 18 6-6-6-6M8 6l-6 6 6 6",
         ["save"] = "M5 3h11l5 5v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM7 3v5h8V3M7 21v-7h10v7",
         ["undo"] = "M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11",
+        ["bookmark"] = "M6 3h12v18l-6-4.5L6 21Z",
+        ["pin"] = "M9 3h6l-1 6 4 3v2H6v-2l4-3Z M12 14v7",
+        ["archive"] = "M3 4h18v4H3ZM5 8v12h14V8M10 12h4",
     };
 
     public static string Get(string name) =>

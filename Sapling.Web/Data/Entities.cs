@@ -6,7 +6,17 @@ public class AppUser : IdentityUser
 {
     public string FullName { get; set; } = "";
 
+    /// <summary>One of <see cref="AccountTypes"/>. Decides which shell the sign-in lands in.</summary>
+    public string AccountType { get; set; } = AccountTypes.Student;
+
     public StudentProfile? Profile { get; set; }
+}
+
+public static class AccountTypes
+{
+    public const string Student = "student";
+
+    public const string Institution = "institution";
 }
 
 public class StudentProfile
@@ -52,6 +62,8 @@ public class StudentProfile
 
     /// <summary>Cropped profile photo stored as a Base64 PNG data-URL. Null means "use initials".</summary>
     public string? AvatarDataUrl { get; set; }
+
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }
 
 
@@ -446,7 +458,7 @@ public class QuizQuestion
     public int Order { get; set; }
 }
 
-/// <summary>A publishing organisation. Institution sign-in is not built yet, so these are seeded placeholders.</summary>
+/// <summary>A college that publishes to its own community feed. Students join it by naming it in their profile.</summary>
 public class Institution
 {
     public int Id { get; set; }
@@ -457,7 +469,23 @@ public class Institution
 
     public string City { get; set; } = "";
 
+    public string State { get; set; } = "";
+
     public bool Verified { get; set; }
+
+    /// <summary>The single institute account that owns this college. Null while the row is an unclaimed placeholder.</summary>
+    public string? UserId { get; set; }
+
+    /// <summary>Logo stored as a Base64 PNG data-URL. Null means "use the generated tile".</summary>
+    public string? LogoDataUrl { get; set; }
+
+    public string About { get; set; } = "";
+
+    public string Website { get; set; } = "";
+
+    public string ContactEmail { get; set; } = "";
+
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public List<CommunityPost> Posts { get; set; } = [];
 }
@@ -487,7 +515,7 @@ public class CommunityPost
 
     public string? CtaUrl { get; set; }
 
-    /// <summary>Set once institutions can upload artwork; until then the UI falls back to a placeholder by kind.</summary>
+    /// <summary>Uploaded artwork as a data-URL, or null to fall back to a placeholder by kind.</summary>
     public string? ImageUrl { get; set; }
 
     public string Tags { get; set; } = "";
@@ -495,9 +523,29 @@ public class CommunityPost
     /// <summary>Placeholder engagement for seeded posts; real votes are counted from <see cref="Upvotes"/>.</summary>
     public int BaseUpvotes { get; set; }
 
+    /// <summary>Pinned posts sort above the rest of the college's feed.</summary>
+    public bool IsPinned { get; set; }
+
+    /// <summary>Archived posts stay with the institution but disappear from the student feed.</summary>
+    public bool IsArchived { get; set; }
+
+    public DateTime? UpdatedAtUtc { get; set; }
+
     public List<PostUpvote> Upvotes { get; set; } = [];
 
     public List<PostComment> Comments { get; set; } = [];
+}
+
+/// <summary>A post a student bookmarked for later.</summary>
+public class SavedPost
+{
+    public int Id { get; set; }
+
+    public int CommunityPostId { get; set; }
+
+    public int StudentProfileId { get; set; }
+
+    public DateTime SavedAtUtc { get; set; } = DateTime.UtcNow;
 }
 
 public class PostUpvote

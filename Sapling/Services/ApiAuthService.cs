@@ -47,6 +47,13 @@ public sealed class ApiAuthService(IHttpClientFactory factory, TokenStore tokens
 
         if (!response.IsSuccessStatusCode)
         {
+            // The server turns institute accounts away here, because that head only exists on the website.
+            if (response.StatusCode == System.Net.HttpStatusCode.Forbidden
+                && await response.Content.ReadFromJsonAsync<AccountError>() is { } refusal)
+            {
+                return new AuthResult(false, refusal.Message);
+            }
+
             return new AuthResult(false, "That email and password combination did not match.");
         }
 

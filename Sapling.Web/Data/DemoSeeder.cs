@@ -7,7 +7,11 @@ namespace Sapling.Web.Data;
 public static class DemoSeeder
 {
     public const string DemoEmail = "demo@sapling.app";
+    public const string DemoInstituteEmail = "institute@sapling.app";
     public const string DemoPassword = "Sapling@2026";
+
+    /// <summary>The demo institute owns this college, which is also the demo student's.</summary>
+    private const string DemoCollege = "Shri Govindram Seksaria Institute of Technology and Science";
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -17,6 +21,9 @@ public static class DemoSeeder
 
         // Ensure State column exists in StudentProfiles table on SQLite
         await EnsureSchemaColumnsAsync(db);
+
+        // Must run before anything reads a student or a user, which the catalogue sync below does.
+        await EnsureAccountSchemaAsync(db);
         await EnsureCareerSchemaAsync(db);
 
         // Must run before any profile insert: older DBs have NOT NULL ATS columns the model no longer sets.
@@ -61,6 +68,54 @@ public static class DemoSeeder
         {
             await SeedCommunityAsync(db);
         }
+
+        await SeedDemoInstituteAsync(db, users);
+    }
+
+    /// <summary>Gives the seeded demo college a sign-in so the institute head can be tried out.</summary>
+    private static async Task SeedDemoInstituteAsync(SaplingDbContext db, UserManager<AppUser> users)
+    {
+        var college = await db.Institutions.FirstOrDefaultAsync(i => i.Name == DemoCollege);
+        if (college is null || !string.IsNullOrEmpty(college.UserId))
+        {
+            return;
+        }
+
+        var user = await users.FindByEmailAsync(DemoInstituteEmail);
+        if (user is null)
+        {
+            user = new AppUser
+            {
+                UserName = DemoInstituteEmail,
+                Email = DemoInstituteEmail,
+                EmailConfirmed = true,
+                FullName = "SGSITS Placement Cell",
+                AccountType = AccountTypes.Institution,
+            };
+
+            if (!(await users.CreateAsync(user, DemoPassword)).Succeeded)
+            {
+                return;
+            }
+        }
+
+        college.UserId = user.Id;
+        college.State = "Madhya Pradesh";
+        college.ContactEmail = DemoInstituteEmail;
+        college.About = "Training and Placement Cell, SGSITS Indore.";
+
+        // One pinned post so the student feed shows the pin ordering straight away.
+        var newest = await db.CommunityPosts
+            .Where(p => p.InstitutionId == college.Id)
+            .OrderByDescending(p => p.PostedAtUtc)
+            .FirstOrDefaultAsync();
+
+        if (newest is not null)
+        {
+            newest.IsPinned = true;
+        }
+
+        await db.SaveChangesAsync();
     }
 
     /// <summary>
@@ -247,20 +302,57 @@ public static class DemoSeeder
         (await db.Database.SqlQuery<string>($"SELECT name AS Value FROM pragma_table_info({table})").ToListAsync())
         .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Columns the institute accounts added to tables EnsureCreated built before they existed.</summary>
+    private static async Task EnsureAccountSchemaAsync(SaplingDbContext db)
+    {
+        var studentColumns = await ColumnsAsync(db, "StudentProfiles");
+        if (!studentColumns.Contains("CreatedAtUtc"))
+        {
+            await db.Database.ExecuteSqlRawAsync("""ALTER TABLE "StudentProfiles" ADD COLUMN "CreatedAtUtc" TEXT NOT NULL DEFAULT '0001-01-01 00:00:00';""");
+        }
+
+        var userColumns = await ColumnsAsync(db, "AspNetUsers");
+        if (!userColumns.Contains("AccountType"))
+        {
+            await db.Database.ExecuteSqlRawAsync("""ALTER TABLE "AspNetUsers" ADD COLUMN "AccountType" TEXT NOT NULL DEFAULT 'student';""");
+        }
+    }
+
     /// <summary>EnsureCreated skips databases that already exist, so community tables are added here for older demo DBs.</summary>
     private static async Task EnsureCommunitySchemaAsync(SaplingDbContext db)
     {
         await db.Database.ExecuteSqlRawAsync(CommunityTablesSql);
 
-        // Added after the first community build, so it may be missing from a table created by it.
-        var hasImageUrl = await db.Database
-            .SqlQueryRaw<int>("""SELECT COUNT(*) AS "Value" FROM pragma_table_info('CommunityPosts') WHERE name = 'ImageUrl'""")
-            .FirstAsync();
+        var postColumns = await ColumnsAsync(db, "CommunityPosts");
+        (string Table, string Name, string Sql)[] added =
+        [
+            // Added after the first community build, so tables created by it lack them.
+            ("CommunityPosts", "ImageUrl", "TEXT NULL"),
+            ("CommunityPosts", "IsPinned", "INTEGER NOT NULL DEFAULT 0"),
+            ("CommunityPosts", "IsArchived", "INTEGER NOT NULL DEFAULT 0"),
+            ("CommunityPosts", "UpdatedAtUtc", "TEXT NULL"),
+            // Institution sign-in and branding came later still.
+            ("Institutions", "UserId", "TEXT NULL"),
+            ("Institutions", "LogoDataUrl", "TEXT NULL"),
+            ("Institutions", "State", "TEXT NOT NULL DEFAULT ''"),
+            ("Institutions", "About", "TEXT NOT NULL DEFAULT ''"),
+            ("Institutions", "Website", "TEXT NOT NULL DEFAULT ''"),
+            ("Institutions", "ContactEmail", "TEXT NOT NULL DEFAULT ''"),
+            ("Institutions", "CreatedAtUtc", "TEXT NOT NULL DEFAULT '0001-01-01 00:00:00'"),
+        ];
 
-        if (hasImageUrl == 0)
+        var institutionColumns = await ColumnsAsync(db, "Institutions");
+
+        foreach (var (table, name, sql) in added)
         {
-            await db.Database.ExecuteSqlRawAsync("""ALTER TABLE "CommunityPosts" ADD COLUMN "ImageUrl" TEXT NULL;""");
+            var existing = table == "CommunityPosts" ? postColumns : institutionColumns;
+            if (!existing.Contains(name))
+            {
+                await db.Database.ExecuteSqlRawAsync($"""ALTER TABLE "{table}" ADD COLUMN "{name}" {sql};""");
+            }
         }
+
+        await db.Database.ExecuteSqlRawAsync("""CREATE UNIQUE INDEX IF NOT EXISTS "IX_Institutions_UserId" ON "Institutions" ("UserId");""");
     }
 
     /// <summary>
@@ -389,6 +481,16 @@ public static class DemoSeeder
         CREATE INDEX IF NOT EXISTS "IX_PostComments_InstitutionId" ON "PostComments" ("InstitutionId");
         CREATE INDEX IF NOT EXISTS "IX_PostComments_ParentCommentId" ON "PostComments" ("ParentCommentId");
         CREATE INDEX IF NOT EXISTS "IX_PostComments_StudentProfileId" ON "PostComments" ("StudentProfileId");
+        CREATE TABLE IF NOT EXISTS "SavedPosts" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_SavedPosts" PRIMARY KEY AUTOINCREMENT,
+            "CommunityPostId" INTEGER NOT NULL,
+            "StudentProfileId" INTEGER NOT NULL,
+            "SavedAtUtc" TEXT NOT NULL,
+            CONSTRAINT "FK_SavedPosts_CommunityPosts_CommunityPostId" FOREIGN KEY ("CommunityPostId") REFERENCES "CommunityPosts" ("Id") ON DELETE CASCADE,
+            CONSTRAINT "FK_SavedPosts_StudentProfiles_StudentProfileId" FOREIGN KEY ("StudentProfileId") REFERENCES "StudentProfiles" ("Id") ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS "IX_SavedPosts_CommunityPostId_StudentProfileId" ON "SavedPosts" ("CommunityPostId", "StudentProfileId");
+        CREATE INDEX IF NOT EXISTS "IX_SavedPosts_StudentProfileId" ON "SavedPosts" ("StudentProfileId");
         """;
 
     /// <summary>

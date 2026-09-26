@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.Identity;
 using Sapling.Shared.Contracts;
+using Sapling.Web.Data;
 using Sapling.Web.Services;
+using IdentityLoginRequest = Microsoft.AspNetCore.Identity.Data.LoginRequest;
 
 namespace Sapling.Web.Api;
 
@@ -16,11 +19,30 @@ public static class AccountEndpoints
 
     public static TBuilder RetireUnverifiedIdentityRoutes<TBuilder>(this TBuilder builder)
         where TBuilder : IEndpointConventionBuilder =>
-        builder.AddEndpointFilter((context, next) =>
-            RetiredIdentityRoutes.Contains(context.HttpContext.Request.Path.Value ?? "")
-                ? ValueTask.FromResult<object?>(Results.Json(
-                    new AccountError("This endpoint is retired. Use /api/account instead."), statusCode: StatusCodes.Status410Gone))
-                : next(context));
+        builder.AddEndpointFilter(async (context, next) =>
+        {
+            var path = context.HttpContext.Request.Path.Value ?? "";
+            if (RetiredIdentityRoutes.Contains(path))
+            {
+                return Results.Json(
+                    new AccountError("This endpoint is retired. Use /api/account instead."), statusCode: StatusCodes.Status410Gone);
+            }
+
+            // The institute head is web-only, so bearer sign-in (the MAUI transport) must not hand one a session.
+            if (path.Equals("/api/identity/login", StringComparison.OrdinalIgnoreCase)
+                && context.Arguments.OfType<IdentityLoginRequest>().FirstOrDefault() is { Email: var email }
+                && !string.IsNullOrWhiteSpace(email))
+            {
+                var users = context.HttpContext.RequestServices.GetRequiredService<UserManager<AppUser>>();
+                if (await users.FindByEmailAsync(AccountFlowService.Clean(email)) is { AccountType: AccountTypes.Institution })
+                {
+                    return Results.Json(
+                        new AccountError("Institute accounts sign in on the Sapling website."), statusCode: StatusCodes.Status403Forbidden);
+                }
+            }
+
+            return await next(context);
+        });
 
     public static void MapAccountApi(this IEndpointRouteBuilder app)
     {

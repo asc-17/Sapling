@@ -42,6 +42,7 @@ public static class MauiProgram
         builder.Services.AddScoped<ICommunityService, HttpCommunityService>();
 
         builder.Services.AddSingleton<IFormFactor, MobileFormFactor>();
+        builder.Services.AddSingleton(new RouteAssemblies(typeof(AppRoot).Assembly));
         builder.Services.AddSingleton<IRecentFeaturesService, MauiRecentFeaturesService>();
         builder.Services.AddScoped<IThemeService, MauiThemeService>();
 

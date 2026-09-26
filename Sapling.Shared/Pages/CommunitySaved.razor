@@ -1,0 +1,71 @@
+@page "/community/saved"
+@namespace Sapling.Shared.Pages
+@inject ICommunityService CommunityService
+
+<PageTitle>Saved posts · Sapling</PageTitle>
+
+<div class="stack g-5" style="max-width:760px">
+    <div class="page-head" style="margin-bottom:0">
+        <div class="stack g-1">
+            <h1 style="font-size:28px;line-height:34px">Saved posts</h1>
+            <span class="t-muted">Everything you bookmarked from your college's feed.</span>
+        </div>
+        <a class="btn btn-secondary btn-sm" href="/community">
+            <SapIcon Name="users" Size="15" />
+            Back to community
+        </a>
+    </div>
+
+    @if (_posts is null)
+    {
+        <div class="stack g-3">
+            @for (var i = 0; i < 2; i++)
+            {
+                <div class="card"><div class="skeleton" style="height:180px"></div></div>
+            }
+        </div>
+    }
+    else if (_posts.Count == 0)
+    {
+        <SapEmptyState Title="Nothing saved yet" Icon="bookmark"
+                       Description="Tap the bookmark on any post to keep it here for later.">
+            <a class="btn btn-primary" href="/community">Open the community</a>
+        </SapEmptyState>
+    }
+    else
+    {
+        <div class="stack g-4">
+            @foreach (var post in _posts)
+            {
+                <CommunityPostCard @key="post.Id" Post="post" PostChanged="Replace" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<CommunityPostDto>? _posts;
+
+    protected override async Task OnInitializedAsync() => _posts = [.. await CommunityService.GetSavedAsync()];
+
+    private void Replace(CommunityPostDto updated)
+    {
+        if (_posts is null)
+        {
+            return;
+        }
+
+        // Unsaving here takes the post off the list, since this page is the list of saved ones.
+        if (!updated.IsSaved)
+        {
+            _posts.RemoveAll(p => p.Id == updated.Id);
+            return;
+        }
+
+        var index = _posts.FindIndex(p => p.Id == updated.Id);
+        if (index >= 0)
+        {
+            _posts[index] = updated;
+        }
+    }
+}

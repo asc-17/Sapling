@@ -1,6 +1,8 @@
 @namespace Sapling.Shared.Layout
 @inherits LayoutComponentBase
 @inject IFormFactor FormFactor
+@inject NavigationManager Nav
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthState
 
 @if (FormFactor.Kind == FormFactorKind.Mobile)
 {
@@ -16,3 +18,21 @@ else
     <a href="." class="reload">Reload</a>
     <span class="dismiss">&times;</span>
 </div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // The institute shell is web-only, so the mobile head has nowhere to send one and never has such an account.
+        if (FormFactor.Kind == FormFactorKind.Mobile)
+        {
+            return;
+        }
+
+        // An institute account has no student profile, so every page in this shell would fail for it.
+        var state = await AuthState.GetAuthenticationStateAsync();
+        if (state.User.FindFirst("account_type")?.Value == "institution")
+        {
+            Nav.NavigateTo("/institute", replace: true);
+        }
+    }
+}
