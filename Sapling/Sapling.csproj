@@ -12,13 +12,8 @@
     <EnableDefaultCssItems>false</EnableDefaultCssItems>
     <Nullable>enable</Nullable>
 
-    <!-- Enable XAML source generation for faster build times and improved performance.
-         This generates C# code from XAML at compile time instead of runtime inflation.
-         To disable, remove this line.
-         For individual files, you can override by setting Inflator metadata:
-           <MauiXaml Update="MyPage.xaml" Inflator="Default" /> (reverts to defaults: Runtime for Debug, XamlC for Release)
-           <MauiXaml Update="MyPage.xaml" Inflator="Runtime" /> (force runtime inflation) -->
-    <MauiXamlInflator>SourceGen</MauiXamlInflator>
+    <!-- XAML source generation (MauiXamlInflator=SourceGen) was removed: it is new in .NET 10 and the prime
+         suspect for release APKs closing right after the splash. Release now uses the stable XamlC path. -->
 
     <!-- Display name -->
     <ApplicationTitle>Sapling</ApplicationTitle>
@@ -46,6 +41,11 @@
     <AndroidKeyStore Condition="'$(AndroidSigningKeyStore)' == ''">False</AndroidKeyStore>
     <!-- android-arm keeps the APK installable on 32-bit phones (common on budget Android 10 devices). -->
     <RuntimeIdentifiers>android-arm;android-arm64;android-x64</RuntimeIdentifiers>
+    <!-- Plain JIT instead of AOT: fewer ways to fail on start-up, and a much faster publish. -->
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <!-- The HTTP services deserialize with reflection, which trimmed builds switch off by default. -->
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    <TrimMode>partial</TrimMode>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net10.0-android|AnyCPU'">

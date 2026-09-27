@@ -14,6 +14,7 @@ namespace Sapling
         public MainApplication(IntPtr handle, JniHandleOwnership ownership)
             : base(handle, ownership)
         {
+            Sapling.Services.CrashLog.Install();
         }
 
         protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
