@@ -14,12 +14,27 @@ public static class SaplingApi
     /// </summary>
     private const string DevMachineHost = "192.168.1.68";
 
+    /// <summary>
+    /// The deployed server. Release builds always use it; set it to the VM's DNS name
+    /// (e.g. https://sapling.eastasia.cloudapp.azure.com/).
+    /// </summary>
+    private const string DeployedBaseAddress = "https://sapling.eastasia.cloudapp.azure.com/";
+
+#if DEBUG
+    // Debug builds talk to Sapling.Web on your PC. Set this to true to test a debug build against the deployed server.
+    private const bool UseDeployedServerInDebug = false;
+
     // The emulator reaches the host through 10.0.2.2; a physical phone needs the PC's LAN address.
-    public static string BaseAddress => DeviceInfo.Platform != DevicePlatform.Android
-        ? "http://localhost:5250/"
-        : DeviceInfo.DeviceType == DeviceType.Virtual
-            ? "http://10.0.2.2:5250/"
-            : $"http://{DevMachineHost}:5250/";
+    public static string BaseAddress => UseDeployedServerInDebug
+        ? DeployedBaseAddress
+        : DeviceInfo.Platform != DevicePlatform.Android
+            ? "http://localhost:5250/"
+            : DeviceInfo.DeviceType == DeviceType.Virtual
+                ? "http://10.0.2.2:5250/"
+                : $"http://{DevMachineHost}:5250/";
+#else
+    public static string BaseAddress => DeployedBaseAddress;
+#endif
 }
 
 internal static class HttpExtensions

@@ -66,6 +66,7 @@ dotnet user-secrets set "<key>" "<value>" --project Sapling.Web
 | Key | Used for | If not set |
 |---|---|---|
 | `Ai:HuggingFace:ApiKey` (plus optional `Ai:HuggingFace:Model`, default `openai/gpt-oss-120b`) | The mock interviewer and its report, and resume scoring, drafting and AI edits, through Hugging Face Inference Providers | A scripted offline interviewer and a generic report are used; resumes get sample content and a generic review, and AI edits change nothing |
+| `Monitoring:DiscordWebhookUrl` (plus optional `Monitoring:IntervalMinutes`, default 5) | A usage report to a Discord channel on startup and then on each interval: CPU, app and system memory, swap, disk, load, uptime and users online | No reports |
 | `Latex:TectonicPath` | Path to the Tectonic executable that builds resume PDFs, when it isn't on `PATH` | `tectonic` on `PATH`; if missing, the resume editor still works but shows no PDF preview or PDF download |
 | `Speech:Azure:Key`, `Speech:Azure:Region` (plus optional `Speech:Azure:Voice`, default `en-IN-NeerjaNeural`) | A natural neural voice for the mock interviewer, from Azure AI Speech | The best voice the student's browser has (Microsoft Edge's are the most natural) |
 | `Authentication:Google:ClientId`, `Authentication:Google:ClientSecret` | Google sign-in | The Google button shows "Not set up" |

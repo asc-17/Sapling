@@ -29,6 +29,7 @@ public sealed class TectonicCompiler : ILatexCompiler
     private static readonly TimeSpan WarmUpTimeout = TimeSpan.FromMinutes(5);
 
     private readonly string _executable;
+    private readonly string _cacheDir;
     private readonly ILogger<TectonicCompiler> _log;
     private readonly SemaphoreSlim _gate = new(2);
     private readonly Lazy<bool> _available;
@@ -38,6 +39,20 @@ public sealed class TectonicCompiler : ILatexCompiler
     {
         _log = log;
         _executable = string.IsNullOrWhiteSpace(config["Latex:TectonicPath"]) ? "tectonic" : config["Latex:TectonicPath"]!;
+
+        // Tectonic caches packages in the user's local app data by default. An IIS app pool account usually has no
+        // loaded profile, so Tectonic fails with "Unable to find standard directories". An explicit folder avoids that.
+        _cacheDir = !string.IsNullOrWhiteSpace(config["Latex:CacheDir"])
+            ? config["Latex:CacheDir"]!
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Sapling", "tectonic-cache");
+        try
+        {
+            Directory.CreateDirectory(_cacheDir);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            log.LogWarning("LaTeX: can't create the package cache folder {Dir} ({Message}). Set Latex:CacheDir to a folder the app can write to.", _cacheDir, e.Message);
+        }
         _available = new Lazy<bool>(Probe);
         _warmUp = new Lazy<Task>(() => Task.Run(WarmUpAsync));
     }
@@ -148,6 +163,8 @@ public sealed class TectonicCompiler : ILatexCompiler
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
+            start.Environment["TECTONIC_CACHE_DIR"] = _cacheDir;
+
             // --reruns 0: the second TeX pass only fixes PDF bookmarks, which a resume doesn't need; it saves ~2 s.
             foreach (var arg in new[] { "-X", "compile", "--untrusted", "--keep-logs", "--reruns", "0", "--outdir", dir, "main.tex" })
             {

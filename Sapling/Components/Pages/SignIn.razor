@@ -24,14 +24,11 @@
     <div class="field">
         <label for="email">Email</label>
         <input id="email" class="input" type="email" inputmode="email" autocomplete="username"
-               placeholder="you@college.ac.in" value="@_email" @oninput="OnEmailInput" />
+               placeholder="you@college.ac.in" @bind="_email" @bind:event="oninput" />
     </div>
 
     <div class="field">
-        <div class="row between g-2">
-            <label for="password">Password</label>
-            <a class="t-small" href="/forgot-password">Forgot password?</a>
-        </div>
+        <label for="password">Password</label>
         <input id="password" class="input" type="password" autocomplete="current-password"
                @bind="_password" @bind:event="oninput" @onkeydown="OnKeyDown" />
     </div>
@@ -40,13 +37,10 @@
         @(_busy ? "Signing in…" : "Sign in")
     </button>
 
-    @if (ApiAuthService.GoogleSignInSupported)
-    {
-        <button type="button" class="btn btn-secondary btn-block" @onclick="GoogleAsync" disabled="@_busy">
-            <GoogleMark />
-            Continue with Google
-        </button>
-    }
+    <button type="button" class="btn btn-secondary btn-block" disabled>
+        Continue with Google
+        <SapBadge Tone="neutral">Coming soon</SapBadge>
+    </button>
 
     <div class="stack g-1" style="text-align:center">
         <span class="t-small t-muted">New here? <a href="/register">Create an account</a></span>
@@ -62,12 +56,6 @@
     private string _password = "";
     private string? _error;
     private bool _busy;
-
-    private void OnEmailInput(ChangeEventArgs e)
-    {
-        // Strip all whitespace in real-time as the user types or pastes
-        _email = (e.Value?.ToString() ?? "").Replace(" ", "").Trim();
-    }
 
     private async Task OnKeyDown(KeyboardEventArgs args)
     {
@@ -101,32 +89,6 @@
             if (result.Succeeded)
             {
                 Nav.NavigateTo("/home");
-                return;
-            }
-
-            _error = result.Error;
-        }
-        catch (HttpRequestException)
-        {
-            _error = "Could not reach the Sapling server. Check that it is running and reachable from this device.";
-        }
-        finally
-        {
-            _busy = false;
-        }
-    }
-
-    private async Task GoogleAsync()
-    {
-        _busy = true;
-        _error = null;
-
-        try
-        {
-            var result = await Auth.SignInWithGoogleAsync();
-            if (result.Succeeded)
-            {
-                Nav.NavigateTo(result.IsNewUser ? "/onboarding/about" : "/home");
                 return;
             }
 

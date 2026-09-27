@@ -6,9 +6,11 @@
 @using Microsoft.AspNetCore.Components.Endpoints
 @using Microsoft.AspNetCore.Identity
 @using Sapling.Web.Data
+@using Sapling.Web.Services
 @inject SignInManager<AppUser> SignInManager
 @inject UserManager<AppUser> UserManager
 @inject NavigationManager Nav
+@inject ITurnstileService Turnstile
 
 <PageTitle>Institute sign in · Sapling</PageTitle>
 
@@ -26,7 +28,7 @@
         </div>
     }
 
-    <EditForm Model="Input" method="post" OnValidSubmit="SubmitAsync" FormName="institute-signin" class="stack g-4">
+    <EditForm Model="Input" method="post" OnValidSubmit="SubmitAsync" FormName="institute-signin" Enhance="false" class="stack g-4">
         <DataAnnotationsValidator />
 
         <div class="field">
@@ -44,6 +46,8 @@
             <ValidationMessage For="() => Input.Password" class="field-error" />
         </div>
 
+        <SapTurnstile />
+
         <button type="submit" class="btn btn-primary btn-block">Sign in</button>
     </EditForm>
 
@@ -58,12 +62,21 @@
 
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
     private string? _error;
 
     protected override void OnInitialized() => Input ??= new();
 
     private async Task SubmitAsync()
     {
+        var token = HttpContext?.Request.Form["cf-turnstile-response"].ToString();
+        if (!await Turnstile.VerifyAsync(token, HttpContext?.Connection.RemoteIpAddress?.ToString()))
+        {
+            _error = "We could not verify you are human. Please try again.";
+            return;
+        }
+
         Input.Email = AccountFlowService.Clean(Input.Email);
 
         // Checked before signing in so a student account never lands in the institute shell.

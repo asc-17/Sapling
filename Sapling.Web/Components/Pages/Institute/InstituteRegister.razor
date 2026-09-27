@@ -6,9 +6,11 @@
 @using Microsoft.AspNetCore.Components.Endpoints
 @using Microsoft.AspNetCore.Identity
 @using Sapling.Web.Data
+@using Sapling.Web.Services
 @inject AccountFlowService Flow
 @inject SignInManager<AppUser> SignInManager
 @inject NavigationManager Nav
+@inject ITurnstileService Turnstile
 
 <PageTitle>Register your college · Sapling</PageTitle>
 
@@ -33,7 +35,7 @@
     }
 
     @* Static rendering keeps no state between posts, so earlier answers ride along in hidden fields. *@
-    <EditForm Model="Input" method="post" OnSubmit="SubmitAsync" FormName="institute-register" class="stack g-4">
+    <EditForm Model="Input" method="post" OnSubmit="SubmitAsync" FormName="institute-register" Enhance="false" class="stack g-4">
         <input type="hidden" name="Input.Step" value="@Input.Step" />
 
         @if (Input.Step == StepEmail)
@@ -48,6 +50,8 @@
                 <InputText id="email" type="email" class="input" @bind-Value="Input.Email" autocomplete="email" placeholder="placement@college.ac.in" />
                 <span class="field-hint">We will email a 6-digit code to confirm the address belongs to your college.</span>
             </div>
+
+            <SapTurnstile />
 
             <button type="submit" name="Input.Action" value="send" class="btn btn-primary btn-block">Send code</button>
         }
@@ -99,6 +103,8 @@
 
     [SupplyParameterFromForm] private RegisterInput Input { get; set; } = default!;
 
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
     private string? _error;
     private string? _notice;
 
@@ -122,6 +128,13 @@
                 if (string.IsNullOrWhiteSpace(Input.ContactName))
                 {
                     Show(AccountFlowResult.Fail("Enter the name of whoever will manage this account."), StepEmail);
+                    return;
+                }
+
+                var token = HttpContext?.Request.Form["cf-turnstile-response"].ToString();
+                if (!await Turnstile.VerifyAsync(token, HttpContext?.Connection.RemoteIpAddress?.ToString()))
+                {
+                    Show(AccountFlowResult.Fail("We could not verify you are human. Please try again."), StepEmail);
                     return;
                 }
 

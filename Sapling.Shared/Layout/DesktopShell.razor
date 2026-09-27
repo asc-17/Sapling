@@ -1,26 +1,16 @@
 @namespace Sapling.Shared.Layout
-@inject IJSRuntime Js
-@inject IProfileService Profiles
 
 <div class="shell-desktop">
-    <nav class="sidebar @(_collapsed ? "collapsed" : null)">
+    <nav class="sidebar">
         <div class="sidebar-brand">
-            @if (_collapsed)
-            {
-                <SapLogo Size="30" ShowWord="false" />
-            }
-            else
-            {
-                <SapLogo Size="30" />
-            }
+            <SapLogo Size="30" />
         </div>
 
         <div class="sidebar-nav">
             @foreach (var entry in Navigation.Primary)
             {
                 <NavLink class="nav-item" href="@entry.Route"
-                         Match="@(entry.ExactMatch ? NavLinkMatch.All : NavLinkMatch.Prefix)"
-                         title="@(_collapsed ? entry.Label : null)">
+                         Match="@(entry.ExactMatch ? NavLinkMatch.All : NavLinkMatch.Prefix)">
                     <SapIcon Name="@entry.Icon" Size="18" />
                     <span>@entry.Label</span>
                 </NavLink>
@@ -28,28 +18,14 @@
         </div>
 
         <div class="sidebar-foot">
-            <NavLink class="nav-item" href="/profile" title="@(_collapsed ? "Profile & settings" : null)">
-                @if (!string.IsNullOrEmpty(AvatarDataUrl))
-                {
-                    <img src="@AvatarDataUrl" alt="@DisplayName" class="avatar" style="width:26px;height:26px;object-fit:cover;border-radius:var(--r-pill)" />
-                }
-                else
-                {
-                    <span class="avatar" style="width:26px;height:26px;font-size:11px">@Initials</span>
-                }
+            <NavLink class="nav-item" href="/profile">
+                <span class="avatar" style="width:26px;height:26px;font-size:11px">@Initials</span>
                 <span class="stack grow" style="gap:0">
                     <span style="font-size:13px">@DisplayName</span>
                     <span class="t-caption t-subtle" style="font-weight:400">Profile &amp; settings</span>
                 </span>
             </NavLink>
         </div>
-
-        <button type="button" class="sidebar-collapse-btn"
-                @onclick="ToggleCollapse"
-                title="@(_collapsed ? "Expand sidebar" : "Collapse sidebar")"
-                aria-label="@(_collapsed ? "Expand sidebar" : "Collapse sidebar")">
-            <SapIcon Name="@(_collapsed ? "chevron-right" : "chevron-left")" Size="14" />
-        </button>
     </nav>
 
     <div class="shell-main">
@@ -60,39 +36,16 @@
 </div>
 
 @code {
-    private const string SidebarKey = "sapling-sidebar-collapsed";
-
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private string DisplayName { get; set; } = "Student";
-    private string? AvatarDataUrl { get; set; }
-    private bool _collapsed;
 
     private string Initials => string.Concat(
         DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Take(2)
             .Select(part => char.ToUpperInvariant(part[0])));
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender) return;
-
-        var saved = await Js.InvokeAsync<string?>("sapling.store.get", SidebarKey);
-        var wasCollapsed = saved == "true";
-        if (wasCollapsed != _collapsed)
-        {
-            _collapsed = wasCollapsed;
-            StateHasChanged();
-        }
-    }
-
-    private async Task ToggleCollapse()
-    {
-        _collapsed = !_collapsed;
-        await Js.InvokeVoidAsync("sapling.store.set", SidebarKey, _collapsed ? "true" : "false");
-    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -106,16 +59,6 @@
         if (!string.IsNullOrWhiteSpace(name))
         {
             DisplayName = name.Contains('@') ? name[..name.IndexOf('@')] : name;
-        }
-
-        try
-        {
-            var profile = await Profiles.GetAsync();
-            AvatarDataUrl = profile.AvatarDataUrl;
-        }
-        catch
-        {
-            // Ignore if unauthenticated or offline
         }
     }
 }

@@ -4,10 +4,8 @@
 <div class="segmented" role="tablist">
     @foreach (var option in Options)
     {
-        var isSelected = EqualityComparer<TValue>.Default.Equals(option.Value, Value);
         <button type="button" role="tab"
-                class="@(isSelected ? "active" : null)"
-                aria-selected="@(isSelected ? "true" : "false")"
+                aria-selected="@(EqualityComparer<TValue>.Default.Equals(option.Value, Value))"
                 @onclick="() => Select(option.Value)">
             @option.Label
         </button>

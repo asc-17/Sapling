@@ -99,6 +99,11 @@ builder.Services.AddSingleton<IPdfTextExtractor, PdfTextExtractor>();
 // Resume PDFs are compiled with Tectonic. Without it the editor still works; only the preview and PDF download are off.
 builder.Services.AddSingleton<ILatexCompiler, TectonicCompiler>();
 
+// Optional usage reports to a Discord channel; does nothing unless Monitoring:DiscordWebhookUrl is set.
+builder.Services.AddHttpClient(UsageReporter.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(15));
+builder.Services.AddSingleton<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler, CircuitCounter>();
+builder.Services.AddHostedService<UsageReporter>();
+
 // Optional natural voice for the interviewer; without it the browser's own voices are used.
 var speechKey = builder.Configuration["Speech:Azure:Key"];
 var speechRegion = builder.Configuration["Speech:Azure:Region"];
@@ -135,6 +140,7 @@ builder.Services.AddScoped<InstituteContext>();
 builder.Services.AddScoped<InstituteService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<AccountFlowService>();
+builder.Services.AddHttpClient<ITurnstileService, TurnstileService>();
 
 var azureEmailConnection = builder.Configuration["Email:Azure:ConnectionString"];
 var azureEmailSender = builder.Configuration["Email:Azure:SenderAddress"];
@@ -186,6 +192,18 @@ if (app.Services.GetRequiredService<ILatexCompiler>() is TectonicCompiler tecton
 
 // Pre-initialize in-memory college catalog
 _ = Task.Run(() => app.Services.GetRequiredService<ICollegeCatalogService>().InitializeAsync());
+
+// In production Caddy terminates HTTPS and forwards plain HTTP from the same machine. Trusting its headers lets the
+// app see the real https scheme and host, which Google sign-in redirects and secure cookies depend on.
+var forwarded = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+        | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+        | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedHost,
+};
+forwarded.KnownProxies.Add(System.Net.IPAddress.Loopback);
+forwarded.KnownProxies.Add(System.Net.IPAddress.IPv6Loopback);
+app.UseForwardedHeaders(forwarded);
 
 if (!app.Environment.IsDevelopment())
 {

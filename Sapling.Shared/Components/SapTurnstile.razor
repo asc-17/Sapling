@@ -1,0 +1,11 @@
+@namespace Sapling.Shared.Components
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Config
+
+<div class="cf-turnstile" data-sitekey="@SiteKey" data-theme="light"></div>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+@code {
+    // Falls back to Cloudflare's always-pass test key so local dev works without secrets configured.
+    private string SiteKey => Config["Turnstile:SiteKey"] ?? "1x00000000000000000000AA";
+}
