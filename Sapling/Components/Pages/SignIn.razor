@@ -50,14 +50,10 @@
 
     <div class="stack g-1" style="text-align:center">
         <span class="t-small t-muted">New here? <a href="/register">Create an account</a></span>
-        <button type="button" class="btn btn-ghost btn-sm" @onclick="UseDemoAsync">Use the demo account</button>
     </div>
 </div>
 
 @code {
-    private const string DemoEmail = "demo@sapling.app";
-    private const string DemoPassword = "Sapling@2026";
-
     private string _email = "";
     private string _password = "";
     private string? _error;
@@ -75,13 +71,6 @@
         {
             await SubmitAsync();
         }
-    }
-
-    private async Task UseDemoAsync()
-    {
-        _email = DemoEmail;
-        _password = DemoPassword;
-        await SubmitAsync();
     }
 
     private async Task SubmitAsync()

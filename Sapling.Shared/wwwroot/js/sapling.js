@@ -1,9 +1,15 @@
 window.sapling = (() => {
     const THEME_KEY = 'sapling-theme';
 
+    const darkQuery = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+
     const theme = {
+        // data-sapling-theme is the choice (light | dark | system); data-sapling-mode is what it resolves to.
         apply(mode) {
-            document.documentElement.setAttribute('data-sapling-theme', mode || 'system');
+            const choice = mode || 'system';
+            const dark = choice === 'dark' || (choice === 'system' && !!darkQuery?.matches);
+            document.documentElement.setAttribute('data-sapling-theme', choice);
+            document.documentElement.setAttribute('data-sapling-mode', dark ? 'dark' : 'light');
         },
         read() {
             try { return localStorage.getItem(THEME_KEY) || 'system'; } catch { return 'system'; }
@@ -13,6 +19,11 @@ window.sapling = (() => {
             theme.apply(mode);
         }
     };
+
+    // While "System" is chosen, follow the OS if it switches during the session.
+    darkQuery?.addEventListener('change', () => {
+        if (document.documentElement.getAttribute('data-sapling-theme') === 'system') theme.apply('system');
+    });
 
     const store = {
         get(key) {

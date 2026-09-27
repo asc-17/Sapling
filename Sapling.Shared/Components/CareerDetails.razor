@@ -2,9 +2,10 @@
 
 @* One role in full: shared by the Career & skills page (the student's target) and the preview of any other role. *@
 <div class="stack g-5">
-    <div class="card">
-        <div class="row-top g-6 wrap">
-            <ScoreRing Value="Path.FitScore" Size="140" Caption="Fit for you" Label="Fit" />
+    <div class="g-card hue-career career-hero">
+        <SapArt Name="career" Class="g-card-art" />
+        <div class="row-top g-6 wrap" style="position:relative">
+            <ScoreRing Value="Path.FitScore" Size="140" Caption="Fit for you" Label="Fit" OnLight />
             <div class="grow stack g-3" style="min-width:260px">
                 <div class="row g-2 wrap">
                     @if (Path.IsTarget)
@@ -62,7 +63,7 @@
             </ChildContent>
         </SapCard>
 
-        <SapCard Title="Things to weigh" Subtitle="The case against, from your profile and O*NET">
+        <SapCard Title="Things to weigh" Subtitle="The case against, from your profile">
             <ChildContent>
                 <div class="card card-inset stack g-2">
                     @foreach (var note in Path.Considerations)
@@ -114,7 +115,7 @@
 
     @if (Path.Related.Count > 0)
     {
-        <SapCard Title="Related careers" Subtitle="Roles O*NET lists as closest to this one">
+        <SapCard Title="Related careers">
             <ChildContent>
                 <div class="row g-2 wrap">
                     @foreach (var related in Path.Related)
@@ -125,17 +126,6 @@
             </ChildContent>
         </SapCard>
     }
-
-    <div class="card card-inset stack g-1">
-        <span class="t-caption t-subtle">
-            Role details are from the
-            <a href="@Path.Source.OccupationUrl" target="_blank" rel="noopener noreferrer">@Path.Source.Name entry for @Path.OnetTitle</a>
-            by the @Path.Source.Publisher, used under
-            <a href="@Path.Source.LicenseUrl" target="_blank" rel="noopener noreferrer">@Path.Source.License</a>
-            and imported on @Path.Source.ImportedOn. Job outlook: @Path.Source.OutlookSource. O*NET describes the U.S. job market, so Indian demand and tools may differ.
-        </span>
-        <span class="t-caption t-subtle">@Path.Source.CourseMapping Fit scores are calculated by Sapling from your profile.</span>
-    </div>
 </div>
 
 @code {

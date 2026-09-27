@@ -40,7 +40,7 @@
     }
     else if (Visible.Count == 0)
     {
-        <SapEmptyState Title="No roles match" Icon="compass"
+        <SapEmptyState Title="No roles match" Icon="compass" Art="search" Hue="career"
                        Description="@(string.IsNullOrWhiteSpace(_query) ? "Add your course to your profile, or switch to all careers." : "Try a different search, or switch to all careers.")" />
     }
     else
@@ -48,7 +48,7 @@
         <div class="grid grid-3">
             @foreach (var path in Visible)
             {
-                <a class="card stack g-3" href="@($"/paths/{path.Id}")" @key="path.Id">
+                <a class="card stack g-3 career-tile hue-@Hues.ForKey(path.Family) @(path.IsTarget ? "is-target" : null)" href="@($"/paths/{path.Id}")" @key="path.Id">
                     <div class="row between g-2 wrap">
                         <div class="row g-2 wrap">
                             <SapBadge Tone="@CareerDetails.TierTone(path.Tier)">@path.Tier</SapBadge>
@@ -63,7 +63,7 @@
                                 </span>
                             }
                         </div>
-                        <span class="t-caption t-subtle">@path.Family</span>
+                        <span class="badge badge-hue">@path.Family</span>
                     </div>
 
                     <div class="row g-4">

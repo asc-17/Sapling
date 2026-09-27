@@ -40,7 +40,10 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net10.0-android|AnyCPU'">
     <AndroidPackageFormat>apk</AndroidPackageFormat>
-    <AndroidKeyStore>False</AndroidKeyStore>
+    <!-- Signs with the release keystore when one is passed on the command line (-p:AndroidSigningKeyStore=...);
+         the key and passwords stay out of the repo. Without it the build falls back to the debug key. -->
+    <AndroidKeyStore Condition="'$(AndroidSigningKeyStore)' != ''">True</AndroidKeyStore>
+    <AndroidKeyStore Condition="'$(AndroidSigningKeyStore)' == ''">False</AndroidKeyStore>
     <!-- android-arm keeps the APK installable on 32-bit phones (common on budget Android 10 devices). -->
     <RuntimeIdentifiers>android-arm;android-arm64;android-x64</RuntimeIdentifiers>
   </PropertyGroup>
@@ -51,10 +54,10 @@
 
   <ItemGroup>
     <!-- App Icon -->
-    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#006838" />
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#FFE3D8" />
 
     <!-- Splash Screen -->
-    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#006838" BaseSize="128,128" />
+    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#FFE3D8" BaseSize="128,128" />
 
     <!-- Images -->
     <MauiImage Include="Resources\Images\*" />

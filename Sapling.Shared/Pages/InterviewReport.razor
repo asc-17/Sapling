@@ -15,7 +15,7 @@
 }
 else if (_interview is null)
 {
-    <SapEmptyState Title="Interview not found" Icon="mic" Description="It may have been deleted.">
+    <SapEmptyState Title="Interview not found" Icon="mic" Art="not-found" Hue="interview" Description="It may have been deleted.">
         <a class="btn btn-secondary" href="/interview">Back to interviews</a>
     </SapEmptyState>
 }
@@ -61,9 +61,10 @@ else
         {
             var delivery = report.Delivery;
 
-            <div class="card">
-                <div class="row-top g-6 wrap">
-                    <ScoreRing Value="report.Overall" Size="128" Caption="overall" Label="Overall score" />
+            <div class="g-card hue-interview" style="min-height:0">
+                <SapArt Name="interview" Class="g-card-art report-art" />
+                <div class="row-top g-6 wrap" style="position:relative">
+                    <ScoreRing Value="report.Overall" Size="128" Caption="overall" Label="Overall score" OnLight />
                     <div class="grow stack g-3" style="min-width:260px">
                         <div class="row g-2 wrap">
                             <SapBadge Tone="@ConfidenceTone(report.ConfidenceLevel)">
@@ -85,7 +86,7 @@ else
 
             @if (report.Areas.Count > 0)
             {
-                <SapCard Title="Scores by area">
+                <SapCard Title="Scores by area" Class="tile hue-interview">
                     <ChildContent>
                         <div class="stack g-4">
                             @foreach (var area in report.Areas)
@@ -397,7 +398,7 @@ else
 
     private static string ScoreTone(int score) => score >= 70 ? "success" : score >= 45 ? "warn" : "error";
 
-    private static string BarTone(int score) => score >= 70 ? "success" : score >= 45 ? "accent" : "primary";
+    private static string BarTone(int score) => score >= 70 ? "green" : score >= 45 ? "coral" : "hue";
 
     private async Task PrintAsync() => await Js.InvokeVoidAsync("sapling.print");
 

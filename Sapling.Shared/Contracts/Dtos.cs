@@ -391,7 +391,10 @@ public sealed record GovtExamDto(
     string Eligibility,
     IReadOnlyList<string> EligibilityReasons,
     IReadOnlyList<string> SyllabusAreas,
-    string Summary);
+    string Summary,
+    string OfficialUrl = "",
+    DateOnly? ExamEndsOn = null,
+    bool DatesTentative = false);
 
 public sealed record QuizQuestionDto(
     int Id,

@@ -7,10 +7,12 @@
 <PageTitle>Admin dashboard · Sapling</PageTitle>
 
 <div class="stack g-5">
-    <div class="page-head" style="margin-bottom:0">
-        <div class="stack g-1">
+    <div class="g-card hue-brand staff-hero">
+        <SapArt Name="success" Class="g-card-art" />
+        <div class="g-card-body stack g-1">
+            <span class="t-overline">Admin</span>
             <h1 style="font-size:28px;line-height:34px">Platform overview</h1>
-            <span class="t-muted">Who is on Sapling, and how that is changing.</span>
+            <span class="t-small">Who is on Sapling, and how that is changing.</span>
         </div>
     </div>
 
@@ -21,17 +23,17 @@
     else
     {
         <div class="grid grid-4">
-            <Stat Label="Students" Value="_data.Students" Icon="users"
+            <Stat Label="Students" Value="_data.Students" Icon="users" Hue="career"
                   Hint="@Blocked(_data.DeactivatedStudents)" />
-            <Stat Label="Institutes" Value="_data.Institutes" Icon="building"
+            <Stat Label="Institutes" Value="_data.Institutes" Icon="building" Hue="community"
                   Hint="@Blocked(_data.DeactivatedInstitutes)" />
-            <Stat Label="Administrators" Value="_data.Admins" Icon="shield-check" Hint="Platform staff" />
-            <Stat Label="Colleges claimed" Value="_data.ClaimedColleges" Icon="check-circle"
+            <Stat Label="Administrators" Value="_data.Admins" Icon="shield-check" Hue="interview" Hint="Platform staff" />
+            <Stat Label="Colleges claimed" Value="_data.ClaimedColleges" Icon="check-circle" Hue="roadmap"
                   Hint="@($"{_data.UnclaimedColleges} still unclaimed")" />
         </div>
 
         <div class="grid grid-2">
-            <SapCard Title="New accounts" Subtitle="Signups in the last six months">
+            <SapCard Title="New accounts" Subtitle="Signups in the last six months" Class="tile hue-career">
                 @if (_data.SignupsByMonth.Sum(s => s.Count) == 0)
                 {
                     <span class="t-small t-subtle">No signups recorded in this window.</span>
@@ -48,7 +50,7 @@
                 }
             </SapCard>
 
-            <SapCard Title="Top colleges" Subtitle="By registered students">
+            <SapCard Title="Top colleges" Subtitle="By registered students" Class="tile hue-community">
                 @if (_data.TopColleges.Count == 0)
                 {
                     <span class="t-small t-subtle">No students have named a college yet.</span>

@@ -9,6 +9,7 @@
 <div class="stack g-5">
     <div class="page-head" style="margin-bottom:0">
         <div class="stack g-1">
+            <span class="page-eyebrow hue-career">Your cohort</span>
             <h1 style="font-size:28px;line-height:34px">Students</h1>
             <span class="t-muted">Everyone who named your college on their profile.</span>
         </div>
@@ -43,7 +44,7 @@
     }
     else if (_students.Count == 0)
     {
-        <SapEmptyState Title="No students match" Icon="users"
+        <SapEmptyState Title="No students match" Icon="users" Art="search" Hue="career"
                        Description="Try clearing the filters, or check that your college name matches the one students search for." />
     }
     else
@@ -52,7 +53,7 @@
             <span class="t-caption t-subtle">@_students.Count student@(_students.Count == 1 ? "" : "s")</span>
             @foreach (var student in _students)
             {
-                <div class="card row-top g-3" @key="student.Id">
+                <div class="card row-top g-3 hue-@Hues.ForKey(student.FullName)" @key="student.Id">
                     @if (!string.IsNullOrEmpty(student.AvatarDataUrl))
                     {
                         <img src="@student.AvatarDataUrl" alt="@student.FullName" class="avatar"
@@ -88,7 +89,7 @@
                             <div class="row g-1 wrap">
                                 @foreach (var skill in student.Skills.Take(10))
                                 {
-                                    <span class="chip t-caption">@skill</span>
+                                    <span class="chip chip-hue t-caption">@skill</span>
                                 }
                                 @if (student.Skills.Count > 10)
                                 {

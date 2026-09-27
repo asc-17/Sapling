@@ -22,8 +22,11 @@
     {
         <div class="profile-grid">
         <div class="stack g-5">
-        <div class="card">
-            <div class="row-top g-4 wrap">
+        <div class="card profile-card">
+            <div class="profile-cover g-card hue-profile">
+                <SapArt Name="profile" Class="g-card-art" />
+            </div>
+            <div class="row-top g-4 wrap profile-head">
                 <div class="avatar-photo-wrap" @onclick="OpenAvatarModal" title="Change profile photo" role="button" tabindex="0" @onkeydown="@(e => { if (e.Key == "Enter" || e.Key == " ") OpenAvatarModal(); })">
                     @if (!string.IsNullOrEmpty(_profile.AvatarDataUrl))
                     {
@@ -71,7 +74,7 @@
         </div>
 
         <div class="stack g-5">
-        <SapCard Title="Target career">
+        <SapCard Title="Target career" Class="tile hue-career">
             <ChildContent>
                 @if (_coverage is null)
                 {
@@ -88,7 +91,7 @@
                 {
                     <div class="row between g-3 wrap">
                         <div class="row g-3">
-                            <ScoreRing Value="_coverage.Fit" Size="56" Thickness="6" Animate="false" Label="Fit" />
+                            <ScoreRing Value="_coverage.Fit" Size="56" Thickness="6" Animate="false" Label="Fit" Hue="career" />
                             <div class="stack" style="gap:2px">
                                 <span style="font-weight:600">@_coverage.RoleName</span>
                                 <span class="t-caption t-subtle">You have @_coverage.Have of the @_coverage.Total skills it asks for.</span>
@@ -100,7 +103,7 @@
             </ChildContent>
         </SapCard>
 
-        <SapCard Title="Skills" Subtitle="@SkillsSubtitle">
+        <SapCard Title="Skills" Subtitle="@SkillsSubtitle" Class="tile hue-roadmap">
             <ChildContent>
                 @if (_skills is null)
                 {
@@ -123,7 +126,7 @@
                                 <div class="row g-2 wrap">
                                     @foreach (var skill in group)
                                     {
-                                        <span class="chip chip-claimed">@skill.Name</span>
+                                        <span class="chip chip-hue">@skill.Name</span>
                                     }
                                 </div>
                             </div>

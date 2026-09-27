@@ -15,12 +15,12 @@
         <span class="t-muted">A spoken interview with an AI interviewer, then a detailed report on what you said and how you said it.</span>
     </div>
 
-    <div class="card stack g-4">
-        <div class="row-top g-4 wrap">
-            <span class="icon-tile" style="width:48px;height:48px"><SapIcon Name="mic" Size="22" /></span>
-            <div class="stack grow" style="gap:2px;min-width:220px">
+    <div class="card stack g-4 iv-stage">
+        <div class="g-card g-card-sm hue-interview iv-stage-head">
+            <SapArt Name="interview" Class="g-card-art" />
+            <div class="g-card-body stack" style="gap:4px">
                 <h3 style="font-size:19px;line-height:25px">Set up your interview</h3>
-                <span class="t-small t-muted">A spoken interview like a real one: introduction, your projects, technical and behavioural questions. Each question depends on how you answered the last.</span>
+                <span class="t-small">A spoken interview like a real one: introduction, your projects, technical and behavioural questions. Each question depends on how you answered the last.</span>
             </div>
         </div>
 
@@ -106,7 +106,7 @@
         }
         else if (_history.Count == 0)
         {
-            <SapEmptyState Title="No interviews yet" Icon="mic"
+            <SapEmptyState Title="No interviews yet" Icon="mic" Art="interview" Hue="interview"
                            Description="Your first interview sets the baseline. Every report and transcript is kept here." />
         }
         else
@@ -123,7 +123,7 @@
                             @if (item.Status == "Complete" && item.OverallScore is { } score)
                             {
                                 <a href="@LinkFor(item)" aria-label="Open report">
-                                    <ScoreRing Value="score" Size="56" Thickness="6" Animate="false" Label="Score" />
+                                    <ScoreRing Value="score" Size="56" Thickness="6" Animate="false" Label="Score" Hue="interview" />
                                 </a>
                             }
                             else

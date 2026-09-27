@@ -10,6 +10,7 @@
 <div class="stack g-5" style="max-width:860px">
     <div class="page-head" style="margin-bottom:0">
         <div class="stack g-1">
+            <span class="page-eyebrow hue-community">Your feed</span>
             <h1 style="font-size:28px;line-height:34px">Community</h1>
             <span class="t-muted">What your students see. Only your college can post here.</span>
         </div>
@@ -43,7 +44,7 @@
     }
     else if (_posts.Count == 0)
     {
-        <SapEmptyState Title="Nothing posted yet" Icon="megaphone"
+        <SapEmptyState Title="Nothing posted yet" Icon="megaphone" Art="community" Hue="community"
                        Description="Announce a workshop, a placement drive or an event and every student of your college sees it.">
             <button type="button" class="btn btn-primary" @onclick="() => OpenComposer(null)">Write the first post</button>
         </SapEmptyState>
@@ -53,10 +54,10 @@
         <div class="stack g-3">
             @foreach (var post in _posts)
             {
-                <div class="card stack g-3" @key="post.Id">
+                <div class="card stack g-3 staff-post hue-@CommunityDisplay.Hue(post.Kind)" @key="post.Id">
                     <div class="row between g-2 wrap">
                         <div class="row g-2 wrap">
-                            <SapBadge Tone="@CommunityDisplay.Tone(post.Kind)" Icon="@CommunityDisplay.Icon(post.Kind)">@post.Kind</SapBadge>
+                            <SapBadge Tone="solid" Class="@($"hue-{CommunityDisplay.Hue(post.Kind)}")" Icon="@CommunityDisplay.Icon(post.Kind)">@post.Kind</SapBadge>
                             @if (post.IsPinned)
                             {
                                 <SapBadge Tone="primary" Icon="pin">Pinned</SapBadge>

@@ -30,6 +30,9 @@ public static class DemoSeeder
         // Must run before any profile insert: older DBs have NOT NULL ATS columns the model no longer sets.
         await EnsureResumeSchemaAsync(db);
 
+        // Exams are a maintained catalogue with real dates, not demo data, so they sync on every start.
+        await EnsureExamSchemaAsync(db);
+
         if (!await db.Skills.AnyAsync())
         {
             await SeedCatalogueAsync(db);
@@ -69,6 +72,8 @@ public static class DemoSeeder
         {
             await SeedCommunityAsync(db);
         }
+
+        await ExamCatalogue.SyncAsync(db);
 
         await SeedDemoInstituteAsync(db, users);
         await SeedFirstAdminAsync(users);
@@ -323,6 +328,27 @@ public static class DemoSeeder
     private static async Task<HashSet<string>> ColumnsAsync(SaplingDbContext db, string table) =>
         (await db.Database.SqlQuery<string>($"SELECT name AS Value FROM pragma_table_info({table})").ToListAsync())
         .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Columns the Exams calendar added to the table EnsureCreated built before they existed.</summary>
+    private static async Task EnsureExamSchemaAsync(SaplingDbContext db)
+    {
+        var columns = await ColumnsAsync(db, "GovtExams");
+        (string Name, string Sql)[] added =
+        [
+            ("OfficialUrl", "TEXT NOT NULL DEFAULT ''"),
+            ("ExamEndsOn", "TEXT NULL"),
+            ("DatesTentative", "INTEGER NOT NULL DEFAULT 0"),
+            ("OpenYearsBeforeGraduation", "INTEGER NOT NULL DEFAULT 0"),
+        ];
+
+        foreach (var (name, sql) in added.Where(c => !columns.Contains(c.Name)))
+        {
+            // Identifiers cannot be parameterised in DDL; every value here is a constant from the list above.
+#pragma warning disable EF1002
+            await db.Database.ExecuteSqlRawAsync($"""ALTER TABLE "GovtExams" ADD COLUMN "{name}" {sql};""");
+#pragma warning restore EF1002
+        }
+    }
 
     /// <summary>Columns the institute accounts added to tables EnsureCreated built before they existed.</summary>
     private static async Task EnsureAccountSchemaAsync(SaplingDbContext db)
@@ -905,14 +931,6 @@ public static class DemoSeeder
             new Opportunity { Title = "Junior Cloud Support Associate", Company = "Nagarro", Kind = "Full-time", Location = "Remote (India)", Remote = true, Stipend = "₹4.8 LPA", ClosesOn = today.AddDays(30), MatchScore = 48, MissingSkills = "Cloud fundamentals|Docker|Linux", Reasons = "Highest salary band open to you|Remote-first|Certification can substitute for experience", Description = "Support and automation for cloud workloads. A cloud practitioner certification is treated as equivalent to one year of experience." },
             new Opportunity { Title = "Software Engineer Trainee", Company = "TCS (NQT)", Kind = "Full-time", Location = "Indore / Bhopal", Remote = false, Stipend = "₹3.6 LPA", ClosesOn = today.AddDays(45), MatchScore = 71, MissingSkills = "", Reasons = "You meet every stated requirement|Largest single recruiter in the state|Aptitude is a scored round and you have four weeks to prepare", Description = "National Qualifier Test route. Aptitude, programming logic and coding sections, followed by a technical interview." },
             new Opportunity { Title = "Frontend Intern", Company = "Impetus", Kind = "Internship", Location = "Indore", Remote = false, Stipend = "₹12,000 / month", ClosesOn = today.AddDays(9), MatchScore = 52, MissingSkills = "React|JavaScript", Reasons = "HTML and CSS already in place|Short commute from campus|Small team, broad exposure", Description = "Build internal tools in React. Suitable if you want product work rather than services work." });
-
-        db.GovtExams.AddRange(
-            new GovtExam { Name = "MPESB Group 4 (Assistant Grade 3)", Authority = "MP Employee Selection Board", Level = "State", NotificationOn = today.AddDays(-6), ExamOn = today.AddDays(84), MinAge = 18, MaxAge = 40, QualificationRequired = "Graduate", RequiresMpDomicile = true, MinCgpa = 0, SyllabusAreas = "General knowledge|Quantitative aptitude|Computer knowledge|Hindi|English", Summary = "High-volume state recruitment with a computer-knowledge section that overlaps your degree directly." },
-            new GovtExam { Name = "MPPSC State Service Examination", Authority = "MP Public Service Commission", Level = "State", NotificationOn = today.AddDays(18), ExamOn = today.AddDays(150), MinAge = 21, MaxAge = 40, QualificationRequired = "Graduate", RequiresMpDomicile = false, MinCgpa = 0, SyllabusAreas = "General studies|MP-specific GK|CSAT|Essay|Interview", Summary = "The state's flagship administrative examination. Expect a two to three year preparation commitment." },
-            new GovtExam { Name = "SSC Combined Graduate Level", Authority = "Staff Selection Commission", Level = "Central", NotificationOn = today.AddDays(-20), ExamOn = today.AddDays(60), MinAge = 18, MaxAge = 32, QualificationRequired = "Graduate", RequiresMpDomicile = false, MinCgpa = 0, SyllabusAreas = "Quantitative aptitude|Reasoning|English|General awareness", Summary = "Central government posts across ministries. Four tiers, with the first tier in under three months." },
-            new GovtExam { Name = "IBPS Probationary Officer", Authority = "Institute of Banking Personnel Selection", Level = "Central", NotificationOn = today.AddDays(40), ExamOn = today.AddDays(120), MinAge = 20, MaxAge = 30, QualificationRequired = "Graduate", RequiresMpDomicile = false, MinCgpa = 0, SyllabusAreas = "Reasoning|Quantitative aptitude|English|Banking awareness", Summary = "Banking track with a well-defined syllabus; the aptitude work overlaps your campus placement preparation." },
-            new GovtExam { Name = "RRB Junior Engineer", Authority = "Railway Recruitment Board", Level = "Central", NotificationOn = today.AddDays(-2), ExamOn = today.AddDays(95), MinAge = 18, MaxAge = 33, QualificationRequired = "Diploma or Degree in Engineering", RequiresMpDomicile = false, MinCgpa = 0, SyllabusAreas = "Technical subject|Mathematics|Reasoning|General awareness", Summary = "Engineering-specific technical paper, which favours your branch over general-stream candidates." },
-            new GovtExam { Name = "MPPSC Assistant Professor", Authority = "MP Public Service Commission", Level = "State", NotificationOn = null, ExamOn = null, MinAge = 21, MaxAge = 40, QualificationRequired = "Postgraduate with NET", RequiresMpDomicile = false, MinCgpa = 0, SyllabusAreas = "Subject paper|Teaching aptitude", Summary = "Requires a master's degree and NET, so this becomes available only after further study." });
 
         var quiz = new[]
         {

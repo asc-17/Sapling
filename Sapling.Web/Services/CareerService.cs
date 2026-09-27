@@ -223,7 +223,7 @@ public sealed class CareerService(SaplingDbContext db, StudentContext ctx, Caree
 
         if (student.Riasec.Length > 0 && RiasecLetters.TryGetValue(student.Riasec[0], out var top) && s.Ratings.TryGetValue(top, out var rating))
         {
-            reasons.Add($"Your interest quiz leans {top}; O*NET rates this role {rating.ToString("0.0", CultureInfo.InvariantCulture)} out of 7 for {top} interests.");
+            reasons.Add($"Your interest quiz leans {top}; Sapling rates this role {rating.ToString("0.0", CultureInfo.InvariantCulture)} out of 7 for {top} interests.");
         }
 
         return reasons;

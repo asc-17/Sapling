@@ -1,25 +1,24 @@
 @namespace Sapling.Shared.Pages.Onboarding
 
-<div class="row g-2 wrap">
+<ol class="stepper" aria-label="Onboarding steps">
     @foreach (var (label, index) in Steps.Select((s, i) => (s, i + 1)))
     {
-        <div class="row g-2 grow" style="min-width:120px">
-            <span class="row center" style="width:24px;height:24px;flex:none;border-radius:var(--r-pill);font-size:12px;font-weight:700;
-                         background:@(index <= Current ? "var(--primary)" : "var(--surface2)");
-                         color:@(index <= Current ? "var(--primary-on)" : "var(--subtle)")">
+        <li class="stepper-item @(index < Current ? "done" : index == Current ? "current" : null)"
+            aria-current="@(index == Current ? "step" : null)">
+            <span class="stepper-dot">
                 @if (index < Current)
                 {
-                    <SapIcon Name="check" Size="13" Stroke="2.5" />
+                    <SapIcon Name="check" Size="13" Stroke="3" />
                 }
                 else
                 {
                     @index
                 }
             </span>
-            <span class="t-small" style="font-weight:600;color:@(index <= Current ? "var(--ink)" : "var(--subtle)")">@label</span>
-        </div>
+            <span class="stepper-label">@label</span>
+        </li>
     }
-</div>
+</ol>
 
 @code {
     private static readonly string[] Steps = ["About you", "Your skills", "Interest check"];

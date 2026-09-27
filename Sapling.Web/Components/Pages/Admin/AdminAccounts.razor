@@ -13,6 +13,7 @@
 <div class="stack g-5">
     <div class="page-head" style="margin-bottom:0">
         <div class="stack g-1">
+            <span class="page-eyebrow hue-@KindHue">Accounts</span>
             <h1 style="font-size:28px;line-height:34px">@Title</h1>
             <span class="t-muted">@Subtitle</span>
         </div>
@@ -38,7 +39,7 @@
     }
     else if (_accounts.Count == 0)
     {
-        <SapEmptyState Title="Nothing here yet" Icon="users"
+        <SapEmptyState Title="Nothing here yet" Icon="users" Art="nothing-here" Hue="@KindHue"
                        Description="@($"No {Noun} match. Try a different search, or add one.")" />
     }
     else
@@ -47,7 +48,7 @@
             <span class="t-caption t-subtle">@_accounts.Count @(_accounts.Count == 1 ? Noun.TrimEnd('s') : Noun)</span>
             @foreach (var account in _accounts)
             {
-                <div class="card row between g-3 wrap" @key="account.Id">
+                <div class="card row between g-3 wrap hue-@Hues.ForKey(account.Name)" @key="account.Id">
                     <div class="row g-3" style="min-width:0">
                         <span class="avatar" style="width:36px;height:36px;font-size:13px;flex:none">@Initials(account.Name)</span>
                         <div class="stack" style="gap:2px;min-width:0">
@@ -157,6 +158,13 @@
 
     private CancellationTokenSource? _debounce;
     private string _kind = AccountTypes.Student;
+
+    private string KindHue => _kind switch
+    {
+        AccountTypes.Institution => "community",
+        AccountTypes.Admin => "interview",
+        _ => "career",
+    };
 
     private string Title => _kind switch
     {

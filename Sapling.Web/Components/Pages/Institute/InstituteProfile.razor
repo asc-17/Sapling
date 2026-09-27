@@ -9,6 +9,7 @@
 <div class="stack g-5" style="max-width:720px">
     <div class="page-head" style="margin-bottom:0">
         <div class="stack g-1">
+            <span class="page-eyebrow hue-profile">Settings</span>
             <h1 style="font-size:28px;line-height:34px">Institute profile</h1>
             <span class="t-muted">How your college appears on every post and comment.</span>
         </div>
@@ -32,7 +33,7 @@
             <div class="badge badge-success" role="status" style="padding:10px 14px;border-radius:var(--r-md)">Saved.</div>
         }
 
-        <SapCard>
+        <SapCard Class="tile hue-profile">
             <div class="row-top g-4 wrap">
                 <button type="button" class="btn btn-ghost" style="padding:0;height:auto" @onclick="() => _editingLogo = true" title="Change logo">
                     @if (!string.IsNullOrEmpty(_profile.LogoDataUrl))
@@ -69,7 +70,7 @@
             </div>
         </SapCard>
 
-        <SapCard Title="Details">
+        <SapCard Title="Details" Class="card-accent hue-profile">
             <ChildContent>
             <div class="stack g-4">
                 <div class="field">

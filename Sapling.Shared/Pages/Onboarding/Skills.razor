@@ -3,10 +3,9 @@
 @inject IProfileService Profiles
 @inject NavigationManager Nav
 
-<PageTitle>Your skills - Sapling</PageTitle>
+<PageTitle>Your skills &middot; Sapling</PageTitle>
 
-<div class="stack g-5" style="max-width:720px;margin-inline:auto">
-    <OnboardingSteps Current="2" />
+<OnboardingFrame Step="2" Hue="roadmap" Art="onboarding-2" SideTitle="Every skill you add counts towards how well you fit each role." SideBlurb="Coursework, projects, practice. We take your word for it.">
 
     <div class="stack g-1">
         <h1 style="font-size:28px;line-height:34px">What can you already do?</h1>
@@ -101,7 +100,7 @@
             </button>
         </div>
     }
-</div>
+</OnboardingFrame>
 
 @code {
     private SkillPickerDto? _picker;

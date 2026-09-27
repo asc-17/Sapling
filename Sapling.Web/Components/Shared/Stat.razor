@@ -1,11 +1,11 @@
 @namespace Sapling.Web.Components.Shared
 
-<div class="card stack g-2">
+<div class="stat-tile hue-@Hue stack g-2">
     <div class="row between g-2">
-        <span class="t-caption t-subtle">@Label</span>
-        <span class="t-primary"><SapIcon Name="@Icon" Size="16" /></span>
+        <span class="t-caption" style="color:var(--g-text);font-weight:600">@Label</span>
+        <span class="icon-tile icon-tile-solid" style="width:32px;height:32px"><SapIcon Name="@Icon" Size="16" /></span>
     </div>
-    <span class="t-num" style="font-size:26px;line-height:30px">@Value</span>
+    <span class="t-num" style="font-size:30px;line-height:34px">@Value</span>
     @if (!string.IsNullOrWhiteSpace(Hint))
     {
         <span class="t-caption t-subtle">@Hint</span>
@@ -16,5 +16,9 @@
     [Parameter, EditorRequired] public string Label { get; set; } = "";
     [Parameter, EditorRequired] public int Value { get; set; }
     [Parameter] public string Icon { get; set; } = "info";
+
+    /// <summary>Feature hue suffix for the tile's tint, e.g. "career".</summary>
+    [Parameter] public string Hue { get; set; } = "profile";
+
     [Parameter] public string? Hint { get; set; }
 }

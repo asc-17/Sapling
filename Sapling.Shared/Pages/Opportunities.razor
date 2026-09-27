@@ -25,7 +25,7 @@
     }
     else if (Filtered.Count == 0)
     {
-        <SapEmptyState Title="Nothing here yet" Icon="briefcase"
+        <SapEmptyState Title="Nothing here yet" Icon="briefcase" Art="search" Hue="opportunities"
                        Description="Try a different filter, or close a gap to unlock more matches.">
             <a class="btn btn-primary" href="/career">See your gaps</a>
         </SapEmptyState>
@@ -35,19 +35,20 @@
         <div class="stack g-3">
             @foreach (var item in Filtered)
             {
-                <a class="card stack g-4" href="@($"/opportunities/{item.Id}")">
+                <a class="card stack g-4 opp-card hue-@Hues.ForKey(item.Company)" href="@($"/opportunities/{item.Id}")">
                     <div class="row-top between g-4 wrap">
+                        <span class="mono-tile">@Hues.Monogram(item.Company)</span>
                         <div class="stack g-2 grow" style="min-width:240px">
                             <div class="row g-2 wrap">
                                 <SapBadge Tone="@ReadinessTone(item)" Icon="@ReadinessIcon(item)">@item.Readiness</SapBadge>
-                                <SapBadge Tone="neutral">@item.Kind</SapBadge>
+                                <SapBadge Tone="hue">@item.Kind</SapBadge>
                                 @if (item.Remote)
                                 {
                                     <SapBadge Tone="info" Icon="zap">Remote</SapBadge>
                                 }
                                 @if (ClosingSoon(item))
                                 {
-                                    <SapBadge Tone="warn" Icon="clock">Closes in @DaysLeft(item) days</SapBadge>
+                                    <SapBadge Tone="coral" Icon="clock">Closes in @DaysLeft(item) days</SapBadge>
                                 }
                                 @if (item.ApplicationStatus is not null)
                                 {
@@ -70,7 +71,7 @@
                             }
                         </div>
 
-                        <ScoreRing Value="item.MatchScore" Size="76" Thickness="8" Label="Match" Caption="match" />
+                        <ScoreRing Value="item.MatchScore" Size="76" Thickness="8" Label="Match" Caption="match" Hue="@Hues.ForKey(item.Company)" />
                     </div>
                 </a>
             }

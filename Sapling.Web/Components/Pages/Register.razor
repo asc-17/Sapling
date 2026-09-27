@@ -20,6 +20,8 @@
         <span class="t-small t-subtle">@StepHint</span>
     </div>
 
+    <SegmentedTracker Total="3" Completed="StepNumber" Caption="@($"Step {StepNumber} of 3")" />
+
     @if (_error is not null)
     {
         <div class="badge badge-error" role="alert" style="padding:10px 14px;border-radius:var(--r-md);white-space:normal">
@@ -125,6 +127,13 @@
 
     private string? _error;
     private string? _notice;
+
+    private int StepNumber => Input.Step switch
+    {
+        StepCode => 2,
+        StepPassword => 3,
+        _ => 1,
+    };
 
     private string StepHint => Input.Step switch
     {

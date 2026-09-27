@@ -70,7 +70,7 @@ else if (_path is not null && _gaps is not null)
 
                     @foreach (var gap in Missing)
                     {
-                        <div class="card stack g-2" @key="gap.Id">
+                        <div class="card stack g-2 gap-card gap-@gap.Severity.ToLowerInvariant()" @key="gap.Id">
                             <div class="row g-2 wrap">
                                 <h4>@gap.SkillName</h4>
                                 <SapBadge Tone="@SeverityTone(gap.Severity)" Icon="@SeverityIcon(gap.Severity)">@gap.Severity</SapBadge>
@@ -86,7 +86,7 @@ else if (_path is not null && _gaps is not null)
                 </div>
 
                 <div class="grid grid-2">
-                    <SapCard Title="Already covered" Subtitle="What this role asks for that you have">
+                    <SapCard Title="Already covered" Subtitle="What this role asks for that you have" Class="tile hue-roadmap">
                         <ChildContent>
                             @if (Covered.Count == 0)
                             {
@@ -107,7 +107,7 @@ else if (_path is not null && _gaps is not null)
                         </ChildContent>
                     </SapCard>
 
-                    <SapCard Title="Your skills" Subtitle="@($"{_skills.Count} on your profile")">
+                    <SapCard Title="Your skills" Subtitle="@($"{_skills.Count} on your profile")" Class="tile hue-profile">
                         <ChildContent>
                             @if (_skills.Count == 0)
                             {
@@ -130,10 +130,7 @@ else if (_path is not null && _gaps is not null)
                     </SapCard>
                 </div>
 
-                <span class="t-caption t-subtle">
-                    Requirements and their importance come from O*NET. Time estimates are Sapling's rough guide for a
-                    student starting from scratch.
-                </span>
+               
             </Skills>
         </CareerDetails>
     </div>

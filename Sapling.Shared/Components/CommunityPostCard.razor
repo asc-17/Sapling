@@ -25,15 +25,22 @@
         {
             <SapBadge Tone="primary" Icon="pin">Pinned</SapBadge>
         }
-        <SapBadge Tone="@CommunityDisplay.Tone(Post.Kind)" Icon="@CommunityDisplay.Icon(Post.Kind)">@Post.Kind</SapBadge>
+        <SapBadge Tone="solid" Class="@KindHue" Icon="@CommunityDisplay.Icon(Post.Kind)">@Post.Kind</SapBadge>
     </header>
 
     @if (Full)
     {
         <div class="stack g-4">
             <h2 class="t-h3">@Post.Title</h2>
-            <div class="post-media post-media-full">
-                <img src="@CommunityDisplay.Image(Post)" alt="" loading="lazy" />
+            <div class="post-media post-media-full @MediaClass">
+                @if (HasImage)
+                {
+                    <img src="@Post.ImageUrl" alt="" loading="lazy" />
+                }
+                else
+                {
+                    <SapArt Name="community" />
+                }
             </div>
             <p class="t-body post-body">@Post.Body</p>
         </div>
@@ -45,8 +52,15 @@
                 <span class="post-title">@Post.Title</span>
                 <span class="t-small t-muted post-body post-body-clamp">@Post.Body</span>
             </span>
-            <span class="post-media">
-                <img src="@CommunityDisplay.Image(Post)" alt="" loading="lazy" />
+            <span class="post-media @MediaClass">
+                @if (HasImage)
+                {
+                    <img src="@Post.ImageUrl" alt="" loading="lazy" />
+                }
+                else
+                {
+                    <SapArt Name="community" />
+                }
             </span>
         </a>
     }
@@ -94,11 +108,11 @@
             </a>
         }
         <span class="grow"></span>
-        <button type="button" class="btn btn-ghost btn-sm" aria-pressed="@(Post.IsSaved ? "true" : "false")"
+        <button type="button" class="btn btn-ghost btn-sm save-btn" aria-pressed="@(Post.IsSaved ? "true" : "false")"
                 title="@(Post.IsSaved ? "Remove from saved" : "Save for later")"
                 aria-label="@(Post.IsSaved ? "Remove from saved" : "Save for later")"
                 @onclick="ToggleSavedAsync" disabled="@_busy">
-            <SapIcon Name="bookmark" Size="16" Stroke="@(Post.IsSaved ? 2.6 : 1.8)" />
+            <SapIcon Name="bookmark" Size="16" Stroke="2" />
             @if (Full)
             {
                 <span>@(Post.IsSaved ? "Saved" : "Save")</span>
@@ -122,6 +136,13 @@
 
 @code {
     [Parameter, EditorRequired] public CommunityPostDto Post { get; set; } = default!;
+
+    private bool HasImage => !string.IsNullOrWhiteSpace(Post.ImageUrl);
+
+    private string KindHue => $"hue-{CommunityDisplay.Hue(Post.Kind)}";
+
+    // Posts without artwork get a scene on the kind's gradient instead of a stock image.
+    private string? MediaClass => HasImage ? null : $"post-media-art {KindHue}";
 
     [Parameter] public EventCallback<CommunityPostDto> PostChanged { get; set; }
 

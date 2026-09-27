@@ -9,19 +9,44 @@
 <PageTitle>Home · Sapling</PageTitle>
 
 <div class="stack g-6">
-    <div class="stack g-1">
-        <h1 style="font-size:28px;line-height:34px">@Greeting, @(_summary?.FirstName ?? "there").</h1>
-        <span class="t-muted">@Subtitle</span>
-    </div>
+    <section class="g-card hue-brand home-hero">
+        <SapArt Name="@HeroArt" Class="g-card-art home-hero-art" />
+        <div class="stack g-3 home-hero-body">
+            <span class="t-overline">@Greeting</span>
+            <h1 class="home-hero-h1">@(_summary?.FirstName ?? "there"), @HeroLine</h1>
+            <span class="t-small">@Subtitle</span>
+            @if (_summary is not null)
+            {
+                <div class="home-hero-stats">
+                    @if (_summary is { TargetFit: { } fit, TargetRole: { } role })
+                    {
+                        <a class="home-hero-link" href="/career"><b>@fit%</b> fit for @role</a>
+                    }
+                    @if (_summary is { TotalCheckpoints: > 0 })
+                    {
+                        <span><b>@_summary.CompletedCheckpoints/@_summary.TotalCheckpoints</b> checkpoints</span>
+                    }
+                    @if (_summary is { NewOpportunities: > 0 })
+                    {
+                        <span><b>@_summary.NewOpportunities</b> new openings</span>
+                    }
+                </div>
+                <a class="btn btn-onlight btn-sm" href="@HeroRoute" style="align-self:flex-start">
+                    @HeroCta
+                    <SapIcon Name="arrow-right" Size="15" />
+                </a>
+            }
+        </div>
+    </section>
 
     <SapCarousel TItem="Banner" Items="HomeBanners.All" ShowArrows="@(FormFactor.Kind == FormFactorKind.Desktop)">
         <ItemTemplate Context="banner">
-            <a class="banner" href="@banner.Route">
-                <img class="banner-art" src="@banner.Image" alt="" aria-hidden="true" />
-                <div class="banner-body stack g-2">
+            <a class="g-card banner hue-@banner.Hue" href="@banner.Route">
+                <SapArt Name="@banner.Art" Class="g-card-art" />
+                <div class="g-card-body stack g-2">
                     <h3>@banner.Title</h3>
-                    <span class="t-small t-muted">@banner.Subtitle</span>
-                    <span class="row g-1 t-small" style="font-weight:600;color:var(--primary-text)">
+                    <span class="t-small">@banner.Subtitle</span>
+                    <span class="row g-1 t-small banner-cta">
                         @banner.Cta
                         <SapIcon Name="arrow-right" Size="15" />
                     </span>
@@ -30,27 +55,15 @@
         </ItemTemplate>
     </SapCarousel>
 
-    @if (_summary is { TargetRoleId: { } targetId, TargetRole: { } targetRole, TargetFit: { } targetFit })
-    {
-        <a class="card row g-4" href="/career">
-            <ScoreRing Value="targetFit" Size="64" Thickness="7" Label="Fit" Animate="false" />
-            <div class="stack grow" style="gap:2px;min-width:0">
-                <span class="t-overline t-subtle">Your target role</span>
-                <h4>@targetRole</h4>
-                <span class="t-caption t-subtle">@targetFit% fit. See what's missing and how to close it.</span>
-            </div>
-            <SapIcon Name="chevron-right" Size="18" />
-        </a>
-    }
 
     @if (_recent.Count > 0)
     {
         <div class="stack g-3">
-            <span class="t-overline t-subtle">Jump back in</span>
+            <span class="section-title hue-brand">Jump back in</span>
             <div class="scroll-x">
                 @foreach (var feature in _recent)
                 {
-                    <a class="recent-card" href="@feature.Route">
+                    <a class="recent-card hue-@feature.Hue" href="@feature.Route">
                         <SapIcon Name="@feature.Icon" Size="16" />
                         @feature.Title
                     </a>
@@ -60,7 +73,7 @@
     }
 
     <div class="stack g-3">
-        <span class="t-overline t-subtle">Everything you can do</span>
+        <span class="section-title hue-brand">Everything you can do</span>
         <div class="grid grid-4">
             @foreach (var feature in FeatureCatalog.HomeCards)
             {
@@ -69,34 +82,9 @@
         </div>
     </div>
 
-    @if (_summary is { TotalCheckpoints: > 0 })
-    {
-        <SapCard Title="Your roadmap" Subtitle="@($"NPTEL courses towards {_summary.TargetRole}")">
-            <Header>
-                <a class="btn btn-secondary btn-sm" href="/roadmap">Open roadmap</a>
-            </Header>
-            <ChildContent>
-                <LinearBar Percent="Progress"
-                           Label="@($"{_summary.CompletedCheckpoints} of {_summary.TotalCheckpoints} checkpoints done")"
-                           ValueText="@($"{Progress:0}%")" />
-                @if (_summary.NextCheckpoint is not null)
-                {
-                    <div class="row-top g-3 card card-inset" style="padding:var(--sp-3)">
-                        <span class="icon-tile" style="width:32px;height:32px"><SapIcon Name="list-checks" Size="16" /></span>
-                        <div class="stack grow" style="gap:0;min-width:0">
-                            <span class="t-caption t-subtle">Next up</span>
-                            <span class="t-small" style="font-weight:600">@_summary.NextCheckpoint</span>
-                        </div>
-                        <a class="btn btn-accent btn-sm" href="/roadmap">Continue</a>
-                    </div>
-                }
-            </ChildContent>
-        </SapCard>
-    }
-
     @if (_latestPosts.Count > 0)
     {
-        <SapCard Title="From the community" Subtitle="Latest from your college">
+        <SapCard Title="From the community" Subtitle="Latest from your college" Class="tile hue-community">
             <Header>
                 <a class="btn btn-secondary btn-sm" href="/community">See all</a>
             </Header>
@@ -135,15 +123,29 @@
     private List<Feature> _recent = [];
     private IReadOnlyList<CommunityPostDto> _latestPosts = [];
 
-    private double Progress => _summary is { TotalCheckpoints: > 0 }
-        ? 100.0 * _summary.CompletedCheckpoints / _summary.TotalCheckpoints
-        : 0;
-
     private static string Greeting => DateTime.Now.Hour switch
     {
         < 12 => "Good morning",
         < 17 => "Good afternoon",
         _ => "Good evening",
+    };
+
+    private string HeroLine => _summary switch
+    {
+        { NextCheckpoint: not null } => "your next lesson is ready.",
+        { TargetRole: not null } => "here's where you stand.",
+        _ => "let's find your role.",
+    };
+
+    private string HeroArt => _summary is { NextCheckpoint: not null } ? "roadmap" : "career";
+
+    private string HeroRoute => _summary is { NextCheckpoint: not null } ? "/roadmap" : "/career";
+
+    private string HeroCta => _summary switch
+    {
+        { NextCheckpoint: not null } => "Continue roadmap",
+        { TargetRole: not null } => "See your gaps",
+        _ => "Pick a target role",
     };
 
     private string Subtitle => _summary switch

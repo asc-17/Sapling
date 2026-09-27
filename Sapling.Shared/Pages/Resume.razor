@@ -22,22 +22,25 @@
     else
     {
         <div class="rs-options">
-            <a class="card rs-option" href="/resume/upload">
-                <span class="icon-tile"><SapIcon Name="upload" Size="20" /></span>
+            <a class="tile rs-option hue-resume" href="/resume/upload">
+                <SapArt Name="resume" Class="tile-art" />
+                <span class="icon-tile icon-tile-solid"><SapIcon Name="upload" Size="20" /></span>
                 <span class="stack" style="gap:2px">
                     <span style="font-weight:600">Upload your resume</span>
                     <span class="t-small t-muted">Score it, see what to fix, and edit it as LaTeX.</span>
                 </span>
             </a>
-            <a class="card rs-option" href="/resume/new">
-                <span class="icon-tile"><SapIcon Name="list-checks" Size="20" /></span>
+            <a class="tile rs-option hue-roadmap" href="/resume/new">
+                <SapArt Name="onboarding-2" Class="tile-art" />
+                <span class="icon-tile icon-tile-solid"><SapIcon Name="list-checks" Size="20" /></span>
                 <span class="stack" style="gap:2px">
                     <span style="font-weight:600">Build step by step</span>
                     <span class="t-small t-muted">Fill in education, projects and skills. We typeset it for you.</span>
                 </span>
             </a>
-            <a class="card rs-option" href="/resume/new?mode=prompt">
-                <span class="icon-tile"><SapIcon Name="sparkles" Size="20" /></span>
+            <a class="tile rs-option hue-interview" href="/resume/new?mode=prompt">
+                <SapArt Name="onboarding-1" Class="tile-art" />
+                <span class="icon-tile icon-tile-solid"><SapIcon Name="sparkles" Size="20" /></span>
                 <span class="stack" style="gap:2px">
                     <span style="font-weight:600">Describe yourself</span>
                     <span class="t-small t-muted">Write a few lines about you; the AI drafts the sections for you to check.</span>
@@ -47,7 +50,7 @@
     }
 
     <div class="stack g-3">
-        <span class="t-overline t-subtle">Your resumes</span>
+        <span class="section-title hue-resume">Your resumes</span>
         @if (_items is null)
         {
             <div class="skeleton" style="height:76px"></div>
@@ -65,11 +68,11 @@
                         <a class="row g-3 grow" style="min-width:220px;color:inherit" href="@(IsWeb ? $"/resume/{item.Id}" : null)">
                             @if (item.Score is { } score)
                             {
-                                <ScoreRing Value="score" Size="52" Thickness="6" Animate="false" Label="Resume score" />
+                                <ScoreRing Value="score" Size="52" Thickness="6" Animate="false" Label="Resume score" Hue="resume" />
                             }
                             else
                             {
-                                <span class="icon-tile" style="width:52px;height:52px"><SapIcon Name="file-text" Size="22" /></span>
+                                <span class="icon-tile icon-tile-solid hue-resume" style="width:52px;height:52px"><SapIcon Name="file-text" Size="22" /></span>
                             }
                             <span class="stack" style="gap:2px;min-width:0">
                                 <span style="font-weight:600">@item.Title</span>

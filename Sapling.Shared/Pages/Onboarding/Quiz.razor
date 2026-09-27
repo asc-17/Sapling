@@ -4,10 +4,9 @@
 @inject IProfileService Profiles
 @inject NavigationManager Nav
 
-<PageTitle>Interest check · Sapling</PageTitle>
+<PageTitle>Interest check &middot; Sapling</PageTitle>
 
-<div class="stack g-5" style="max-width:640px;margin-inline:auto">
-    <OnboardingSteps Current="3" />
+<OnboardingFrame Step="3" Hue="interview" Art="onboarding-3" SideTitle="How you like to work shapes which roles rank higher." SideBlurb="Eighteen statements, about four minutes. There are no wrong answers.">
 
     <div class="stack g-1">
         <h1 style="font-size:28px;line-height:34px">How do you like to work?</h1>
@@ -29,11 +28,16 @@
 
             <h3 style="min-height:56px">@question.Text</h3>
 
-            <div class="stack g-2">
+            <div class="scale">
                 @foreach (var option in Options)
                 {
-                    <button type="button" class="btn btn-secondary btn-block" style="justify-content:flex-start"
-                            @onclick="() => AnswerAsync(question.Id, option.Value)">
+                    <button type="button" class="scale-btn scale-@option.Value" @onclick="() => AnswerAsync(question.Id, option.Value)">
+                        <span class="scale-dots" aria-hidden="true">
+                            @for (var d = 1; d <= 5; d++)
+                            {
+                                <i class="@(d <= option.Value ? "on" : null)"></i>
+                            }
+                        </span>
                         @option.Label
                     </button>
                 }
@@ -63,7 +67,7 @@
             </div>
         </div>
     }
-</div>
+</OnboardingFrame>
 
 @code {
     private static readonly (string Label, int Value)[] Options =

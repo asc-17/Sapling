@@ -22,8 +22,9 @@ public sealed class HomeService(SaplingDbContext db, StudentContext ctx, ICareer
 
         var newOpportunities = await db.Opportunities.CountAsync(o => !applied.Contains(o.Id), ct);
 
-        var soon = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
-        var closingExams = await db.GovtExams.CountAsync(e => e.ExamOn != null && e.ExamOn <= soon, ct);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var soon = today.AddDays(30);
+        var closingExams = await db.GovtExams.CountAsync(e => e.ExamOn != null && e.ExamOn <= soon && (e.ExamEndsOn ?? e.ExamOn) >= today, ct);
 
         var weekAgo = DateTime.UtcNow.AddDays(-7);
         var newPosts = await CommunityService.VisibleTo(db, profile).CountAsync(p => p.PostedAtUtc >= weekAgo, ct);

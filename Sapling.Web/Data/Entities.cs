@@ -465,6 +465,18 @@ public class GovtExam
     public string SyllabusAreas { get; set; } = "";
 
     public string Summary { get; set; } = "";
+
+    /// <summary>The conducting body's own page, never a coaching or news site.</summary>
+    public string OfficialUrl { get; set; } = "";
+
+    /// <summary>Last day of a multi-day exam window; null when the exam is a single day.</summary>
+    public DateOnly? ExamEndsOn { get; set; }
+
+    /// <summary>True when the dates come from a calendar that the conducting body may still revise.</summary>
+    public bool DatesTentative { get; set; }
+
+    /// <summary>How many years before graduating a student may sit it: 1 for final year, 2 from third year.</summary>
+    public int OpenYearsBeforeGraduation { get; set; }
 }
 
 public class QuizQuestion

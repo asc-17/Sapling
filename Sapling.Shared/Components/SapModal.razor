@@ -1,7 +1,7 @@
 @namespace Sapling.Shared.Components
 
 <div class="scrim @(Sheet ? "sheet" : null)" @onclick="OnClose">
-    <div class="modal" @onclick:stopPropagation>
+    <div class="modal @(Wide ? "modal-wide" : null)" @onclick:stopPropagation>
         @if (!string.IsNullOrEmpty(Title))
         {
             <div class="modal-head row between g-3">
@@ -23,6 +23,9 @@
     [Parameter] public string? Title { get; set; }
 
     [Parameter] public bool Sheet { get; set; }
+
+    /// <summary>A wider dialog for two-column forms; falls back to one column on narrow screens.</summary>
+    [Parameter] public bool Wide { get; set; }
 
     [Parameter] public EventCallback OnClose { get; set; }
 

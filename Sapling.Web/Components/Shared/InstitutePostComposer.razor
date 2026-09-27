@@ -1,7 +1,7 @@
 @namespace Sapling.Web.Components.Shared
 @inject InstituteService Institutes
 
-<SapModal Title="@(IsNew ? "New post" : "Edit post")" OnClose="OnClose">
+<SapModal Title="@(IsNew ? "New post" : "Edit post")" OnClose="OnClose" Wide>
     <ChildContent>
         <div class="stack g-4">
             @if (_error is not null)
@@ -12,70 +12,77 @@
                 </div>
             }
 
-            <div class="field">
-                <label>What kind of post is this?</label>
-                <SapSegmented TValue="string" Options="_kinds" @bind-Value="_kind" />
-            </div>
+            @* Left: what the post says. Right: the optional details. One column on narrow screens. *@
+            <div class="composer-grid">
+                <div class="stack g-4">
+                    <div class="field">
+                        <label>What kind of post is this?</label>
+                        <SapSegmented TValue="string" Options="_kinds" @bind-Value="_kind" />
+                    </div>
 
-            <div class="field">
-                <label for="title">Title</label>
-                <input id="title" class="input" maxlength="140" @bind="_title" @bind:event="oninput"
-                       placeholder="Docker fundamentals workshop" />
-            </div>
+                    <div class="field">
+                        <label for="title">Title</label>
+                        <input id="title" class="input" maxlength="140" @bind="_title" @bind:event="oninput"
+                               placeholder="Docker fundamentals workshop" />
+                    </div>
 
-            <div class="field">
-                <label for="body">Body</label>
-                <textarea id="body" class="input" rows="6" maxlength="4000" @bind="_body" @bind:event="oninput"
-                          placeholder="Who it is for, what they will do, and what to bring."></textarea>
-                <span class="field-hint">@_body.Length / 4000</span>
-            </div>
-
-            <div class="grid grid-2">
-                <div class="field">
-                    <label for="startsAt">Date and time <span class="t-subtle">(optional)</span></label>
-                    <input id="startsAt" type="datetime-local" class="input" @bind="_startsAt" />
+                    <div class="field">
+                        <label for="body">Body</label>
+                        <textarea id="body" class="input" rows="9" maxlength="4000" @bind="_body" @bind:event="oninput"
+                                  placeholder="Who it is for, what they will do, and what to bring."></textarea>
+                        <span class="field-hint">@_body.Length / 4000</span>
+                    </div>
                 </div>
-                <div class="field">
-                    <label for="venue">Venue <span class="t-subtle">(optional)</span></label>
-                    <input id="venue" class="input" maxlength="120" @bind="_venue" placeholder="Seminar hall, or Online" />
-                </div>
-            </div>
 
-            <div class="grid grid-2">
-                <div class="field">
-                    <label for="ctaUrl">Link <span class="t-subtle">(optional)</span></label>
-                    <input id="ctaUrl" class="input" @bind="_ctaUrl" @bind:event="oninput" placeholder="https://..." />
-                </div>
-                <div class="field">
-                    <label for="ctaLabel">Button label</label>
-                    <input id="ctaLabel" class="input" maxlength="32" @bind="_ctaLabel"
-                           disabled="@(_ctaUrl.Trim().Length == 0)" placeholder="Register" />
-                </div>
-            </div>
+                <div class="stack g-4">
+                    <div class="grid grid-2">
+                        <div class="field">
+                            <label for="startsAt">Date and time <span class="t-subtle">(optional)</span></label>
+                            <input id="startsAt" type="datetime-local" class="input" @bind="_startsAt" />
+                        </div>
+                        <div class="field">
+                            <label for="venue">Venue <span class="t-subtle">(optional)</span></label>
+                            <input id="venue" class="input" maxlength="120" @bind="_venue" placeholder="Seminar hall, or Online" />
+                        </div>
+                    </div>
 
-            <div class="field">
-                <label for="tags">Tags <span class="t-subtle">(optional)</span></label>
-                <input id="tags" class="input" @bind="_tags" placeholder="Docker, Cloud, Linux" />
-                <span class="field-hint">Comma separated, up to eight.</span>
-            </div>
+                    <div class="grid grid-2">
+                        <div class="field">
+                            <label for="ctaUrl">Link <span class="t-subtle">(optional)</span></label>
+                            <input id="ctaUrl" class="input" @bind="_ctaUrl" @bind:event="oninput" placeholder="https://..." />
+                        </div>
+                        <div class="field">
+                            <label for="ctaLabel">Button label</label>
+                            <input id="ctaLabel" class="input" maxlength="32" @bind="_ctaLabel"
+                                   disabled="@(_ctaUrl.Trim().Length == 0)" placeholder="Register" />
+                        </div>
+                    </div>
 
-            <div class="field">
-                <label>Artwork <span class="t-subtle">(optional)</span></label>
-                <div class="row g-3 wrap">
-                    @if (!string.IsNullOrEmpty(_imageUrl))
-                    {
-                        <img src="@_imageUrl" alt="Post artwork" style="width:140px;height:80px;object-fit:cover;border-radius:var(--r-md)" />
-                    }
-                    <div class="stack g-2">
-                        <InputFile OnChange="OnImageSelectedAsync" accept="image/*" class="input" />
-                        <span class="field-hint">PNG, JPG or WEBP under 1 MB.</span>
-                        @if (!string.IsNullOrEmpty(_imageUrl))
-                        {
-                            <button type="button" class="btn btn-ghost btn-sm t-error" @onclick="() => _imageUrl = null">
-                                <SapIcon Name="trash" Size="14" />
-                                Remove artwork
-                            </button>
-                        }
+                    <div class="field">
+                        <label for="tags">Tags <span class="t-subtle">(optional)</span></label>
+                        <input id="tags" class="input" @bind="_tags" placeholder="Docker, Cloud, Linux" />
+                        <span class="field-hint">Comma separated, up to eight.</span>
+                    </div>
+
+                    <div class="field">
+                        <label>Artwork <span class="t-subtle">(optional)</span></label>
+                        <div class="row g-3 wrap">
+                            @if (!string.IsNullOrEmpty(_imageUrl))
+                            {
+                                <img src="@_imageUrl" alt="Post artwork" style="width:140px;height:80px;object-fit:cover;border-radius:var(--r-md)" />
+                            }
+                            <div class="stack g-2" style="min-width:0">
+                                <InputFile OnChange="OnImageSelectedAsync" accept="image/*" class="input" />
+                                <span class="field-hint">PNG, JPG or WEBP under 1 MB.</span>
+                                @if (!string.IsNullOrEmpty(_imageUrl))
+                                {
+                                    <button type="button" class="btn btn-ghost btn-sm t-error" @onclick="() => _imageUrl = null">
+                                        <SapIcon Name="trash" Size="14" />
+                                        Remove artwork
+                                    </button>
+                                }
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

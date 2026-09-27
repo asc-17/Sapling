@@ -34,7 +34,7 @@ else
                     <p class="t-small t-muted">@_item.Description</p>
                 </div>
 
-                <ScoreRing Value="_item.MatchScore" Size="120" Caption="two-way match" Label="Match" />
+                <ScoreRing Value="_item.MatchScore" Size="120" Caption="two-way match" Label="Match" Hue="@Hues.ForKey(_item.Company)" />
             </div>
         </div>
 

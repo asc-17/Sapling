@@ -27,15 +27,13 @@
     <nav class="tabbar">
         @foreach (var entry in Navigation.Tabs)
         {
-            <NavLink class="tab" href="@entry.Route"
+            <NavLink class="@($"tab tab-icon-only hue-{entry.Hue}")" href="@entry.Route" aria-label="@entry.Label" title="@entry.Label"
                      Match="@(entry.ExactMatch ? NavLinkMatch.All : NavLinkMatch.Prefix)">
-                <SapIcon Name="@entry.Icon" Size="21" />
-                <span>@entry.Label</span>
+                <SapIcon Name="@entry.Icon" Size="25" Stroke="2" />
             </NavLink>
         }
-        <button type="button" class="tab @(_moreOpen ? "active" : null)" @onclick="() => _moreOpen = true">
-            <SapIcon Name="grid" Size="21" />
-            <span>More</span>
+        <button type="button" class="tab tab-icon-only @(_moreOpen ? "active" : null)" aria-label="More" title="More" @onclick="() => _moreOpen = true">
+            <SapIcon Name="grid" Size="25" Stroke="2" />
         </button>
     </nav>
 </div>
@@ -46,8 +44,8 @@
         <div class="stack g-1">
             @foreach (var entry in Navigation.MoreSheet)
             {
-                <NavLink class="nav-item" href="@entry.Route" @onclick="() => _moreOpen = false">
-                    <SapIcon Name="@entry.Icon" Size="18" />
+                <NavLink class="@($"nav-item hue-{entry.Hue}")" href="@entry.Route" @onclick="() => _moreOpen = false">
+                    <SapIcon Name="@entry.Icon" Size="18" Stroke="2" />
                     <span class="grow">@entry.Label</span>
                     <SapIcon Name="chevron-right" Size="16" />
                 </NavLink>

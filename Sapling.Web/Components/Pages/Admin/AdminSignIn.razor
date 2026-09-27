@@ -9,12 +9,11 @@
 @inject SignInManager<AppUser> SignInManager
 @inject UserManager<AppUser> UserManager
 @inject NavigationManager Nav
-@inject IHostEnvironment Env
 
 <PageTitle>Admin sign in · Sapling</PageTitle>
 
-<div class="stack center" style="min-height:100vh;padding:var(--sp-5)">
-    <div class="card stack g-5" style="width:100%;max-width:400px">
+<div class="stack center staff-signin" style="min-height:100vh;padding:var(--sp-5)">
+    <div class="card stack g-5 auth-card-float" style="width:100%;max-width:400px">
         <div class="stack g-2">
             <SapLogo Size="30" WordSize="20" />
             <div class="stack g-1">
@@ -51,10 +50,6 @@
 
         <div class="stack g-2" style="text-align:center">
             <a class="t-small" href="/signin">Back to student sign-in</a>
-            @if (Env.IsDevelopment())
-            {
-                <span class="t-caption t-subtle">Demo login: @DemoSeeder.DemoAdminEmail / @DemoSeeder.DemoPassword</span>
-            }
         </div>
     </div>
 </div>

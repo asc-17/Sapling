@@ -20,14 +20,14 @@
     }
     else if (_roadmap.Steps.Count == 0)
     {
-        <SapEmptyState Title="No courses for this role yet" Icon="route"
+        <SapEmptyState Title="No courses for this role yet" Icon="route" Art="nothing-here" Hue="roadmap"
                        Description="None of the skills this role asks for has an NPTEL or Microsoft Learn course we match yet.">
             <a class="btn btn-primary" href="/paths">Explore career paths</a>
         </SapEmptyState>
     }
     else
     {
-        <SapCard Title="Progress" Subtitle="@($"{_roadmap.Steps.Count} {(_roadmap.Steps.Count == 1 ? "course" : "courses")} towards {_roadmap.RoleName}")">
+        <SapCard Title="Progress" Class="g-card hue-roadmap roadmap-hero" Subtitle="@($"{_roadmap.Steps.Count} {(_roadmap.Steps.Count == 1 ? "course" : "courses")} towards {_roadmap.RoleName}")">
             <Header>
                 <SapBadge Tone="primary">@_roadmap.CompletedCheckpoints of @_roadmap.TotalCheckpoints checkpoints</SapBadge>
             </Header>
@@ -50,6 +50,7 @@
             </label>
         </div>
 
+        <ol class="journey" style="--journey-done:@(Progress.ToString("0"))%">
         @for (var i = 0; i < Ordered.Count; i++)
         {
             var step = Ordered[i];
@@ -60,12 +61,13 @@
             var doneCount = course.Checkpoints.Count(c => c.Done);
             var finished = doneCount == course.Checkpoints.Count;
 
-            <div class="card stack g-4" @key="key" style="@(open ? "border-color:var(--primary)" : null)">
+            <li class="journey-step @(finished ? "done" : open ? "current" : null)" @key="key">
+            <div class="card stack g-4" style="@(open ? "border-color:var(--hue-roadmap-a)" : null)">
                 <div class="row-top between g-3 wrap">
                     <div class="row-top g-3" style="min-width:0">
                         <span class="row center t-num" style="width:38px;height:38px;flex:none;border-radius:var(--r-md);font-size:15px;
-                                     background:@(finished ? "var(--primary)" : "var(--primary-soft)");
-                                     color:@(finished ? "var(--primary-on)" : "var(--primary-text)")">
+                                     background:@(finished ? "var(--green)" : "var(--hue-roadmap-soft)");
+                                     color:@(finished ? "#fff" : "var(--hue-roadmap-text)")">
                             @if (finished)
                             {
                                 <SapIcon Name="check" Size="18" Stroke="2.5" />
@@ -178,7 +180,9 @@
                     </span>
                 }
             </div>
+            </li>
         }
+        </ol>
         </div>
 
         <span class="t-caption t-subtle">

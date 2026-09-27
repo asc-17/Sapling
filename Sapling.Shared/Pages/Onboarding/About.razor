@@ -5,10 +5,9 @@
 @inject IProfileService Profiles
 @inject NavigationManager Nav
 
-<PageTitle>About you - Sapling</PageTitle>
+<PageTitle>About you &middot; Sapling</PageTitle>
 
-<div class="stack g-5" style="max-width:640px;margin-inline:auto">
-    <OnboardingSteps Current="1" />
+<OnboardingFrame Step="1" Hue="profile" Art="onboarding-1" SideTitle="Your course decides which career paths we show first." SideBlurb="Three short steps. Everything here can be changed later from your profile.">
 
     <div class="stack g-1">
         <h1 style="font-size:28px;line-height:34px">Tell us about you</h1>
@@ -169,7 +168,7 @@
             <div class="skeleton" style="height:44px"></div>
         </div>
     }
-</div>
+</OnboardingFrame>
 
 @code {
     private Form? _form;

@@ -1,5 +1,6 @@
 /* Sapling base: reset, typography, layout primitives, component classes.
-   Design rules: no gradients, no glows, focus is a 2px primary border, touch targets >= 44px. */
+   Design rules: plain surfaces stay flat; gradients and glows live in vivid.css and only on hue-scoped surfaces
+   (.g-card, .tile, .hue-*). Focus is a 2px primary border, touch targets >= 44px. */
 
 *,
 *::before,
@@ -52,6 +53,12 @@ textarea {
 :focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
+}
+
+/* FocusOnNavigate moves focus to the page h1 for screen readers; don't draw a box around it. */
+h1:focus,
+[tabindex='-1']:focus {
+    outline: none;
 }
 
 ::selection {
@@ -602,7 +609,7 @@ button.card:active {
     background-position: right var(--sp-3) center;
 }
 
-html[data-sapling-theme='dark'] .select {
+html[data-sapling-mode='dark'] .select {
     background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238A8A8A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
@@ -858,15 +865,44 @@ html[data-sapling-theme='dark'] .select {
     border: 1px solid var(--line);
     border-radius: var(--r-lg);
     box-shadow: var(--shadow-overlay);
+    /* Tall forms scroll inside the body; head and foot stay put. */
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 2 * var(--sp-4));
+}
+
+.modal-wide {
+    width: min(100%, 900px);
 }
 
 .modal-head {
     padding: var(--sp-4) var(--sp-5);
     border-bottom: 1px solid var(--line);
+    flex: none;
 }
 
 .modal-body {
     padding: var(--sp-5);
+    overflow-y: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+
+.modal-foot {
+    flex: none;
+}
+
+.composer-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-4) var(--sp-5);
+    align-items: start;
+}
+
+@media (min-width: 760px) {
+    .composer-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
 }
 
 .modal-foot {

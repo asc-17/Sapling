@@ -18,17 +18,17 @@
         <div class="sidebar-nav">
             @foreach (var entry in Navigation.Primary)
             {
-                <NavLink class="nav-item" href="@entry.Route"
+                <NavLink class="@($"nav-item hue-{entry.Hue}")" href="@entry.Route"
                          Match="@(entry.ExactMatch ? NavLinkMatch.All : NavLinkMatch.Prefix)"
                          title="@(_collapsed ? entry.Label : null)">
-                    <SapIcon Name="@entry.Icon" Size="18" />
+                    <SapIcon Name="@entry.Icon" Size="18" Stroke="2" />
                     <span>@entry.Label</span>
                 </NavLink>
             }
         </div>
 
         <div class="sidebar-foot">
-            <NavLink class="nav-item" href="/profile" title="@(_collapsed ? "Profile & settings" : null)">
+            <NavLink class="nav-item hue-profile" href="/profile" title="@(_collapsed ? "Profile & settings" : null)">
                 @if (!string.IsNullOrEmpty(AvatarDataUrl))
                 {
                     <img src="@AvatarDataUrl" alt="@DisplayName" class="avatar" style="width:26px;height:26px;object-fit:cover;border-radius:var(--r-pill)" />
@@ -76,14 +76,14 @@
         <nav class="tabbar shell-narrow" aria-label="Main">
             @foreach (var entry in Navigation.Tabs)
             {
-                <NavLink class="tab" href="@entry.Route"
+                <NavLink class="@($"tab hue-{entry.Hue}")" href="@entry.Route"
                          Match="@(entry.ExactMatch ? NavLinkMatch.All : NavLinkMatch.Prefix)">
-                    <SapIcon Name="@entry.Icon" Size="21" />
+                    <SapIcon Name="@entry.Icon" Size="21" Stroke="2" />
                     <span>@entry.Label</span>
                 </NavLink>
             }
             <button type="button" class="tab @(_moreOpen ? "active" : null)" @onclick="() => _moreOpen = true">
-                <SapIcon Name="grid" Size="21" />
+                <SapIcon Name="grid" Size="21" Stroke="2" />
                 <span>More</span>
             </button>
         </nav>
@@ -96,8 +96,8 @@
         <div class="stack g-1">
             @foreach (var entry in Navigation.MoreSheet)
             {
-                <NavLink class="nav-item" href="@entry.Route" @onclick="() => _moreOpen = false">
-                    <SapIcon Name="@entry.Icon" Size="18" />
+                <NavLink class="@($"nav-item hue-{entry.Hue}")" href="@entry.Route" @onclick="() => _moreOpen = false">
+                    <SapIcon Name="@entry.Icon" Size="18" Stroke="2" />
                     <span class="grow">@entry.Label</span>
                     <SapIcon Name="chevron-right" Size="16" />
                 </NavLink>

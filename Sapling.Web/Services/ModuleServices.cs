@@ -268,11 +268,15 @@ public sealed class GovtService(SaplingDbContext db, StudentContext ctx) : IGovt
     public async Task<IReadOnlyList<GovtExamDto>> GetExamsAsync(CancellationToken ct = default)
     {
         var profile = await ctx.GetProfileAsync(ct);
+        var today = DateOnly.FromDateTime(DateTime.Today);
         var exams = await db.GovtExams.ToListAsync(ct);
+
+        // Soonest first; finished exams drop off, and ones without announced dates go last.
         return exams
+            .Where(e => (e.ExamEndsOn ?? e.ExamOn ?? DateOnly.MaxValue) >= today)
             .Select(e => Evaluate(e, profile))
-            .OrderBy(e => e.Eligibility == "Eligible" ? 0 : e.Eligibility == "Eligible next year" ? 1 : 2)
-            .ThenBy(e => e.ExamOn ?? DateOnly.MaxValue)
+            .OrderBy(e => e.ExamOn ?? DateOnly.MaxValue)
+            .ThenBy(e => e.Name)
             .ToList();
     }
 
@@ -287,7 +291,8 @@ public sealed class GovtService(SaplingDbContext db, StudentContext ctx) : IGovt
     private static GovtExamDto Evaluate(GovtExam e, StudentProfile profile)
     {
         var reasons = new List<string>();
-        var graduatesThisYear = profile.GraduationYear <= DateTime.Today.Year;
+        // An exam open to final-year (or third-year) students accepts you that many years before graduating.
+        var graduatesThisYear = profile.GraduationYear <= DateTime.Today.Year + e.OpenYearsBeforeGraduation;
         var status = "Eligible";
 
         if (e.QualificationRequired.Contains("Postgraduate", StringComparison.OrdinalIgnoreCase))
@@ -325,7 +330,9 @@ public sealed class GovtService(SaplingDbContext db, StudentContext ctx) : IGovt
             }
         }
 
-        reasons.Add($"Age window is {e.MinAge} to {e.MaxAge} years, which a {DateTime.Today.Year} graduate normally falls inside.");
+        reasons.Add(e.MaxAge == 0
+            ? "There is no upper age limit."
+            : $"Age window is {e.MinAge} to {e.MaxAge} years, which a {DateTime.Today.Year} graduate normally falls inside.");
 
         if (e.NotificationOn is { } notified && notified <= DateOnly.FromDateTime(DateTime.Today))
         {
@@ -334,7 +341,8 @@ public sealed class GovtService(SaplingDbContext db, StudentContext ctx) : IGovt
 
         return new GovtExamDto(
             e.Id, e.Name, e.Authority, e.Level, e.NotificationOn, e.ExamOn,
-            status, reasons, CareerService.Split(e.SyllabusAreas), e.Summary);
+            status, reasons, CareerService.Split(e.SyllabusAreas), e.Summary,
+            e.OfficialUrl, e.ExamEndsOn, e.DatesTentative);
     }
 }
 

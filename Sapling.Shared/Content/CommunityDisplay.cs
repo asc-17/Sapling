@@ -24,13 +24,13 @@ public static class CommunityDisplay
         _ => "neutral",
     };
 
-    /// <summary>Stable tint per institution until institutions can upload a logo.</summary>
-    public static string InstitutionTone(int institutionId) => (institutionId % 4) switch
+    /// <summary>Feature hue used for a post kind's placeholder art and filled badge.</summary>
+    public static string Hue(string kind) => kind switch
     {
-        0 => "primary",
-        1 => "success",
-        2 => "info",
-        _ => "warn",
+        PostKinds.Opportunity => "opportunities",
+        PostKinds.Workshop => "roadmap",
+        PostKinds.Event => "community",
+        _ => "govt",
     };
 
     /// <summary>
