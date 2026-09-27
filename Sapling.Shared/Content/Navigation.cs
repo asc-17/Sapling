@@ -7,10 +7,10 @@ public static class Navigation
     public static readonly IReadOnlyList<NavEntry> Primary =
     [
         new("Home", "/home", "home", true),
-        new("Career paths", "/paths", "compass"),
-        new("Skills & gaps", "/skills", "radar"),
+        new("Career & skills", "/career", "compass"),
         new("Roadmap", "/roadmap", "route"),
         new("Opportunities", "/opportunities", "briefcase"),
+        new("Community", "/community", "users"),
         new("Resume", "/resume", "file-text"),
         new("Mock interview", "/interview", "mic"),
         new("Government", "/govt", "landmark"),
@@ -26,9 +26,8 @@ public static class Navigation
 
     public static readonly IReadOnlyList<NavEntry> MoreSheet =
     [
-        new("Employability Score", "/score", "gauge"),
-        new("Career paths", "/paths", "compass"),
-        new("Skills & gaps", "/skills", "radar"),
+        new("Community", "/community", "users"),
+        new("Career & skills", "/career", "compass"),
         new("Resume", "/resume", "file-text"),
         new("Government track", "/govt", "landmark"),
         new("Profile & settings", "/profile", "user"),
