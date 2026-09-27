@@ -5,7 +5,7 @@
 <PageTitle>Roadmap · Sapling</PageTitle>
 <RecordVisit Feature="@FeatureCatalog.Roadmap" />
 
-<div class="stack g-5" style="max-width:860px">
+<div class="stack g-5">
     <div class="page-head">
         <div class="stack g-1">
             <h1 style="font-size:28px;line-height:34px">Your roadmap</h1>
@@ -36,6 +36,8 @@
             </ChildContent>
         </SapCard>
 
+        @* The sort bar belongs to the list it sorts, so they share a tighter gap than the page's sections. *@
+        <div class="stack g-3">
         <div class="row between g-3 wrap">
             <span class="t-caption t-subtle">@_roadmap.Steps.Count(s => !s.Have) to learn &middot; @_roadmap.Steps.Count(s => s.Have) you have</span>
             <label class="row g-2 t-small t-muted" style="white-space:nowrap">
@@ -177,6 +179,7 @@
                 }
             </div>
         }
+        </div>
 
         <span class="t-caption t-subtle">
             Courses: @_roadmap.Source. Where a skill has more than one course, only the one you follow counts towards

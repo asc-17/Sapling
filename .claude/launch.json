@@ -7,6 +7,19 @@
       "runtimeArgs": ["run", "--project", "Sapling.Web", "--launch-profile", "http"],
       "port": 5250,
       "url": "http://localhost:5250"
+    },
+    {
+      "name": "sapling-web-test",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "C:/Users/ASC/AppData/Local/Temp/claude/E--Prog-Git-Sapling/7f1a6a0e-04e2-4a03-a131-4f44ee7f14f0/scratchpad/bw/Sapling.Web.dll",
+        "--urls", "http://localhost:5260",
+        "--environment", "Development",
+        "--contentRoot", "E:/Prog/Git/Sapling/Sapling.Web",
+        "--ConnectionStrings:Sapling=Data Source=C:/Users/ASC/AppData/Local/Temp/claude/E--Prog-Git-Sapling/7f1a6a0e-04e2-4a03-a131-4f44ee7f14f0/scratchpad/test.db"
+      ],
+      "port": 5260,
+      "url": "http://localhost:5260"
     }
   ]
 }

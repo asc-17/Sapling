@@ -13,13 +13,21 @@ public interface ITurnstileService
 /// sign-in, registration or password-reset submission. Fails closed: a missing token or secret key
 /// never verifies.
 /// </summary>
-public sealed class TurnstileService(HttpClient http, IConfiguration config, ILogger<TurnstileService> logger) : ITurnstileService
+public sealed class TurnstileService(HttpClient http, IConfiguration config, IHostEnvironment env, ILogger<TurnstileService> logger) : ITurnstileService
 {
     private const string VerifyUrl = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+
+    // Cloudflare's published always-pass test secret, paired with the widget's test site key. Development only.
+    private const string DevTestSecret = "1x0000000000000000000000000000000AA";
 
     public async Task<bool> VerifyAsync(string? token, string? remoteIp, CancellationToken ct = default)
     {
         var secretKey = config["Turnstile:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secretKey) && env.IsDevelopment())
+        {
+            secretKey = DevTestSecret;
+        }
+
         if (string.IsNullOrWhiteSpace(secretKey) || string.IsNullOrWhiteSpace(token))
         {
             return false;

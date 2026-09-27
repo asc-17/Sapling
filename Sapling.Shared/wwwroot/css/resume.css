@@ -299,8 +299,8 @@
 
 .rs-main {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 380px;
-    gap: var(--sp-3);
+    grid-template-columns: var(--rs-cols, minmax(0, 1fr) 12px minmax(0, 1fr) 12px 380px);
+    gap: 0;
     padding: var(--sp-3) var(--sp-4) var(--sp-4);
     flex: 1 1 auto;
     min-height: 0;
@@ -493,7 +493,7 @@
 
 @media (max-width: 1199px) {
     .rs-main {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 320px;
+        grid-template-columns: var(--rs-cols, minmax(0, 1fr) 12px minmax(0, 1fr) 12px 320px);
     }
 }
 
@@ -524,5 +524,67 @@
     .rs-topbar {
         flex-wrap: wrap;
         padding: var(--sp-2) var(--sp-3);
+    }
+}
+
+@media (max-width: 799px) {
+    /* Icon beside the text keeps the three options short on a phone. */
+    .rs-option {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .rs-option .icon-tile {
+        flex: none;
+    }
+}
+
+/* ---------- Resizable panes (drag handles between them) ---------- */
+
+.rs-resizer {
+    position: relative;
+    cursor: col-resize;
+    touch-action: none;
+    outline: none;
+}
+
+/* A thin line in the middle of the 12px handle, which lights up on hover, focus and drag. */
+.rs-resizer::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    bottom: 12px;
+    left: 50%;
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 2px;
+    background: transparent;
+    transition: background var(--dur-fast) ease;
+}
+
+.rs-resizer:hover::after,
+.rs-resizer:focus-visible::after,
+.rs-dragging .rs-resizer::after {
+    background: var(--primary);
+}
+
+/* While dragging, the PDF iframe must not swallow the pointer, and text must not get selected. */
+.rs-dragging {
+    cursor: col-resize;
+    user-select: none;
+}
+
+.rs-dragging iframe,
+.rs-dragging .rs-code {
+    pointer-events: none;
+}
+
+@media (max-width: 999px) {
+    .rs-main .rs-resizer {
+        display: none;
+    }
+
+    .rs-main {
+        gap: var(--sp-3);
     }
 }

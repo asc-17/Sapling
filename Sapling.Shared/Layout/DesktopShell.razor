@@ -53,11 +53,58 @@
     </nav>
 
     <div class="shell-main">
+        @* Phone-width browsers get the mobile app's navigation instead of the sidebar (see .shell-narrow in app.css). *@
+        <header class="topbar shell-narrow">
+            <a href="/home" aria-label="Sapling home"><SapLogo Size="26" /></a>
+            <span class="grow"></span>
+            <NavLink href="/profile" aria-label="Profile and settings">
+                @if (!string.IsNullOrEmpty(AvatarDataUrl))
+                {
+                    <img src="@AvatarDataUrl" alt="" class="avatar" style="width:30px;height:30px;object-fit:cover;border-radius:var(--r-pill)" />
+                }
+                else
+                {
+                    <span class="avatar" style="width:30px;height:30px;font-size:12px">@Initials</span>
+                }
+            </NavLink>
+        </header>
+
         <main class="page">
             @ChildContent
         </main>
+
+        <nav class="tabbar shell-narrow" aria-label="Main">
+            @foreach (var entry in Navigation.Tabs)
+            {
+                <NavLink class="tab" href="@entry.Route"
+                         Match="@(entry.ExactMatch ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                    <SapIcon Name="@entry.Icon" Size="21" />
+                    <span>@entry.Label</span>
+                </NavLink>
+            }
+            <button type="button" class="tab @(_moreOpen ? "active" : null)" @onclick="() => _moreOpen = true">
+                <SapIcon Name="grid" Size="21" />
+                <span>More</span>
+            </button>
+        </nav>
     </div>
 </div>
+
+@if (_moreOpen)
+{
+    <SapModal Sheet Title="All features" OnClose="() => _moreOpen = false">
+        <div class="stack g-1">
+            @foreach (var entry in Navigation.MoreSheet)
+            {
+                <NavLink class="nav-item" href="@entry.Route" @onclick="() => _moreOpen = false">
+                    <SapIcon Name="@entry.Icon" Size="18" />
+                    <span class="grow">@entry.Label</span>
+                    <SapIcon Name="chevron-right" Size="16" />
+                </NavLink>
+            }
+        </div>
+    </SapModal>
+}
 
 @code {
     private const string SidebarKey = "sapling-sidebar-collapsed";
@@ -69,6 +116,7 @@
     private string DisplayName { get; set; } = "Student";
     private string? AvatarDataUrl { get; set; }
     private bool _collapsed;
+    private bool _moreOpen;
 
     private string Initials => string.Concat(
         DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries)

@@ -76,7 +76,7 @@ else
             </div>
         }
 
-        <div class="rs-main" data-pane="@_pane">
+        <div class="rs-main" data-pane="@_pane" @ref="_mainHost">
             <section class="rs-pane rs-pane-code" aria-label="LaTeX source">
                 <div class="rs-pane-head">
                     <span class="row g-2"><SapIcon Name="code" Size="15" /> <b>LaTeX</b></span>
@@ -97,6 +97,9 @@ else
                     }
                 </div>
             </section>
+
+            <div class="rs-resizer" data-resizer="0" role="separator" aria-orientation="vertical" tabindex="0"
+                 aria-label="Resize the LaTeX and preview panes" title="Drag to resize. Double-click to reset."></div>
 
             <section class="rs-pane rs-pane-preview" aria-label="PDF preview">
                 <div class="rs-pane-head">
@@ -134,6 +137,9 @@ else
                     </details>
                 }
             </section>
+
+            <div class="rs-resizer" data-resizer="1" role="separator" aria-orientation="vertical" tabindex="0"
+                 aria-label="Resize the preview and review panes" title="Drag to resize. Double-click to reset."></div>
 
             <aside class="rs-pane rs-pane-side" aria-label="Review and AI">
                 <div class="rs-pane-head">
@@ -245,6 +251,7 @@ else
     private ResumeDto? _resume;
     private string _title = "";
     private ElementReference _editorHost;
+    private ElementReference _mainHost;
     private ElementReference _previewHost;
     private DotNetObjectReference<ResumeEditor>? _ref;
     private bool _mounting;
@@ -322,6 +329,7 @@ else
         _ref = DotNetObjectReference.Create(this);
         try
         {
+            await Js.InvokeVoidAsync("sapling.resume.initResizers", _mainHost);
             _editorKind = await Js.InvokeAsync<string>("sapling.resume.mount", _editorHost, _previewHost, _resume.Latex, _ref);
             _mounted = true;
             StateHasChanged();

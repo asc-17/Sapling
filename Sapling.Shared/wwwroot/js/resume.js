@@ -123,7 +123,92 @@
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
+    // Resizable panes. Widths are kept as fr weights (the panes' pixel widths), so the split keeps its
+    // proportions when the window changes size, and they are remembered per browser.
+    const PANES_KEY = 'sapling-resume-panes';
+    const MIN_PANE = 240;
+    const HANDLE = 12;
+
+    const paneEls = main => [...main.querySelectorAll(':scope > .rs-pane')];
+
+    function applyWidths(main, widths) {
+        const [a, b, c] = widths.map(w => Math.max(1, Math.round(w)));
+        main.style.setProperty('--rs-cols', `minmax(0, ${a}fr) ${HANDLE}px minmax(0, ${b}fr) ${HANDLE}px minmax(0, ${c}fr)`);
+    }
+
+    function saveWidths(widths) {
+        try { localStorage.setItem(PANES_KEY, JSON.stringify(widths.map(Math.round))); } catch { /* private mode */ }
+    }
+
+    /** Moves the border between pane i and pane i+1 by delta pixels, from the given starting widths. */
+    function resized(start, i, delta) {
+        const widths = [...start];
+        const pair = start[i] + start[i + 1];
+        const left = Math.min(Math.max(start[i] + delta, MIN_PANE), pair - MIN_PANE);
+        widths[i] = left;
+        widths[i + 1] = pair - left;
+        return widths;
+    }
+
+    function initResizers(main) {
+        if (!main || main.dataset.resizers) return;
+        main.dataset.resizers = 'on';
+
+        try {
+            const saved = JSON.parse(localStorage.getItem(PANES_KEY) ?? 'null');
+            if (Array.isArray(saved) && saved.length === 3 && saved.every(n => n > 0)) applyWidths(main, saved);
+        } catch { /* ignore bad data */ }
+
+        const current = () => paneEls(main).map(p => p.getBoundingClientRect().width);
+
+        main.querySelectorAll('.rs-resizer').forEach(handle => {
+            const i = Number(handle.dataset.resizer);
+
+            handle.addEventListener('pointerdown', e => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                const start = current();
+                const x0 = e.clientX;
+                let latest = start;
+                try { handle.setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
+                main.classList.add('rs-dragging');
+
+                const onMove = ev => {
+                    latest = resized(start, i, ev.clientX - x0);
+                    applyWidths(main, latest);
+                };
+                const onUp = () => {
+                    handle.removeEventListener('pointermove', onMove);
+                    handle.removeEventListener('pointerup', onUp);
+                    handle.removeEventListener('pointercancel', onUp);
+                    main.classList.remove('rs-dragging');
+                    saveWidths(latest);
+                };
+                handle.addEventListener('pointermove', onMove);
+                handle.addEventListener('pointerup', onUp);
+                handle.addEventListener('pointercancel', onUp);
+            });
+
+            // Arrow keys nudge the border (Shift for bigger steps); double-click resets the layout.
+            handle.addEventListener('keydown', e => {
+                if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+                e.preventDefault();
+                const step = (e.shiftKey ? 80 : 20) * (e.key === 'ArrowLeft' ? -1 : 1);
+                const widths = resized(current(), i, step);
+                applyWidths(main, widths);
+                saveWidths(widths);
+            });
+
+            handle.addEventListener('dblclick', () => {
+                main.style.removeProperty('--rs-cols');
+                try { localStorage.removeItem(PANES_KEY); } catch { /* private mode */ }
+            });
+        });
+    }
+
     const api = {
+        initResizers,
+
         /** Returns "code" when CodeMirror loaded, "plain" when it fell back to a textarea. */
         async mount(editorHost, previewHost, text, dotnetRef) {
             api.destroy();

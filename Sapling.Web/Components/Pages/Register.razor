@@ -10,6 +10,7 @@
 @inject AccountFlowService Flow
 @inject SignInManager<AppUser> SignInManager
 @inject NavigationManager Nav
+@inject ITurnstileService Turnstile
 
 <PageTitle>Create an account · Sapling</PageTitle>
 
@@ -34,7 +35,7 @@
     }
 
     @* Static rendering keeps no state between posts, so earlier answers ride along in hidden fields. *@
-    <EditForm Model="Input" method="post" OnSubmit="SubmitAsync" FormName="register" class="stack g-4">
+    <EditForm Model="Input" method="post" OnSubmit="SubmitAsync" FormName="register" Enhance="false" class="stack g-4">
         <input type="hidden" name="Input.Step" value="@Input.Step" />
 
         @if (Input.Step == StepEmail)
@@ -55,6 +56,8 @@
                 <InputText id="email" type="email" class="input" @bind-Value="Input.Email" autocomplete="email" placeholder="you@college.ac.in" />
                 <span class="field-hint">We will email you a 6-digit code to confirm it is yours.</span>
             </div>
+
+            <SapTurnstile />
 
             <button type="submit" name="Input.Action" value="send" class="btn btn-primary btn-block">Send code</button>
         }
@@ -118,6 +121,8 @@
 
     [SupplyParameterFromForm] private RegisterInput Input { get; set; } = default!;
 
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
     private string? _error;
     private string? _notice;
 
@@ -142,6 +147,17 @@
                 {
                     Show(AccountFlowResult.Fail("Enter your first and last name."), StepEmail);
                     return;
+                }
+
+                // The captcha is only on the first step; "resend" happens later without a widget on the page.
+                if (Input.Action == "send")
+                {
+                    var token = HttpContext?.Request.Form["cf-turnstile-response"].ToString();
+                    if (!await Turnstile.VerifyAsync(token, HttpContext?.Connection.RemoteIpAddress?.ToString()))
+                    {
+                        Show(AccountFlowResult.Fail("We could not verify you are human. Please try again."), StepEmail);
+                        return;
+                    }
                 }
 
                 var sent = await Flow.SendRegistrationCodeAsync(Input.Email);

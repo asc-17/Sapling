@@ -2,20 +2,27 @@
 @inject ICareerService Careers
 
 @* Every career, ranked for the student. Opening a card previews the role, where it can be made the target. *@
-<div class="stack g-5">
-    <div class="row g-3 wrap">
-        <div class="scroll-x">
-            <SapSegmented TValue="string" Options="_scopes" Value="_scope" ValueChanged="OnScopeChanged" />
+<div class="stack g-4">
+    @* One toolbar: scope, search and sort on a line, with the result count right under it. *@
+    <div class="stack g-2">
+        <div class="chooser-toolbar">
+            <div class="scroll-x">
+                <SapSegmented TValue="string" Options="_scopes" Value="_scope" ValueChanged="OnScopeChanged" />
+            </div>
+            <input class="input chooser-search" type="search" placeholder="Search roles or fields"
+                   aria-label="Search roles" @bind="_query" @bind:event="oninput" />
+            <label class="row g-2 t-small t-muted chooser-sort">
+                Sort by
+                <select class="select" style="width:auto" @bind="_sort">
+                    <option value="fit">Skill Match</option>
+                    <option value="outlook">Popularity</option>
+                </select>
+            </label>
         </div>
-        <input class="input grow" style="min-width:200px;max-width:340px" type="search" placeholder="Search roles or fields"
-               aria-label="Search roles" @bind="_query" @bind:event="oninput" />
-        <label class="row g-2 t-small t-muted" style="white-space:nowrap">
-            Sort by
-            <select class="select" style="width:auto" @bind="_sort">
-                <option value="fit">Skill Match</option>
-                <option value="outlook">Popularity</option>
-            </select>
-        </label>
+        @if (_paths is not null && Visible.Count > 0)
+        {
+            <span class="t-caption t-subtle">@Visible.Count @(Visible.Count == 1 ? "role" : "roles"). Open one to see it in full and make it your target.</span>
+        }
     </div>
 
     @if (_paths is null)
@@ -38,8 +45,6 @@
     }
     else
     {
-        <span class="t-caption t-subtle">@Visible.Count @(Visible.Count == 1 ? "role" : "roles"). Open one to see it in full and make it your target.</span>
-
         <div class="grid grid-3">
             @foreach (var path in Visible)
             {

@@ -7,5 +7,6 @@
 
 @code {
     // Falls back to Cloudflare's always-pass test key so local dev works without secrets configured.
-    private string SiteKey => Config["Turnstile:SiteKey"] ?? "1x00000000000000000000AA";
+    // appsettings.json ships the key as "", so an empty value must fall back too, not only a missing one.
+    private string SiteKey => string.IsNullOrWhiteSpace(Config["Turnstile:SiteKey"]) ? "1x00000000000000000000AA" : Config["Turnstile:SiteKey"]!;
 }

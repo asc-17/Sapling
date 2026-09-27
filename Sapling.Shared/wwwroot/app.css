@@ -166,6 +166,32 @@
     margin-bottom: var(--sp-5);
 }
 
+/* ---------- App shell: web at phone width ---------- */
+
+/* The web head always uses the desktop shell, so narrow browsers swap the sidebar for a top bar and tab bar. */
+.shell-desktop .shell-narrow {
+    display: none;
+}
+
+@media (max-width: 899px) {
+    .shell-desktop > .sidebar {
+        display: none;
+    }
+
+    .shell-desktop .topbar.shell-narrow,
+    .shell-desktop .tabbar.shell-narrow {
+        display: flex;
+    }
+
+    .shell-desktop .page {
+        padding: var(--sp-4) var(--sp-4) calc(var(--tabbar-h) + var(--sp-6) + env(safe-area-inset-bottom));
+    }
+
+    .page-head {
+        flex-wrap: wrap;
+    }
+}
+
 /* ---------- App shell: mobile ---------- */
 
 .shell-mobile {
